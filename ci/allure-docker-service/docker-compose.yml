@@ -1,0 +1,28 @@
+version: '3'
+services:
+  allure:
+    image: "frankescobar/allure-docker-service:2.17.2"
+    user: 1000:1000
+    environment:
+      CHECK_RESULTS_EVERY_SECONDS: NONE # report generation only on demand
+      KEEP_HISTORY: 1 # enable storing of past reports
+      KEEP_HISTORY_LATEST: 31 # number of latest reports to be kept (31 means around a month of nighlty build results)
+      TLS: 0 # TLS off as security cookies used by service are being pruned (ec2 host machine not secure)
+      SECURITY_ENABLED: 1 # enables security user and controlled access to reporting server
+      SECURITY_USER: ${SECURITY_USER} # admin user
+      SECURITY_PASS: ${SECURITY_PASS} # admin user password
+      SECURITY_VIEWER_USER: ${SECURITY_VIEWER_USER} # viewer user
+      SECURITY_VIEWER_PASS: ${SECURITY_VIEWER_PASS} # viewer password
+      OPTIMIZE_STORAGE: 1 # common report files referenced instead of being generated and stored with each report
+      ACCESS_TOKEN_EXPIRES_IN_MINS: 60 #user logout policy - 60 minutes
+    ports:
+      - "5050:5050"
+    volumes:
+      - ${PWD}/projects:/app/projects
+  allure-ui:
+    image: "frankescobar/allure-docker-service-ui:7.0.3"
+    environment:
+      ALLURE_DOCKER_PUBLIC_API_URL: "${ALLURE_DOCKER_PUBLIC_API_URL}"
+      ALLURE_DOCKER_PUBLIC_API_URL_PREFIX: ""
+    ports:
+      - "5252:5252"
