@@ -1,0 +1,12 @@
+version: "3"
+services:
+  dozzle:
+    container_name: dozzle
+    image: amir20/dozzle:latest
+    environment:
+      DOZZLE_USERNAME: ${DOZZLE_USERNAME}
+      DOZZLE_PASSWORD: ${DOZZLE_PASSWORD}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - 9999:9999
