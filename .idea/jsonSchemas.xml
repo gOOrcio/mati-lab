@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="JsonSchemaMappingsProjectConfiguration">
+    <state>
+      <map>
+        <entry key="Traefik v2 File Provider">
+          <value>
+            <SchemaInfo>
+              <option name="name" value="Traefik v2 File Provider" />
+              <option name="relativePathToSchema" value="https://json.schemastore.org/traefik-v2-file-provider.json" />
+              <option name="applicationDefined" value="true" />
+              <option name="patterns">
+                <list>
+                  <Item>
+                    <option name="path" value="traefik/conf/certificates.yml" />
+                  </Item>
+                  <Item>
+                    <option name="path" value="traefik/conf/dynamic-configuration.yml" />
+                  </Item>
+                </list>
+              </option>
+            </SchemaInfo>
+          </value>
+        </entry>
+      </map>
+    </state>
+  </component>
+</project>

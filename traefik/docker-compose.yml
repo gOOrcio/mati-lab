@@ -5,13 +5,11 @@ networks:
     external: true
 
 services:
-
   traefik:
     image: "traefik:v2.8"
     container_name: "traefik"
-    command:
-      - "--entrypoints.web.address=:80"
-      - "--entrypoints.websecure.address=:443"
+    networks:
+      - treafik
     ports:
       - "80:80"
       - "443:443"
@@ -24,6 +22,8 @@ services:
   whoami:
     image: "traefik/whoami"
     container_name: "whoami"
+    networks:
+      - treafik
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.whoami.rule=Path(`/whoami`)"
