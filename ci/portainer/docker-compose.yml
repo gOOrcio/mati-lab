@@ -1,17 +1,35 @@
 version: '3.3'
 
+networks:
+  treafik:
+    external: true
+
 services:
   portainer:
     image: portainer/portainer-ce:latest
     container_name: "portainer"
+    networks:
+      - treafik
     command: -H unix:///var/run/docker.sock
     restart: always
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./portainer_data:/data
-    ports:
-     - 9443:9443
-     - 9000:9000
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.portainer.rule=Path(`/portainer`)"
+      - "traefik.http.routers.portainer.entrypoints=websecure"
+      - "traefik.http.routers.portainer.service=portainer"
+      - "traefik.http.services.portainer.loadbalancer.server.port=9443"
+      - "traefik.http.routers.portainer.tls=true"
+      - "traefik.http.services.portainer.loadbalancer.server.scheme=https"
 
+      # Edge
+      - "traefik.http.routers.edge.rule=Path(`/edge`)"
+      - "traefik.http.routers.edge.entrypoints=websecure"
+      - "traefik.http.services.edge.loadbalancer.server.port=8000"
+      - "traefik.http.routers.edge.service=edge"
+      - "traefik.http.routers.edge.tls=true"
+      - "traefik.http.services.edge.loadbalancer.server.scheme=https"
 volumes:
   portainer_data:
