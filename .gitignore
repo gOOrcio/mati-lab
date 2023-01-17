@@ -173,3 +173,7 @@ local.properties
 /ci/monitoring/influxdb/
 /ci/jtl-reporter/data/
 /.idea/git_toolbox_prj.xml
+/ci/jenkins/jenkins_conf/
+/ci/jenkins/jenkins-agent
+/ci/jenkins/jenkins-agent.pub
+.idea/sonarlint
