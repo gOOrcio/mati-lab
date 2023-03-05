@@ -4,9 +4,10 @@ services:
     container_name: jenkins
     image: jenkins/jenkins:lts
     privileged: true
+    restart: always
     user: root
     ports:
-      - 8080:8080
+      - 8888:8080
       - 50000:50000
     volumes:
       - ./jenkins_conf/:/var/jenkins_home
