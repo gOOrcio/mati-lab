@@ -4,6 +4,7 @@ services:
     image: docker:dind
     container_name: jenkins-docker
     privileged: true
+    restart: always
     networks:
       - jenkins
     environment:
@@ -13,7 +14,6 @@ services:
       - jenkins-data:/var/jenkins_home
     ports:
       - 2376:2376
-      - 8080:8080
     command: --storage-driver overlay2
 networks:
   jenkins:
