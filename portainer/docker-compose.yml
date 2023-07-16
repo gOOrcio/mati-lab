@@ -12,4 +12,4 @@ services:
       - port_data:/data
 
 volumes:
-  portainer_data:
+  port_data:
