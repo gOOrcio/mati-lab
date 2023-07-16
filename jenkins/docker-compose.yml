@@ -1,23 +1,13 @@
 version: '3'
 services:
-  jenkins-docker:
-    image: docker:dind
-    container_name: jenkins-docker
-    privileged: true
-    restart: always
-    networks:
-      - jenkins
-    environment:
-      DOCKER_TLS_CERTDIR: /certs
-    volumes:
-      - jenkins-docker-certs:/certs/client
-      - jenkins-data:/var/jenkins_home
-    ports:
-      - 2376:2376
-      - 8080:8080
-    command: --storage-driver overlay2
-networks:
   jenkins:
+    image: jenkins/jenkins:lts-jdk11
+    container_name: jenkins
+    restart: always
+    ports:
+      - 8080:8080
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - jenkins-data:/var/jenkins_home
 volumes:
-  jenkins-docker-certs:
   jenkins-data:
