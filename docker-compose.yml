@@ -17,7 +17,9 @@ services:
       - "443:443"
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock"
-      - "./data/traefik:/traefik"
+      - "./traefik/traefik.yml:/traefik/traefik.yml"
+      - "./traefik/acme.json:/traefik/acme.json"
+      - "./data/traefik:/traefik/data"
     networks:
       - web
 
@@ -30,7 +32,8 @@ services:
       - "./data/jenkins:/var/jenkins_home"
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.jenkins.rule=PathPrefix(`/jenkins`)"
+      - "traefik.http.routers.jenkins.rule=Host(`jenkins.local`)"
+      - "traefik.http.routers.jenkins.entrypoints=web"
       - "traefik.http.services.jenkins.loadbalancer.server.port=8080"
     networks:
       - web
@@ -42,7 +45,8 @@ services:
       - "./data/prometheus:/prometheus"
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.jenkins.rule=PathPrefix(`/prometheus`)"
+      - "traefik.http.routers.prometheus.rule=Host(`prometheus.local`)"
+      - "traefik.http.routers.prometheus.entrypoints=web"
       - "traefik.http.services.prometheus.loadbalancer.server.port=9090"
     networks:
       - web
