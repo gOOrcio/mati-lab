@@ -22,20 +22,18 @@ services:
       - web
 
   jenkins:
-      image: jenkins/jenkins:lts
-      container_name: jenkins
-      ports:
-        - "8080:8080"
-      environment:
-        - JENKINS_OPTS=--prefix=/jenkins
-      volumes:
-        - "./data/jenkins:/var/jenkins_home"
-      labels:
-        - "traefik.enable=true"
-        - "traefik.http.routers.jenkins.rule=Host(`jenkins.local`)"
-        - "traefik.http.services.jenkins.loadbalancer.server.port=8080"
-      networks:
-        - web
+    image: jenkins/jenkins:lts
+    container_name: jenkins
+    environment:
+      - JENKINS_OPTS=--prefix=/jenkins
+    volumes:
+      - "./data/jenkins:/var/jenkins_home"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.jenkins.rule=PathPrefix(`/jenkins`)"
+      - "traefik.http.services.jenkins.loadbalancer.server.port=8080"
+    networks:
+      - web
 
   prometheus:
     image: prom/prometheus
@@ -44,7 +42,7 @@ services:
       - "./data/prometheus:/prometheus"
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.prometheus.rule=Host(`prometheus.local`)"
+      - "traefik.http.routers.jenkins.rule=PathPrefix(`/prometheus`)"
       - "traefik.http.services.prometheus.loadbalancer.server.port=9090"
     networks:
       - web
