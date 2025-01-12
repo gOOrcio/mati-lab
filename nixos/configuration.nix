@@ -6,7 +6,13 @@
       ./hardware-configuration.nix
     ];
     
-  system.configurationPath = "/home/mateuszg/IdeaProjects/nixos";
+  nix.nixPath = [
+      "nixpkgs=/nix/var/nix/profiles/per-user/root/channels/nixos"
+      "nixos-config=/home/mateuszg/IdeaProjects/mati-lab/nixos/configuration.nix"
+      "/nix/var/nix/profiles/per-user/root/channels"
+    ];
+
+
   # Bootloader settings
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
