@@ -1,0 +1,55 @@
+version: "3.8"
+
+services:
+  traefik:
+    image: traefik:v2.10
+    container_name: traefik
+    command:
+      - "--providers.docker=true"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--certificatesResolvers.local.acme.httpChallenge=true"
+      - "--certificatesResolvers.local.acme.httpChallenge.entryPoint=web"
+      - "--certificatesResolvers.local.acme.email=your-email@example.com"
+      - "--certificatesResolvers.local.acme.storage=/traefik/acme.json"
+      - "--api.dashboard=true"
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+      - "./data/traefik:/traefik"
+    networks:
+      - web
+
+  jenkins:
+    image: jenkins/jenkins:lts
+    container_name: jenkins
+    environment:
+      - JENKINS_OPTS=--prefix=/jenkins
+    ports:
+      - "8080:8080"
+    volumes:
+      - "./data/jenkins:/var/jenkins_home"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.jenkins.rule=Host(`jenkins.local`)"
+      - "traefik.http.services.jenkins.loadbalancer.server.port=8080"
+    networks:
+      - web
+
+  prometheus:
+    image: prom/prometheus
+    container_name: prometheus
+    volumes:
+      - "./data/prometheus:/prometheus"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.prometheus.rule=Host(`prometheus.local`)"
+      - "traefik.http.services.prometheus.loadbalancer.server.port=9090"
+    networks:
+      - web
+
+networks:
+  web:
+    driver: bridge
