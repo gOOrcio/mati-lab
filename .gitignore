@@ -2,3 +2,5 @@
 .idea
 .project
 .env
+data
+secrets
