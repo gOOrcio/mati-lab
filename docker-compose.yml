@@ -18,7 +18,7 @@ services:
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock"
       - "./traefik/traefik.yml:/traefik/traefik.yml"
-      - "./traefik/acme.json:/traefik/acme.json"
+      - "./traefik/acme.json:/letsencrypt/acme.json"
       - "./data/traefik:/traefik/data"
     networks:
       - web
