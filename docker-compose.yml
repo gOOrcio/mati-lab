@@ -3,6 +3,7 @@ services:
   traefik:
     image: traefik:v2.10
     container_name: traefik
+    restart: always
     command:
       - "--providers.docker=true"
       - "--entrypoints.web.address=:80"
@@ -26,6 +27,7 @@ services:
   jenkins:
     image: jenkins/jenkins:lts
     container_name: jenkins
+    restart: always
     environment:
       - JENKINS_OPTS=--prefix=/jenkins
     volumes:
@@ -41,6 +43,7 @@ services:
   prometheus:
     image: prom/prometheus
     container_name: prometheus
+    restart: always
     volumes:
       - "./data/prometheus:/prometheus"
     labels:
