@@ -1,0 +1,81 @@
+---
+- name: Provision and Configure Proxmox VM
+  hosts: proxmox
+  gather_facts: false
+  vars_files:
+    - vars.yml
+    - vault.yml
+
+  tasks:
+    - name: Clone VM from template
+      proxmox_kvm:
+        api_user: "root@pam"
+        api_password: "{{ proxmox_password }}"
+        api_host: "{{ inventory_hostname }}"
+        validate_certs: false
+        node: "{{ target_node }}"
+        vmid: 0
+        clone: "alpine-cloud-init-template"
+        name: "{{ vm_name }}"
+        cores: "{{ cores }}"
+        memory: "{{ memory }}"
+        state: present
+        scsi:
+          storage: "{{ storage }}"
+          size: "{{ disk_size }}"
+        net:
+          model: virtio
+          bridge: "{{ bridge }}"
+        sshkeys: "{{ vault_ssh_private_key | b64encode }}"
+        ciuser: "alpine"
+        cipassword: "securepassword"
+        agent: 1
+
+    - name: Start the VM
+      proxmox_kvm:
+        api_user: "root@pam"
+        api_password: "{{ proxmox_password }}"
+        api_host: "{{ inventory_hostname }}"
+        validate_certs: false
+        node: "{{ target_node }}"
+        name: "{{ vm_name }}"
+        state: started
+
+    - name: Wait for the VM to boot and SSH to be ready
+      wait_for:
+        host: "{{ vm_name }}"
+        port: 22
+        delay: 10
+        timeout: 600  # Increase timeout to 10 minutes
+
+    - name: Debug network configuration
+      ansible.builtin.shell:
+        cmd: |
+          ip addr
+          ping -c 3 8.8.8.8
+      register: network_debug
+
+    - name: Debug cloud-init installation
+      ansible.builtin.shell:
+        cmd: |
+          cloud-init --version || echo "cloud-init not installed"
+      register: cloud_init_version
+
+    - name: Debug cloud-init logs
+      ansible.builtin.shell:
+        cmd: |
+          cat /var/log/cloud-init.log || echo "cloud-init.log not found"
+          cat /var/log/cloud-init-output.log || echo "cloud-init-output.log not found"
+      register: cloud_init_logs
+
+    - name: Display network debug output
+      debug:
+        var: network_debug.stdout
+
+    - name: Display cloud-init version
+      debug:
+        var: cloud_init_version.stdout
+
+    - name: Display cloud-init logs
+      debug:
+        var: cloud_init_logs.stdout
