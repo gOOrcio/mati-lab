@@ -5,3 +5,4 @@
 data
 secrets
 .vault_password
+unsafe-notes.md

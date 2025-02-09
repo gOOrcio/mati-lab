@@ -1,0 +1,7 @@
+vm_name: "jenkins-vm"
+cores: 2
+memory: 4096
+disk_size: "32G"
+storage: "local-lvm"
+firewall_rules:
+  - "ufw allow 8080"
