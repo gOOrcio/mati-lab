@@ -1,0 +1,16 @@
+api_user: "root@pam"
+api_token_id: "ansible-token"
+api_token_secret: "{{ vault_proxmox_token_secret }}"
+api_host: "{{ inventory_hostname }}"
+validate_certs: false
+target_node: "mati-lab"
+template: "ubuntu-minimal-cloud"
+common_packages:
+  - htop
+  - git
+  - ufw
+firewall_rules:
+  - "ufw allow 22"
+docker_enabled: true
+bridge: "vmbr0"
+ssh_public_key: "~/.ssh/id_rsa.pub"

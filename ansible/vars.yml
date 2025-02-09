@@ -1,9 +1,5 @@
-vm_name: "ansible-test-vm"
 template: "alpine-cloud-init-template"
 target_node: "mati-lab"
-cores: 2
-memory: 2048
-disk_size: 16G
 bridge: "vmbr0"
 ip_address: "dhcp"
 storage: "local-lvm"

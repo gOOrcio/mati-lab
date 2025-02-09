@@ -1,81 +1,68 @@
----
-- name: Provision and Configure Proxmox VM
+- name: Provision Proxmox Alpine VMs with Layered Configurations
   hosts: proxmox
   gather_facts: false
+
   vars_files:
-    - vars.yml
     - vault.yml
+    - group_vars/ubuntu_default.yml
+    - group_vars/{{ vars_file }}
 
   tasks:
-    - name: Clone VM from template
-      proxmox_kvm:
-        api_user: "root@pam"
-        api_password: "{{ proxmox_password }}"
-        api_host: "{{ inventory_hostname }}"
-        validate_certs: false
+    - name: Clone the VM from the template
+      community.general.proxmox_kvm:
+        api_user: "{{ api_user }}"
+        api_token_id: "{{ api_token_id }}"
+        api_token_secret: "{{ api_token_secret }}"
+        api_host: "{{ api_host }}"
+        validate_certs: "{{ validate_certs }}"
         node: "{{ target_node }}"
-        vmid: 0
-        clone: "alpine-cloud-init-template"
+        clone: "{{ template }}"
         name: "{{ vm_name }}"
-        cores: "{{ cores }}"
-        memory: "{{ memory }}"
         state: present
+        full: true
+        sshkeys: "{{ vault_ssh_public_key }}"
+        ciuser: "root"
+        cipassword: "root"
+        agent: 1
+
+    - name: Update hardware configuration for the VM
+      community.general.proxmox_kvm:
+        api_user: "{{ api_user }}"
+        api_token_id: "{{ api_token_id }}"
+        api_token_secret: "{{ api_token_secret }}"
+        api_host: "{{ api_host }}"
+        validate_certs: "{{ validate_certs }}"
+        node: "{{ target_node }}"
+        name: "{{ vm_name }}"
+        memory: "{{ memory }}"
+        cores: "{{ cores }}"
+        sockets: 1
         scsi:
           storage: "{{ storage }}"
           size: "{{ disk_size }}"
-        net:
-          model: virtio
-          bridge: "{{ bridge }}"
-        sshkeys: "{{ vault_ssh_private_key | b64encode }}"
-        ciuser: "alpine"
-        cipassword: "securepassword"
-        agent: 1
+        state: present
 
     - name: Start the VM
-      proxmox_kvm:
-        api_user: "root@pam"
-        api_password: "{{ proxmox_password }}"
-        api_host: "{{ inventory_hostname }}"
-        validate_certs: false
+      community.general.proxmox_kvm:
+        api_user: "{{ api_user }}"
+        api_token_id: "{{ api_token_id }}"
+        api_token_secret: "{{ api_token_secret }}"
+        api_host: "{{ api_host }}"
+        validate_certs: "{{ validate_certs }}"
         node: "{{ target_node }}"
         name: "{{ vm_name }}"
         state: started
 
-    - name: Wait for the VM to boot and SSH to be ready
-      wait_for:
-        host: "{{ vm_name }}"
-        port: 22
-        delay: 10
-        timeout: 600  # Increase timeout to 10 minutes
+    - name: Apply the common role for basic setup
+      include_role:
+        name: common
 
-    - name: Debug network configuration
-      ansible.builtin.shell:
-        cmd: |
-          ip addr
-          ping -c 3 8.8.8.8
-      register: network_debug
+    - name: Apply the Docker role if Docker is enabled
+      when: docker_enabled
+      include_role:
+        name: docker
 
-    - name: Debug cloud-init installation
-      ansible.builtin.shell:
-        cmd: |
-          cloud-init --version || echo "cloud-init not installed"
-      register: cloud_init_version
-
-    - name: Debug cloud-init logs
-      ansible.builtin.shell:
-        cmd: |
-          cat /var/log/cloud-init.log || echo "cloud-init.log not found"
-          cat /var/log/cloud-init-output.log || echo "cloud-init-output.log not found"
-      register: cloud_init_logs
-
-    - name: Display network debug output
-      debug:
-        var: network_debug.stdout
-
-    - name: Display cloud-init version
-      debug:
-        var: cloud_init_version.stdout
-
-    - name: Display cloud-init logs
-      debug:
-        var: cloud_init_logs.stdout
+    - name: Apply the Jenkins role if Jenkins-specific config is selected
+      when: vars_file == "ubuntu_jenkins.yml"
+      include_role:
+        name: jenkins
