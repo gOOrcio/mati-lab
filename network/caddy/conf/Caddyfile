@@ -1,0 +1,37 @@
+{
+  email mateusz.goral92@gmail.com
+  acme_dns cloudflare {env.CF_API_TOKEN}
+  tls {
+      dns cloudflare {env.CF_API_TOKEN}
+      resolvers 1.1.1.1 1.0.0.1
+      propagation_delay 45s
+      propagation_timeout 5m
+    }
+}
+
+mati-lab.online, *.mati-lab.online {
+
+  @restorate host restorate.mati-lab.online
+  handle @restorate {
+    reverse_proxy 192.168.1.173:5173
+  }
+
+  handle {
+    respond "unknown host" 404
+  }
+}
+
+pihole.mati-lab.online {
+	@notlan not remote_ip 192.168.1.0/24
+	respond @notlan "Forbidden" 403
+
+	@admin path /admin*
+	handle @admin {
+		reverse_proxy 192.168.1.253:80
+	}
+
+	handle {
+		redir /admin 302
+	}
+}
+
