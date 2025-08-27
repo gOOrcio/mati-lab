@@ -3,6 +3,9 @@
 # Create the remote project directory structure
 ssh gooral@192.168.1.252 "sudo mkdir -p /opt/compose/caddy /opt/compose/pihole/etc-pihole /opt/compose/pihole/etc-dnsmasq.d"
 
+# Ensure Caddy data and config directories exist for certificate persistence
+ssh gooral@192.168.1.252 "sudo mkdir -p /opt/compose/caddy/data /opt/compose/caddy/config"
+
 # Set proper ownership and permissions for the compose directory
 ssh gooral@192.168.1.252 "sudo chown -R gooral:gooral /opt/compose"
 
@@ -15,10 +18,11 @@ scp .env.caddy .env.pihole gooral@192.168.1.252:/opt/compose/
 # Create a combined .env file that Docker Compose will automatically recognize
 ssh gooral@192.168.1.252 "cat /opt/compose/.env.caddy /opt/compose/.env.pihole > /opt/compose/.env"
 
-# Clear existing Caddy config files before copying new ones
-ssh gooral@192.168.1.252 "sudo rm -rf /opt/compose/caddy/*"
-scp -r caddy/Dockerfile gooral@192.168.1.252:/opt/compose/caddy/
-scp -r caddy/Caddyfile gooral@192.168.1.252:/opt/compose/caddy/
+# Clear only Caddyfile and Dockerfile, preserve data and config directories
+# This ensures ACME certificates and configuration persist across redeployments
+ssh gooral@192.168.1.252 "sudo rm -f /opt/compose/caddy/Caddyfile /opt/compose/caddy/Dockerfile"
+scp caddy/Dockerfile gooral@192.168.1.252:/opt/compose/caddy/
+scp caddy/Caddyfile gooral@192.168.1.252:/opt/compose/caddy/
 
 # Only clear existing dnsmasq.d files while preserving pihole config
 ssh gooral@192.168.1.252 "sudo rm -rf /opt/compose/pihole/etc-dnsmasq.d/*"
