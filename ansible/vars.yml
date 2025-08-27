@@ -1,8 +1,0 @@
-template: "alpine-cloud-init-template"
-target_node: "mati-lab"
-bridge: "vmbr0"
-ip_address: "dhcp"
-storage: "local-lvm"
-proxmox_password: "{{ vault_proxmox_password }}"
-ssh_private_key: "{{ vault_ssh_private_key }}"
-
