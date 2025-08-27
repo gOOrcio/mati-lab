@@ -1,0 +1,23 @@
+{
+  email mateusz.goral92@gmail.com
+  acme_dns cloudflare {env.CF_API_TOKEN}
+}
+
+*.mati-lab.online {
+  tls {
+        dns cloudflare {$CF_API_TOKEN}
+    }
+
+  handle {
+    respond "unknown host" 404
+  }
+
+  @pihole host pihole.mati-lab.online
+    handle @pihole {
+        reverse_proxy http://127.0.0.1:80 # Since Pi-hole is on the same host
+        header_up Host {host}
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+        header_up X-Forwarded-Proto {scheme}
+    }
+}
