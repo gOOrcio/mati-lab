@@ -132,48 +132,6 @@ The migration script will:
 -   Preserve all data
 -   Clean up old files
 
-## 🚀 CI/CD Integration
-
-### GitHub Actions
-
-The `.github/workflows/deploy-service.yml` workflow provides:
-
--   Automatic deployment on code changes
--   Manual deployment with service/action selection
--   SSH key-based authentication
--   Environment variable injection
-
-**Required Secrets:**
-
--   `SSH_PRIVATE_KEY` - SSH private key for server access
--   `SERVER_HOST` - Target server IP
--   `SERVER_USER` - SSH username
--   `SERVER_PATH` - Remote compose directory
--   `ENV_FILE_CONTENT` - Content of your .env file
-
-### Jenkins
-
-The `Jenkinsfile` provides:
-
--   Parameterized builds for service/action selection
--   Credential-based authentication
--   Pipeline stages for deployment and verification
-
-**Required Credentials:**
-
--   `SERVER_HOST` - String credential
--   `SERVER_USER` - String credential
--   `SERVER_PATH` - String credential
--   `SSH_PRIVATE_KEY` - SSH private key credential
-
-### Gitea Actions
-
-The GitHub Actions workflow can be adapted for Gitea Actions by:
-
--   Changing the workflow trigger syntax
--   Adjusting secret names if needed
--   Using Gitea's runner syntax
-
 ## 📊 Service Status
 
 Check service status:
