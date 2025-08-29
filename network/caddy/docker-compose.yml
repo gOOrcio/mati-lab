@@ -1,0 +1,26 @@
+networks:
+  caddy-net:
+    name: caddy-net
+    driver: bridge
+
+services:
+  caddy:
+    build: .
+    container_name: caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    dns:
+      - 127.0.0.1
+      - 1.1.1.3
+    environment:
+      - CF_API_TOKEN=${CF_API_TOKEN}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - ./data:/data
+      - ./config:/config
+    network_mode: "host"
+    labels:
+      - "com.docker.compose.project=caddy"
+      - "com.docker.compose.service=caddy"
