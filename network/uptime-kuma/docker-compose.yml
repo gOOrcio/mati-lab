@@ -1,0 +1,19 @@
+networks:
+  uptime-kuma-net:
+    name: uptime-kuma-net
+    driver: bridge
+
+services:
+  uptime-kuma:
+    image: louislam/uptime-kuma:latest
+    container_name: uptime-kuma
+    ports:
+      - "3001:3001"
+    restart: unless-stopped
+    volumes:
+      - ./app/data:/app/data
+    networks:
+      - uptime-kuma-net
+    labels:
+      - "com.docker.compose.project=uptime-kuma"
+      - "com.docker.compose.service=uptime-kuma"

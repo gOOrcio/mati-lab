@@ -1,27 +1,9 @@
 networks:
-  homelab-net:
-    name: homelab-net
+  pihole-net:
+    name: pihole-net
     driver: bridge
 
 services:
-  caddy:
-    build: ./caddy
-    container_name: caddy
-    restart: unless-stopped
-    ports:
-      - "80:80"
-      - "443:443"
-    dns:
-      - 127.0.0.1
-      - 1.1.1.3
-    environment:
-      - CF_API_TOKEN=${CF_API_TOKEN}
-    volumes:
-      - ./caddy/Caddyfile:/etc/caddy/Caddyfile
-      - ./caddy/data:/data
-      - ./caddy/config:/config
-    network_mode: "host"
-
   pihole:
     image: pihole/pihole:latest
     container_name: pihole
@@ -30,8 +12,8 @@ services:
       - "53:53/udp"
       - "8080:8080"
     volumes:
-      - ./pihole/etc-pihole:/etc/pihole
-      - ./pihole/etc-dnsmasq.d:/etc/dnsmasq.d
+      - ./etc-pihole:/etc/pihole
+      - ./etc-dnsmasq.d:/etc/dnsmasq.d
     environment:
       - TZ=Europe/Warsaw
       - FTLCONF_webserver_api_password=${PIHOLE_ADMIN_PASS}
@@ -50,13 +32,7 @@ services:
       - NET_BROADCAST
     restart: unless-stopped
     networks:
-      - homelab-net
-
-  uptime-kuma:
-    image: louislam/uptime-kuma:latest
-    container_name: uptime-kuma
-    ports:
-      - "3001:3001"
-    restart: unless-stopped
-    volumes:
-      - ./uptime-kuma/data:/app-data
+      - pihole-net
+    labels:
+      - "com.docker.compose.project=pihole"
+      - "com.docker.compose.service=pihole"
