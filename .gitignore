@@ -10,3 +10,5 @@ unsafe-notes.md
 **/*.pkrvars.hcl
 
 .env**
+
+uptime-kuma/data
