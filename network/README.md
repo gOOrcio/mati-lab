@@ -41,7 +41,6 @@ network/
 │   └── manage-all.sh
 ├── .env               # Environment variables
 ├── env.template       # Environment template
-├── migrate-to-separate-services.sh
 └── README.md
 ```
 
@@ -112,25 +111,6 @@ Manage all services at once:
 ./manage-all.sh pihole update    # Update only Pi-hole
 ./manage-all.sh status           # Show status of all services
 ```
-
-## 🔄 Migration from Old Setup
-
-If you're migrating from the old single `docker-compose.yml` setup:
-
-1. **Backup your current setup**
-2. **Run the migration script**:
-    ```bash
-    chmod +x migrate-to-separate-services.sh
-    ./migrate-to-separate-services.sh
-    ```
-
-The migration script will:
-
--   Backup your old configuration
--   Stop old services
--   Deploy new separate services
--   Preserve all data
--   Clean up old files
 
 ## 📊 Service Status
 

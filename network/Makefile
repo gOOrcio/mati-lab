@@ -1,7 +1,7 @@
 # Network Services Makefile
 # Provides convenient shortcuts for common operations
 
-.PHONY: help deploy update restart status logs stop start migrate clean health
+.PHONY: help deploy update restart status logs stop start clean health
 
 # Default target
 help:
@@ -16,9 +16,7 @@ help:
 	@echo "  logs      - Show logs of all services"
 	@echo "  stop      - Stop all services"
 	@echo "  start     - Start all services"
-	@echo "  migrate   - Migrate from old setup"
 	@echo "  clean     - Clean up old files"
-@echo "  health    - Run health check on all services"
 	@echo ""
 	@echo "Service-specific targets:"
 	@echo "  deploy-caddy      - Deploy only Caddy"
@@ -123,16 +121,6 @@ logs-uptime:
 	@echo "Showing Uptime Kuma logs..."
 	@cd scripts && ./manage-uptime-kuma.sh logs
 
-# Health check
-health:
-	@echo "Running health check on all services..."
-	@cd scripts && ./health-check.sh
-
-# Migration and maintenance
-migrate:
-	@echo "Migrating from old setup..."
-	@chmod +x migrate-to-separate-services.sh
-	@./migrate-to-separate-services.sh
 
 clean:
 	@echo "Cleaning up old files..."
@@ -144,7 +132,6 @@ clean:
 setup:
 	@echo "Setting up network services..."
 	@chmod +x scripts/*.sh
-	@chmod +x migrate-to-separate-services.sh
 	@echo "Setup completed!"
 
 # Environment setup
