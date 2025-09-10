@@ -6,12 +6,12 @@
 *.mati-lab.online {
     tls {
         dns cloudflare {env.CF_API_TOKEN}
-        resolvers 1.1.1.1
+        resolvers 1.1.1.3
     }
 
     @pihole host pihole.mati-lab.online
     handle @pihole {
-        reverse_proxy http://192.168.1.252:8080 {
+        reverse_proxy pihole:8080 {
             header_up Host {host}
             header_up X-Forwarded-Proto https
             header_up X-Forwarded-Ssl on
@@ -29,7 +29,7 @@
 
     @homebridge host homebridge.mati-lab.online
     handle @homebridge {
-        reverse_proxy http://192.168.1.155 {
+        reverse_proxy 192.168.1.155 {
             header_up Host {host}
             header_up X-Forwarded-Proto https
             header_up X-Forwarded-Ssl on
@@ -38,10 +38,12 @@
 
     @uptime-kuma host uptime-kuma.mati-lab.online
     handle @uptime-kuma {
-        reverse_proxy http://192.168.1.252:3001 {
+        reverse_proxy http://uptime-kuma:3001 {
             header_up Host {host}
             header_up X-Forwarded-Proto https
             header_up X-Forwarded-Ssl on
+            header_up Upgrade {>Upgrade}
+            header_up Connection {>Connection}
         }
     }
 

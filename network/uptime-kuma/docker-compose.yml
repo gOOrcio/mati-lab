@@ -1,7 +1,6 @@
 networks:
-  uptime-kuma-net:
-    name: uptime-kuma-net
-    driver: bridge
+  pihole-net:
+    external: true
 
 services:
   uptime-kuma:
@@ -13,7 +12,9 @@ services:
     volumes:
       - ./app/data:/app/data
     networks:
-      - uptime-kuma-net
+      - pihole-net
+    dns:
+      - 192.168.1.252
     labels:
       - "com.docker.compose.project=uptime-kuma"
       - "com.docker.compose.service=uptime-kuma"
