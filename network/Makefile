@@ -73,6 +73,10 @@ deploy-uptime:
 	@echo "Deploying Uptime Kuma..."
 	@cd scripts && ./manage-uptime-kuma.sh deploy
 
+deploy-dashy:
+	@echo "Deploying Dashy..."
+	@cd scripts && ./manage-dashy.sh deploy
+
 update-caddy:
 	@echo "Updating Caddy..."
 	@cd scripts && ./manage-caddy.sh update
@@ -84,6 +88,10 @@ update-pihole:
 update-uptime:
 	@echo "Updating Uptime Kuma..."
 	@cd scripts && ./manage-uptime-kuma.sh update
+
+update-dashy:
+	@echo "Updating Dashy..."
+	@cd scripts && ./manage-dashy.sh update
 
 restart-caddy:
 	@echo "Restarting Caddy..."
@@ -97,6 +105,10 @@ restart-uptime:
 	@echo "Restarting Uptime Kuma..."
 	@cd scripts && ./manage-uptime-kuma.sh restart
 
+restart-dashy:
+	@echo "Restarting Dashy..."
+	@cd scripts && ./manage-dashy.sh restart
+
 status-caddy:
 	@echo "Checking Caddy status..."
 	@cd scripts && ./manage-caddy.sh status
@@ -109,6 +121,10 @@ status-uptime:
 	@echo "Checking Uptime Kuma status..."
 	@cd scripts && ./manage-uptime-kuma.sh status
 
+status-dashy:
+	@echo "Checking Dashy status..."
+	@cd scripts && ./manage-dashy.sh status
+
 logs-caddy:
 	@echo "Showing Caddy logs..."
 	@cd scripts && ./manage-caddy.sh logs
@@ -120,6 +136,10 @@ logs-pihole:
 logs-uptime:
 	@echo "Showing Uptime Kuma logs..."
 	@cd scripts && ./manage-uptime-kuma.sh logs
+
+logs-dashy:
+	@echo "Showingg Dashy logs..."
+	@cd scripts && ./manage-dashy.sh logs
 
 
 clean:
