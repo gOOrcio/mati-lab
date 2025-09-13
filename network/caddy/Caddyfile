@@ -9,9 +9,15 @@
         resolvers 1.1.1.3
     }
 
+    @pihole_root {
+        host pihole.mati-lab.online
+        path /
+    }
+    redir @pihole_root /admin 301
+
     @pihole host pihole.mati-lab.online
     handle @pihole {
-        reverse_proxy pihole:8080 {
+        reverse_proxy http://pihole:8080 {
             header_up Host {host}
             header_up X-Forwarded-Proto https
             header_up X-Forwarded-Ssl on

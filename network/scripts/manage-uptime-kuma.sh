@@ -24,7 +24,6 @@ sync_files() {
     "sudo mkdir -p '$REMOTE_PATH'/data &&
      sudo chown -R '$SERVER_USER:$SERVER_USER' '$REMOTE_PATH'"
   scp "${SSH_OPTS[@]}" "${SERVICE_PATH}/docker-compose.yml" "$REMOTE:$REMOTE_PATH/"
-  [[ -f "${SERVICE_PATH}/.env" ]] && scp "${SSH_OPTS[@]}" "${SERVICE_PATH}/.env" "$REMOTE:$REMOTE_PATH/"
 }
 
 compose() {
