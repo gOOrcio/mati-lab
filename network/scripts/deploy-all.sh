@@ -15,7 +15,7 @@ log_warning(){ printf "\033[1;33m[WARNING]\033[0m %s\n" "$*"; }
 log_error(){ printf "\033[0;31m[ERROR]\033[0m %s\n" "$*"; }
 
 deploy_all() {
-  log "Deploying both Pi-hole and Caddy services..."
+  log "Deploying Pi-hole, Caddy, and Uptime Kuma services..."
 
   # First deploy Pi-hole to create the network
   log "Deploying Pi-hole first..."
@@ -29,7 +29,14 @@ deploy_all() {
   log "Deploying Caddy..."
   ./manage-caddy.sh deploy
 
-  log_success "Both services deployed successfully!"
+  # Finally deploy Uptime Kuma
+  log "Deploying Uptime Kuma..."
+  ./manage-uptime-kuma.sh deploy
+
+  log "Deploying Dashy"
+  ./manage-dashy.sh deploy
+
+  log_success "All services deployed successfully!"
   log "Testing connection to https://pihole.mati-lab.online/admin/login"
 
   # Test the connection
@@ -41,23 +48,27 @@ deploy_all() {
 }
 
 restart_all() {
-  log "Restarting both Pi-hole and Caddy services..."
+  log "Restarting Pi-hole, Caddy, and Uptime Kuma services..."
 
   ./manage-pihole.sh restart
   sleep 5
   ./manage-caddy.sh restart
+  ./manage-uptime-kuma.sh restart
+  ./manage-dashy.sh restart
 
-  log_success "Both services restarted successfully!"
+  log_success "All services restarted successfully!"
 }
 
 update_all() {
-  log "Updating both Pi-hole and Caddy services..."
+  log "Updating Pi-hole, Caddy, and Uptime Kuma services..."
 
   ./manage-pihole.sh update
   sleep 5
   ./manage-caddy.sh update
+  ./manage-uptime-kuma.sh update
+  ./manage-dashy.sh update
 
-  log_success "Both services updated successfully!"
+  log_success "All services updated successfully!"
 }
 
 case "${1:-help}" in

@@ -1,0 +1,10 @@
+pageInfo:
+  title: mati-lab.online
+  navLinks: []
+appConfig:
+  theme: one-dark
+  layout: auto
+  iconSize: medium
+  auth:
+    enableGuestAccess: true
+sections: []

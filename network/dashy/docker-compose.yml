@@ -1,0 +1,24 @@
+networks:
+  pihole-net:
+    external: true
+
+services:
+  dashy:
+    image: lissy93/dashy
+    container_name: dashy
+    volumes:
+      - ./config/conf.yml:/app/user-data/conf.yml
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped
+    networks:
+      - pihole-net
+    healthcheck:
+      test: ['CMD', 'node', '/app/services/healthcheck']
+      interval: 1m30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    labels:
+      - "com.docker.compose.project=dashy"
+      - "com.docker.compose.service=dashy"

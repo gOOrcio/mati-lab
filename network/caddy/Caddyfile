@@ -47,6 +47,15 @@
         }
     }
 
+    @dashy host dashy.mati-lab.online
+    handle @dashy {
+        reverse_proxy http://dashy:8080 {
+            header_up Host {host}
+            header_up X-Forwarded-Proto https
+            header_up X-Forwarded-Ssl on
+        }
+    }
+
     handle {
         respond "unknown host" 404
     }
