@@ -36,6 +36,9 @@ deploy_all() {
   log "Deploying Dashy"
   ./manage-dashy.sh deploy
 
+  log "Deploying prometheus"
+    ./manage-prometheus.sh deploy
+
   log_success "All services deployed successfully!"
   log "Testing connection to https://pihole.mati-lab.online/admin/login"
 
@@ -55,6 +58,7 @@ restart_all() {
   ./manage-caddy.sh restart
   ./manage-uptime-kuma.sh restart
   ./manage-dashy.sh restart
+  ./manage-prometheus.sh restart
 
   log_success "All services restarted successfully!"
 }
@@ -67,6 +71,7 @@ update_all() {
   ./manage-caddy.sh update
   ./manage-uptime-kuma.sh update
   ./manage-dashy.sh update
+  ./manage-prometheus.sh update
 
   log_success "All services updated successfully!"
 }

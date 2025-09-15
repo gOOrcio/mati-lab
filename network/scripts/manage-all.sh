@@ -10,7 +10,7 @@ else
 fi
 
 # Available services
-SERVICES=(pihole caddy uptime-kuma)
+SERVICES=(pihole caddy uptime-kuma dashy prometheus)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 log(){ printf "\033[0;34m[INFO]\033[0m %s\n" "$*"; }
