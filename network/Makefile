@@ -77,6 +77,10 @@ deploy-dashy:
 	@echo "Deploying Dashy..."
 	@cd scripts && ./manage-dashy.sh deploy
 
+deploy-prometheus:
+	@echo "Deploying Prometheus..."
+	@cd scripts && ./manage-prometheus.sh deploy
+
 update-caddy:
 	@echo "Updating Caddy..."
 	@cd scripts && ./manage-caddy.sh update
@@ -92,6 +96,10 @@ update-uptime:
 update-dashy:
 	@echo "Updating Dashy..."
 	@cd scripts && ./manage-dashy.sh update
+
+update-prometheus:
+	@echo "Updating Prometheus..."
+	@cd scripts && ./manage-prometheus.sh update
 
 restart-caddy:
 	@echo "Restarting Caddy..."
@@ -109,6 +117,10 @@ restart-dashy:
 	@echo "Restarting Dashy..."
 	@cd scripts && ./manage-dashy.sh restart
 
+restart-prometheus:
+	@echo "Restarting Prometheus..."
+	@cd scripts && ./manage-prometheus.sh restart
+
 status-caddy:
 	@echo "Checking Caddy status..."
 	@cd scripts && ./manage-caddy.sh status
@@ -125,6 +137,10 @@ status-dashy:
 	@echo "Checking Dashy status..."
 	@cd scripts && ./manage-dashy.sh status
 
+status-prometheus:
+	@echo "Checking Prometheus status..."
+	@cd scripts && ./manage-prometheus.sh status
+
 logs-caddy:
 	@echo "Showing Caddy logs..."
 	@cd scripts && ./manage-caddy.sh logs
@@ -138,9 +154,12 @@ logs-uptime:
 	@cd scripts && ./manage-uptime-kuma.sh logs
 
 logs-dashy:
-	@echo "Showingg Dashy logs..."
+	@echo "Showing Dashy logs..."
 	@cd scripts && ./manage-dashy.sh logs
 
+logs-prometheus:
+	@echo "Showing Prometheus logs..."
+	@cd scripts && ./manage-prometheus.sh logs
 
 clean:
 	@echo "Cleaning up old files..."
