@@ -1,0 +1,11 @@
+# Pi-hole data and logs
+etc-pihole/
+*.log
+
+# Environment files
+.env
+.env.local
+
+# Temporary files
+*.tmp
+*.temp
