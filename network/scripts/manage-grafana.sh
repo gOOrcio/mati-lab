@@ -27,6 +27,11 @@ sync_files() {
   [[ -f "${SERVICE_PATH}/.env" ]] && scp "${SSH_OPTS[@]}" "${SERVICE_PATH}/.env" "$REMOTE:$REMOTE_PATH/"
 }
 
+sync_config() {
+  log "sync config from host to git"
+  ssh "${SSH_OPTS[@]}" "$REMOTE" "cd '$REMOTE_PATH' && git add . && git diff --cached --quiet || git commit -m 'Update config: $(date)'"
+}
+
 compose() {
   # pass raw args to docker compose
   ssh "${SSH_OPTS[@]}" "$REMOTE" "cd '$REMOTE_PATH' && sudo -E docker compose --env-file .env ${*}"
@@ -41,6 +46,6 @@ status()  { compose ps; }
 logs()    { compose logs --tail 50 -f; }
 
 case "${1:-help}" in
-  deploy|update|restart|start|stop|status|logs) "$1" ;;
-  *) echo "usage: $0 {deploy|update|restart|start|stop|status|logs}"; exit 1 ;;
+  deploy|update|restart|start|stop|status|logs|sync_config) "$1" ;;
+  *) echo "usage: $0 {deploy|update|restart|start|stop|status|logs|sync_config}"; exit 1 ;;
 esac

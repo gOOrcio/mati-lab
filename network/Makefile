@@ -181,6 +181,14 @@ logs-grafana:
 	@echo "Showing Grafana logs..."
 	@cd scripts && ./manage-grafana.sh logs
 
+sync-config-grafana:
+	@echo "Syncing Grafana config to git..."
+	@cd scripts && ./manage-grafana.sh sync_config
+
+sync-config-prometheus:
+	@echo "Syncing Prometheus config to git..."
+	@cd scripts && ./manage-prometheus.sh sync_config
+
 clean:
 	@echo "Cleaning up old files..."
 	@rm -f docker-compose.yml.backup
