@@ -1,0 +1,37 @@
+networks:
+  pihole-net:
+    name: pihole-net
+    driver: bridge
+
+services:
+  pihole:
+    image: pihole/pihole:latest
+    container_name: pihole
+    ports:
+      - "53:53/tcp"
+      - "53:53/udp"
+    volumes:
+      - ./etc-pihole:/etc/pihole
+      - ./etc-dnsmasq.d:/etc/dnsmasq.d
+    environment:
+      - TZ=Europe/Warsaw
+      - FTLCONF_webserver_api_password=${PIHOLE_ADMIN_PASS}
+      - FTLCONF_dns_listeningMode=all
+      - FTLCONF_dns_upstreams=1.1.1.3;1.0.0.3
+      - FTLCONF_webserver_port=8080
+      - FTLCONF_dhcp_enabled=false
+      - FTLCONF_webserver_use_https=false
+      - FTLCONF_misc_etc_dnsmasq_d=true
+      - VIRTUAL_HOST=pihole.mati-lab.online
+      - PROXY_LOCATION=/
+      - PROXY_SUBDIR=/
+    cap_add:
+      - SYS_NICE
+      - NET_ADMIN
+      - NET_BROADCAST
+    restart: unless-stopped
+    networks:
+      - pihole-net
+    labels:
+      - "com.docker.compose.project=pihole"
+      - "com.docker.compose.service=pihole"
