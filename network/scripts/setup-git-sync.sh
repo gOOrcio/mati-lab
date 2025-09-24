@@ -28,6 +28,9 @@ setup_git_sync() {
   # Rename branch to main (modern convention)
   ssh "${SSH_OPTS[@]}" "$REMOTE" "cd '$SERVER_PATH' && git branch -m master main"
   
+  # Add GitHub remote
+  ssh "${SSH_OPTS[@]}" "$REMOTE" "cd '$SERVER_PATH' && git remote add origin git@github.com:gOOrcio/mati-lab.git"
+  
   # Copy .gitignore files to host
   log "Copying .gitignore files to host..."
   scp "${SSH_OPTS[@]}" "../.gitignore" "$REMOTE:$SERVER_PATH/"
@@ -45,6 +48,7 @@ setup_git_sync() {
   
   log_success "Git sync setup complete!"
   log "To sync config changes: make sync-config-grafana"
+  log "Changes will be pushed directly to GitHub"
 }
 
 case "${1:-help}" in

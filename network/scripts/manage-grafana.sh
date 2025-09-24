@@ -21,15 +21,21 @@ log(){ printf "\033[0;34m[INFO]\033[0m %s\n" "$*"; }
 sync_files() {
   log "sync files"
   ssh "${SSH_OPTS[@]}" "$REMOTE" \
-    "sudo mkdir -p '$REMOTE_PATH'/config &&
+    "sudo mkdir -p '$REMOTE_PATH'/config '$REMOTE_PATH'/provisioning/datasources &&
      sudo chown -R '$SERVER_USER:$SERVER_USER' '$REMOTE_PATH'"
   scp "${SSH_OPTS[@]}" "${SERVICE_PATH}/docker-compose.yml" "$REMOTE:$REMOTE_PATH/"
+  scp "${SSH_OPTS[@]}" "${SERVICE_PATH}/provisioning/datasources/prometheus.yml" "$REMOTE:$REMOTE_PATH/provisioning/datasources/"
   [[ -f "${SERVICE_PATH}/.env" ]] && scp "${SSH_OPTS[@]}" "${SERVICE_PATH}/.env" "$REMOTE:$REMOTE_PATH/"
 }
 
 sync_config() {
-  log "sync config from host to git"
-  ssh "${SSH_OPTS[@]}" "$REMOTE" "cd '$REMOTE_PATH' && git add . && git diff --cached --quiet || git commit -m 'Update config: $(date)'"
+  log "sync config from host to local git"
+  # Copy changes from host to local
+  scp "${SSH_OPTS[@]}" "$REMOTE:$REMOTE_PATH/provisioning/datasources/prometheus.yml" "../grafana/provisioning/datasources/"
+  scp "${SSH_OPTS[@]}" "$REMOTE:$REMOTE_PATH/docker-compose.yml" "../grafana/"
+  
+  # Commit locally
+  cd .. && git add grafana/ && git diff --cached --quiet || git commit -m "Update Grafana config: $(date)" && git push origin main
 }
 
 compose() {
