@@ -18,9 +18,13 @@ REMOTE="${SERVER_USER}@${SERVER_HOST}"
 
 log(){ printf "\033[0;34m[INFO]\033[0m %s\n" "$*"; }
 
-sync_config() {
-  log "sync config from host to git"
-  ssh "${SSH_OPTS[@]}" "$REMOTE" "cd '$REMOTE_PATH' && git add . && git diff --cached --quiet || git commit -m 'Update config: $(date)' && git push origin main"
+sync_files() {
+  log "sync files"
+  ssh "${SSH_OPTS[@]}" "$REMOTE" \
+    "sudo mkdir -p '$REMOTE_PATH' &&
+     sudo chown -R '$SERVER_USER:$SERVER_USER' '$REMOTE_PATH'"
+  scp "${SSH_OPTS[@]}" "${SERVICE_PATH}/docker-compose.yml" "$REMOTE:$REMOTE_PATH/"
+  scp "${SSH_OPTS[@]}" "${SERVICE_PATH}/prometheus.yml" "$REMOTE:$REMOTE_PATH/"
 }
 
 compose() {
@@ -37,6 +41,6 @@ status()  { compose ps; }
 logs()    { compose logs --tail 50 -f; }
 
 case "${1:-help}" in
-  deploy|update|restart|start|stop|status|logs|sync_config) "$1" ;;
-  *) echo "usage: $0 {deploy|update|restart|start|stop|status|logs|sync_config}"; exit 1 ;;
+  deploy|update|restart|start|stop|status|logs) "$1" ;;
+  *) echo "usage: $0 {deploy|update|restart|start|stop|status|logs}"; exit 1 ;;
 esac
