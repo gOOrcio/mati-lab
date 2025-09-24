@@ -18,7 +18,7 @@ log_success(){ printf "\033[0;32m[SUCCESS]\033[0m %s\n" "$*"; }
 setup_git_sync() {
   log "Setting up git sync on host..."
   
-  # Initialize git repo on host
+  # Initialize git repo on host (in network directory)
   ssh "${SSH_OPTS[@]}" "$REMOTE" "cd '$SERVER_PATH' && git init"
   
   # Configure git user (if not already configured)
