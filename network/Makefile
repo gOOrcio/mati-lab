@@ -181,14 +181,6 @@ logs-grafana:
 	@echo "Showing Grafana logs..."
 	@cd scripts && ./manage-grafana.sh logs
 
-sync-config-grafana:
-	@echo "Syncing Grafana config to git..."
-	@cd scripts && ./manage-grafana.sh sync_config
-
-sync-config-prometheus:
-	@echo "Syncing Prometheus config to git..."
-	@cd scripts && ./manage-prometheus.sh sync_config
-
 push-grafana-config:
 	@echo "Exporting and pushing Grafana config from host..."
 	@cd scripts && ./push-grafana-config.sh export
