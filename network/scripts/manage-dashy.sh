@@ -19,17 +19,21 @@ REMOTE="${SERVER_USER}@${SERVER_HOST}"
 log(){ printf "\033[0;34m[INFO]\033[0m %s\n" "$*"; }
 
 sync_files() {
-  log "sync files"
-  ssh "${SSH_OPTS[@]}" "$REMOTE" \
-    "sudo mkdir -p '$REMOTE_PATH'/config &&
-     sudo chown -R '$SERVER_USER:$SERVER_USER' '$REMOTE_PATH'"
-  scp "${SSH_OPTS[@]}" "${SERVICE_PATH}/docker-compose.yml" "$REMOTE:$REMOTE_PATH/"
-  scp "${SSH_OPTS[@]}" "${SERVICE_PATH}/config/conf.yml" "$REMOTE:$REMOTE_PATH/config/conf.yml"
+  log "sync files from GitHub"
+  
+  # Clone or pull the entire repository
+  ssh "${SSH_OPTS[@]}" "$REMOTE" "cd /opt && 
+    if [ -d 'mati-lab' ]; then 
+      cd mati-lab && git pull origin main; 
+    else 
+      git clone git@github.com:gOOrcio/mati-lab.git && 
+      cd mati-lab && git checkout main; 
+    fi"
 }
 
 compose() {
-  # pass raw args to docker compose
-  ssh "${SSH_OPTS[@]}" "$REMOTE" "cd '$REMOTE_PATH' && sudo -E docker compose ${*}"
+  # pass raw args to docker compose (working in network/dashy directory)
+  ssh "${SSH_OPTS[@]}" "$REMOTE" "cd /opt/mati-lab/network/dashy && sudo -E docker compose ${*}"
 }
 
 deploy()  { log "deploy";  sync_files; compose up -d; }

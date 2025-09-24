@@ -24,19 +24,24 @@ ensure_network() {
 }
 
 sync_files() {
-  log "sync files"
-  ssh "${SSH_OPTS[@]}" "$REMOTE" \
-    "sudo install -d -m 0755 '$REMOTE_PATH'/etc-pihole '$REMOTE_PATH'/etc-dnsmasq.d &&
-     sudo chown -R '$SERVER_USER:$SERVER_USER' '$REMOTE_PATH'"
-  scp "${SSH_OPTS[@]}" "${SERVICE_PATH}/docker-compose.yml" "$REMOTE:$REMOTE_PATH/"
-  rsync -az --delete -e "ssh ${SSH_OPTS[*]}" \
-    "${SERVICE_PATH}/etc-dnsmasq.d/" "$REMOTE:$REMOTE_PATH/etc-dnsmasq.d/"
-  [[ -f "${SERVICE_PATH}/.env" ]] && scp "${SSH_OPTS[@]}" "${SERVICE_PATH}/.env" "$REMOTE:$REMOTE_PATH/"
+  log "sync files from GitHub"
+  
+  # Clone or pull the entire repository
+  ssh "${SSH_OPTS[@]}" "$REMOTE" "cd /opt && 
+    if [ -d 'mati-lab' ]; then 
+      cd mati-lab && git pull origin main; 
+    else 
+      git clone git@github.com:gOOrcio/mati-lab.git && 
+      cd mati-lab && git checkout main; 
+    fi"
+  
+  # Copy environment file if it exists locally
+  [[ -f "${SERVICE_PATH}/.env" ]] && scp "${SSH_OPTS[@]}" "${SERVICE_PATH}/.env" "$REMOTE:/opt/mati-lab/network/pihole/"
 }
 
 compose() {
-  # pass raw args to docker compose
-  ssh "${SSH_OPTS[@]}" "$REMOTE" "cd '$REMOTE_PATH' && sudo -E docker compose ${*}"
+  # pass raw args to docker compose (working in network/pihole directory)
+  ssh "${SSH_OPTS[@]}" "$REMOTE" "cd /opt/mati-lab/network/pihole && sudo -E docker compose ${*}"
 }
 
 deploy()  { log "deploy";  ensure_network; sync_files; compose up -d --pull always; }
