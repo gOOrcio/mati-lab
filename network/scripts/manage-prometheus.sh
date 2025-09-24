@@ -20,7 +20,7 @@ log(){ printf "\033[0;34m[INFO]\033[0m %s\n" "$*"; }
 
 sync_config() {
   log "sync config from host to git"
-  ssh "${SSH_OPTS[@]}" "$REMOTE" "cd '$REMOTE_PATH' && git add . && git diff --cached --quiet || git commit -m 'Update config: $(date)'"
+  ssh "${SSH_OPTS[@]}" "$REMOTE" "cd '$REMOTE_PATH' && git add . && git diff --cached --quiet || git commit -m 'Update config: $(date)' && git push origin main"
 }
 
 compose() {
