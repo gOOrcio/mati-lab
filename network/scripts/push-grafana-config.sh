@@ -18,30 +18,12 @@ log_success(){ printf "\033[0;32m[SUCCESS]\033[0m %s\n" "$*"; }
 export_and_push_config() {
   log "Exporting current Grafana configuration from host..."
   
-  # Create provisioning directory on host
-  ssh "${SSH_OPTS[@]}" "$REMOTE" "mkdir -p '$SERVER_PATH/provisioning/datasources'"
-  
-  # Export current datasource configuration
-  log "Creating provisioning file with current datasource name..."
-  ssh "${SSH_OPTS[@]}" "$REMOTE" "cat > '$SERVER_PATH/provisioning/datasources/prometheus.yml' << 'EOF'
-apiVersion: 1
-
-datasources:
-  - name: prometheus-mati-lab
-    type: prometheus
-    url: http://prometheus:9090
-    access: proxy
-    isDefault: true
-    editable: true
-EOF"
-  
-  log "Copying updated config to local repository..."
-  # Copy the updated config to local
-  scp "${SSH_OPTS[@]}" "$REMOTE:$SERVER_PATH/provisioning/datasources/prometheus.yml" "../grafana/provisioning/datasources/"
-  
-  log "Committing and pushing to GitHub..."
-  # Commit and push locally
-  cd .. && git add grafana/provisioning/datasources/prometheus.yml && git commit -m "Update Grafana datasource name to prometheus-mati-lab" && git push origin main
+  log "Committing and pushing current changes to GitHub from host..."
+  # Commit and push current state from host
+  ssh "${SSH_OPTS[@]}" "$REMOTE" "cd /opt/mati-lab && 
+    git add . && 
+    git diff --cached --quiet || git commit -m 'Update Grafana config from host: $(date)' && 
+    git push origin main"
   
   log_success "Configuration exported and pushed to GitHub!"
   log "Run 'git pull' to see the changes locally"
