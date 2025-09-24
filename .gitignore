@@ -1,6 +1,8 @@
 # Environment files
 .env
 .env.local
+.env.caddy
+.env.pihole
 .env**
 
 # Logs
