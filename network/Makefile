@@ -5,7 +5,7 @@
 
 # Service definitions
 SERVICES := caddy pihole uptime-kuma dashy prometheus grafana
-OPERATIONS := deploy update restart status logs stop start
+OPERATIONS := deploy update restart status logs stop start push
 
 # Default target
 help:
@@ -20,6 +20,7 @@ help:
 	@echo "  logs      - Show logs of all services"
 	@echo "  stop      - Stop all services"
 	@echo "  start     - Start all services"
+	@echo "  push      - Push all service changes to GitHub"
 	@echo "  clean     - Clean up old files"
 	@echo "  setup     - Setup scripts permissions"
 	@echo "  env       - Create .env from template"
@@ -28,7 +29,6 @@ help:
 	@echo "  {operation}-{service}  - e.g., deploy-caddy, update-grafana"
 	@echo ""
 	@echo "Special targets:"
-	@echo "  push-grafana-config  - Push Grafana config to GitHub"
 	@echo "  check-pihole         - Check Pi-hole DNS resolution"
 	@echo ""
 	@echo "Examples:"
@@ -37,7 +37,7 @@ help:
 	@echo "  make status"
 
 # All services operations
-deploy update restart status logs stop start:
+deploy update restart status logs stop start push:
 	@echo "$(shell echo $@ | tr '[:lower:]' '[:upper:]')ing all services..."
 	@cd scripts && ./manage-all.sh $@
 
@@ -51,10 +51,6 @@ endef
 $(foreach service,$(SERVICES),$(foreach op,$(OPERATIONS),$(eval $(call service_target_template,$(op),$(service)))))
 
 # Special targets
-push-grafana-config:
-	@echo "Pushing Grafana config to GitHub..."
-	@cd scripts && ./push-grafana-config.sh push
-
 check-pihole:
 	@echo "Checking Pi-hole DNS resolution..."
 	@cd scripts && ./manage-pihole.sh check

@@ -20,6 +20,6 @@ update()  { log "Updating $SERVICE_NAME"; sync_from_github; copy_env_file "../$S
 
 # Handle command line arguments
 case "${1:-help}" in
-  deploy|update|restart|start|stop|status|logs|check) "$1" ;;
-  *) echo "usage: $0 {deploy|update|restart|start|stop|status|logs|check}"; exit 1 ;;
+  deploy|update|restart|start|stop|status|logs|check|push) "$1" ;;
+  *) echo "usage: $0 {deploy|update|restart|start|stop|status|logs|check|push}"; exit 1 ;;
 esac
