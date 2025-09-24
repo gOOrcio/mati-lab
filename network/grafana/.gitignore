@@ -9,3 +9,6 @@ grafana-storage/
 # Temporary files
 *.tmp
 *.temp
+
+# Provisioning files (keep these in git)
+!provisioning/
