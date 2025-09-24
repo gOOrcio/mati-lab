@@ -15,6 +15,6 @@ deploy()  { log "Deploying $SERVICE_NAME"; ensure_network; sync_from_github; cop
 
 # Handle command line arguments
 case "${1:-help}" in
-  deploy|update|restart|start|stop|status|logs) "$1" ;;
-  *) echo "usage: $0 {deploy|update|restart|start|stop|status|logs}"; exit 1 ;;
+  deploy|update|restart|start|stop|status|logs|push) "$1" ;;
+  *) echo "usage: $0 {deploy|update|restart|start|stop|status|logs|push}"; exit 1 ;;
 esac
