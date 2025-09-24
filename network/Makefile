@@ -189,6 +189,10 @@ sync-config-prometheus:
 	@echo "Syncing Prometheus config to git..."
 	@cd scripts && ./manage-prometheus.sh sync_config
 
+push-grafana-config:
+	@echo "Exporting and pushing Grafana config from host..."
+	@cd scripts && ./push-grafana-config.sh export
+
 clean:
 	@echo "Cleaning up old files..."
 	@rm -f docker-compose.yml.backup
