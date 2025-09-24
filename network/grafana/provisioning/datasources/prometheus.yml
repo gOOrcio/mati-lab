@@ -7,4 +7,3 @@ datasources:
     access: proxy
     isDefault: true
     editable: true
-# Test GitHub workflow
