@@ -1,0 +1,11 @@
+# Grafana data and logs
+grafana-storage/
+*.log
+
+# Environment files
+.env
+.env.local
+
+# Temporary files
+*.tmp
+*.temp

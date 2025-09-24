@@ -1,0 +1,11 @@
+# Uptime Kuma data
+app/data/
+*.log
+
+# Environment files
+.env
+.env.local
+
+# Temporary files
+*.tmp
+*.temp
