@@ -1,0 +1,11 @@
+# Node exporter data
+node_textfile/
+*.log
+
+# Environment files
+.env
+.env.local
+
+# Temporary files
+*.tmp
+*.temp
