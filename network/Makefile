@@ -81,6 +81,10 @@ deploy-prometheus:
 	@echo "Deploying Prometheus..."
 	@cd scripts && ./manage-prometheus.sh deploy
 
+deploy-grafana:
+	@echo "Deploying Grafana..."
+	@cd scripts && ./manage-grafana.sh deploy
+
 update-caddy:
 	@echo "Updating Caddy..."
 	@cd scripts && ./manage-caddy.sh update
@@ -100,6 +104,10 @@ update-dashy:
 update-prometheus:
 	@echo "Updating Prometheus..."
 	@cd scripts && ./manage-prometheus.sh update
+
+update-grafana:
+	@echo "Updating Grafana..."
+	@cd scripts && ./manage-grafana.sh update
 
 restart-caddy:
 	@echo "Restarting Caddy..."
@@ -121,6 +129,10 @@ restart-prometheus:
 	@echo "Restarting Prometheus..."
 	@cd scripts && ./manage-prometheus.sh restart
 
+restart-grafana:
+	@echo "Restarting Grafana..."
+	@cd scripts && ./manage-grafana.sh restart
+
 status-caddy:
 	@echo "Checking Caddy status..."
 	@cd scripts && ./manage-caddy.sh status
@@ -141,6 +153,10 @@ status-prometheus:
 	@echo "Checking Prometheus status..."
 	@cd scripts && ./manage-prometheus.sh status
 
+status-grafana:
+	@echo "Checking Grafana status..."
+	@cd scripts && ./manage-grafana.sh status
+
 logs-caddy:
 	@echo "Showing Caddy logs..."
 	@cd scripts && ./manage-caddy.sh logs
@@ -160,6 +176,18 @@ logs-dashy:
 logs-prometheus:
 	@echo "Showing Prometheus logs..."
 	@cd scripts && ./manage-prometheus.sh logs
+
+logs-grafana:
+	@echo "Showing Grafana logs..."
+	@cd scripts && ./manage-grafana.sh logs
+
+sync-config-grafana:
+	@echo "Syncing Grafana config to git..."
+	@cd scripts && ./manage-grafana.sh sync_config
+
+sync-config-prometheus:
+	@echo "Syncing Prometheus config to git..."
+	@cd scripts && ./manage-prometheus.sh sync_config
 
 clean:
 	@echo "Cleaning up old files..."

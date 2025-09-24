@@ -39,6 +39,9 @@ deploy_all() {
   log "Deploying prometheus"
     ./manage-prometheus.sh deploy
 
+  log "Deploying grafana"
+    ./manage-grafana.sh deploy
+
   log_success "All services deployed successfully!"
   log "Testing connection to https://pihole.mati-lab.online/admin/login"
 
@@ -59,6 +62,7 @@ restart_all() {
   ./manage-uptime-kuma.sh restart
   ./manage-dashy.sh restart
   ./manage-prometheus.sh restart
+  ./manage-grafana.sh restart
 
   log_success "All services restarted successfully!"
 }
@@ -72,6 +76,7 @@ update_all() {
   ./manage-uptime-kuma.sh update
   ./manage-dashy.sh update
   ./manage-prometheus.sh update
+  ./manage-grafana.sh update
 
   log_success "All services updated successfully!"
 }
