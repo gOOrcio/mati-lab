@@ -18,7 +18,6 @@ services:
       - ./Caddyfile:/etc/caddy/Caddyfile
       - ./data:/data
       - ./config:/config
-      - ./caddy_main.log:/var/log/caddy/caddy_main.log
     networks:
       - pihole-net
     labels:
