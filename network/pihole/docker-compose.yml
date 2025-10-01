@@ -29,7 +29,7 @@ services:
       - SYS_NICE
       - NET_ADMIN
       - NET_BROADCAST
-    restart: unless-stopped
+    restart: always
     networks:
       - pihole-net
     labels:

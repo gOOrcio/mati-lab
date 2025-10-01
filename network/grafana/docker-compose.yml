@@ -9,7 +9,7 @@ services:
   grafana:
     image: grafana/grafana:12.3.0-17718666199
     container_name: grafana
-    restart: unless-stopped
+    restart: always
     env_file:
       - .env
     volumes:

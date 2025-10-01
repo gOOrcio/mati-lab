@@ -10,7 +10,7 @@ services:
       - ./config/conf.yml:/app/user-data/conf.yml
     environment:
       - NODE_ENV=production
-    restart: unless-stopped
+    restart: always
     networks:
       - pihole-net
     healthcheck:
