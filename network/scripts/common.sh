@@ -23,31 +23,21 @@ log_error(){ printf "\033[0;31m[ERROR]\033[0m %s\n" "$*"; }
 # Common functions
 sync_from_github() {
   log "Syncing from GitHub (network directory only)"
-  ssh "${SSH_OPTS[@]}" "$REMOTE" "cd /opt && 
-    if [ -d 'mati-lab' ]; then 
-      cd mati-lab && git pull origin main; 
-    else 
-      git clone --filter=blob:none --sparse $GITHUB_REPO && 
-      cd mati-lab && 
-      git sparse-checkout set network && 
-      git checkout main; 
-    fi"
+  ssh "${SSH_OPTS[@]}" "$REMOTE" "cd /opt && if [ -d 'mati-lab' ]; then cd mati-lab && git pull origin main; else git clone --filter=blob:none --sparse $GITHUB_REPO && cd mati-lab && git sparse-checkout set network && git checkout main; fi"
 }
 
 push_to_github() {
   log "Pushing $SERVICE_NAME changes to GitHub"
-  ssh "${SSH_OPTS[@]}" "$REMOTE" "cd /opt/mati-lab && 
-    git pull origin main &&
-    git add network/$SERVICE_NAME/ && 
-    git diff --cached --quiet || git commit -m 'Update $SERVICE_NAME: $(date)' && 
-    git push origin main"
+  ssh "${SSH_OPTS[@]}" "$REMOTE" "cd /opt/mati-lab && git pull origin main && git add network/$SERVICE_NAME/ && git diff --cached --quiet || git commit -m 'Update $SERVICE_NAME: $(date)' && git push origin main"
   log_success "Changes pushed to GitHub!"
   log "Run 'git pull' to see changes locally"
 }
 
 copy_env_file() {
   local service_path="$1"
-  [[ -f "${service_path}/.env" ]] && scp "${SSH_OPTS[@]}" "${service_path}/.env" "$REMOTE:/opt/mati-lab/network/$SERVICE_NAME/"
+  if [[ -f "${service_path}/.env" ]]; then
+    scp "${SSH_OPTS[@]}" "${service_path}/.env" "$REMOTE:/opt/mati-lab/network/$SERVICE_NAME/"
+  fi
 }
 
 compose_cmd() {
@@ -59,8 +49,8 @@ compose_cmd() {
 }
 
 # Standard service operations
-deploy()  { log "Deploying $SERVICE_NAME"; sync_from_github; copy_env_file "../$SERVICE_NAME"; compose_cmd up -d --build; }
-update()  { log "Updating $SERVICE_NAME"; sync_from_github; copy_env_file "../$SERVICE_NAME"; compose_cmd down; compose_cmd up -d --build; }
+deploy()  { log "Deploying $SERVICE_NAME"; sync_from_github; copy_env_file "../$SERVICE_NAME"; compose_cmd up -d --pull always; }
+update()  { log "Updating $SERVICE_NAME"; sync_from_github; copy_env_file "../$SERVICE_NAME"; compose_cmd down; compose_cmd up -d --pull always; }
 restart() { log "Restarting $SERVICE_NAME"; compose_cmd restart; }
 start()   { log "Starting $SERVICE_NAME"; compose_cmd up -d; }
 stop()    { log "Stopping $SERVICE_NAME"; compose_cmd stop; }
