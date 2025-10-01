@@ -7,7 +7,7 @@ services:
   node-exporter:
     image: prom/node-exporter:latest
     container_name: node-exporter
-    restart: unless-stopped
+    restart: always
     networks: [monitoring]
     pid: host
     command:
@@ -25,7 +25,7 @@ services:
   cadvisor:
     image: gcr.io/cadvisor/cadvisor:latest
     container_name: cadvisor
-    restart: unless-stopped
+    restart: always
     networks: [monitoring]
     privileged: true
     command:
