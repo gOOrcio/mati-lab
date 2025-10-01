@@ -2,10 +2,6 @@
     email mateusz.goral92@gmail.com
     acme_dns cloudflare {env.CF_API_TOKEN}
 
-    servers {
-        metrics
-    }
-
     log {
         output file /var/log/caddy/caddy_main.log {
             roll_size 100MiB
