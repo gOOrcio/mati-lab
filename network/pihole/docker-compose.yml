@@ -36,9 +36,5 @@ services:
       - "com.docker.compose.service=pihole"
       - NET_ADMIN
       - NET_BROADCAST
-    restart: always
     networks:
       - pihole-net
-    labels:
-      - "com.docker.compose.project=pihole"
-      - "com.docker.compose.service=pihole"
