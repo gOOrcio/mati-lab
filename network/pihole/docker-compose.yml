@@ -10,7 +10,6 @@ services:
     ports:
       - "53:53/tcp"
       - "53:53/udp"
-      - "67:67/udp"
     volumes:
       - ./etc-pihole:/etc/pihole
       - ./etc-dnsmasq.d:/etc/dnsmasq.d
@@ -20,7 +19,7 @@ services:
       - FTLCONF_dns_listeningMode=all
       - FTLCONF_dns_upstreams=1.1.1.3;1.0.0.3
       - FTLCONF_webserver_port=8080
-      - FTLCONF_dhcp_enabled=true
+      - FTLCONF_dhcp_enabled=false
       - FTLCONF_webserver_use_https=false
       - FTLCONF_misc_etc_dnsmasq_d=true
       - VIRTUAL_HOST=pihole.mati-lab.online
