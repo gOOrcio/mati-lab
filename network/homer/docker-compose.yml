@@ -1,0 +1,19 @@
+networks:
+  pihole-net:
+    external: true
+
+services:
+  homer:
+    image: b4bz/homer:v25.11.1
+    container_name: homer
+    volumes:
+      - ./config:/www/assets
+    ports:
+      - '6565:8080'
+    user: 1000:1000 # default
+    environment:
+      - INIT_ASSETS=1
+    restart: unless-stopped
+    labels:
+      - "com.docker.compose.project=homer"
+      - "com.docker.compose.service=homer"
