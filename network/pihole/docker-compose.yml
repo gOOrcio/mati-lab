@@ -17,7 +17,7 @@ services:
       - TZ=Europe/Warsaw
       - FTLCONF_webserver_api_password=${PIHOLE_ADMIN_PASS}
       - FTLCONF_dns_listeningMode=all
-      - FTLCONF_dns_upstreams=1.1.1.1;1.0.0.1;8.8.8.8;8.8.4.4
+      - FTLCONF_dns_upstreams=1.1.1.1;1.0.0.1;8.8.4.4
       - FTLCONF_webserver_port=8080
       - FTLCONF_dhcp_enabled=false
       - FTLCONF_webserver_use_https=false
