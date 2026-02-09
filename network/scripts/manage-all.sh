@@ -64,7 +64,7 @@ show_usage() {
   echo ""
   echo "services: ${SERVICES[*]}"
   echo ""
-  echo "actions: deploy|update|restart|status|logs|stop|start|push"
+  echo "actions: deploy|update|restart|status|logs|stop|start|push|save"
   echo ""
   echo "examples:"
   echo "  $0 caddy deploy     - Deploy only Caddy"
@@ -95,6 +95,7 @@ else
     stop)    execute_all_services "stop" ;;
     start)   execute_all_services "start" ;;
     push)    execute_all_services "push" ;;
+    save)    execute_all_services "save" ;;
     *)       show_usage ;;
   esac
 fi

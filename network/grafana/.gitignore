@@ -10,5 +10,5 @@ grafana-storage/
 *.tmp
 *.temp
 
-# Provisioning files (keep these in git)
+# Provisioning files (keep in git - dashboards, datasources)
 !provisioning/

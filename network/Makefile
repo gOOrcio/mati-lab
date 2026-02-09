@@ -5,7 +5,7 @@
 
 # Service definitions
 SERVICES := caddy pihole uptime-kuma dashy prometheus grafana
-OPERATIONS := deploy update restart status logs stop start push
+OPERATIONS := deploy update restart status logs stop start push save
 
 # Default target
 help:
@@ -21,6 +21,7 @@ help:
 	@echo "  stop      - Stop all services"
 	@echo "  start     - Start all services"
 	@echo "  push      - Push all service changes to GitHub"
+	@echo "  save      - Save configs (Uptime Kuma, Grafana, Dashy) and push to GitHub"
 	@echo "  clean     - Clean up old files"
 	@echo "  setup     - Setup scripts permissions"
 	@echo "  env       - Create .env from template"
@@ -37,7 +38,7 @@ help:
 	@echo "  make status"
 
 # All services operations
-deploy update restart status logs stop start push:
+deploy update restart status logs stop start push save:
 	@echo "$(shell echo $@ | tr '[:lower:]' '[:upper:]')ing all services..."
 	@cd scripts && ./manage-all.sh $@
 

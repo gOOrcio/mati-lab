@@ -10,11 +10,19 @@ ensure_network() {
   ssh "${SSH_OPTS[@]}" "$REMOTE" "docker network inspect pihole-net >/dev/null 2>&1 || docker network create pihole-net"
 }
 
+# export dashboards from Grafana API to provisioning/dashboards, then push
+save() {
+  log "Exporting Grafana dashboards and pushing to GitHub"
+  sync_from_github
+  ssh "${SSH_OPTS[@]}" "$REMOTE" "cd /opt/mati-lab/network/scripts && chmod +x export-grafana-dashboards.sh && ./export-grafana-dashboards.sh"
+  push
+}
+
 # Override deploy to include network setup
 deploy()  { log "Deploying $SERVICE_NAME"; ensure_network; sync_from_github; copy_env_file "../$SERVICE_NAME"; compose_cmd up -d; }
 
 # Handle command line arguments
 case "${1:-help}" in
-  deploy|update|restart|start|stop|status|logs|push) "$1" ;;
-  *) echo "usage: $0 {deploy|update|restart|start|stop|status|logs|push}"; exit 1 ;;
+  deploy|update|restart|start|stop|status|logs|push|save) "$1" ;;
+  *) echo "usage: $0 {deploy|update|restart|start|stop|status|logs|push|save}"; exit 1 ;;
 esac

@@ -9,8 +9,10 @@ source "$SCRIPT_DIR/common.sh"
 deploy()  { log "Deploying $SERVICE_NAME"; sync_from_github; copy_env_file "../$SERVICE_NAME"; compose_cmd up -d --build; }
 update()  { log "Updating $SERVICE_NAME"; sync_from_github; copy_env_file "../$SERVICE_NAME"; compose_cmd down; compose_cmd up -d --build; }
 
+save() { push; }
+
 # Handle command line arguments
 case "${1:-help}" in
-  deploy|update|restart|start|stop|status|logs|push) "$1" ;;
-  *) echo "usage: $0 {deploy|update|restart|start|stop|status|logs|push}"; exit 1 ;;
+  deploy|update|restart|start|stop|status|logs|push|save) "$1" ;;
+  *) echo "usage: $0 {deploy|update|restart|start|stop|status|logs|push|save}"; exit 1 ;;
 esac

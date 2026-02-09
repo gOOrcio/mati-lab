@@ -87,21 +87,44 @@ Each service can be managed independently:
 
 ```bash
 # Caddy
-./manage-caddy.sh [deploy|update|restart|status|logs|stop|start]
+./manage-caddy.sh [deploy|update|restart|status|logs|stop|start|push|save]
 
 # Pi-hole
-./manage-pihole.sh [deploy|update|restart|status|logs|stop|start]
+./manage-pihole.sh [deploy|update|restart|status|logs|stop|start|push|save]
 
 # Uptime Kuma
-./manage-uptime-kuma.sh [deploy|update|restart|status|logs|stop|start]
+./manage-uptime-kuma.sh [deploy|update|restart|status|logs|stop|start|push|save]
+
+# Grafana
+./manage-grafana.sh [deploy|update|restart|status|logs|stop|start|push|save]
+
+# Dashy
+./manage-dashy.sh [deploy|update|restart|status|logs|stop|start|push|save]
 ```
+
+### Saving Configs to Git
+
+After configuring monitors (Uptime Kuma), dashboards (Grafana), or layout (Dashy) via the web UI, save them to git:
+
+```bash
+./manage-uptime-kuma.sh save   # Monitors in app/data/
+./manage-grafana.sh save       # Exports dashboards via API to provisioning/dashboards/
+./manage-dashy.sh save         # conf.yml is bind-mounted (edits via web UI)
+
+# Save all
+./manage-all.sh save
+```
+
+- **Uptime Kuma**: `app/data/` (SQLite) is committed
+- **Grafana**: Dashboards exported to `provisioning/dashboards/*.json` (requires `jq`, `GF_SECURITY_ADMIN_PASSWORD` in grafana/.env)
+- **Dashy**: `config/conf.yml` is bind-mounted
 
 ### Bulk Operations
 
 Manage all services at once:
 
 ```bash
-./manage-all.sh [deploy|update|restart|status|logs|stop|start]
+./manage-all.sh [deploy|update|restart|status|logs|stop|start|push|save]
 ```
 
 ### Service-Specific Operations

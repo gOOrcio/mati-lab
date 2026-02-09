@@ -1,5 +1,5 @@
-# Uptime Kuma data
-app/data/
+# Uptime Kuma - keep app/data for git backup, only ignore logs
+app/data/*.log
 *.log
 
 # Environment files
