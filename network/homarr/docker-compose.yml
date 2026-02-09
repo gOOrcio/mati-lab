@@ -1,6 +1,7 @@
-#---------------------------------------------------------------------#
-#     Homarr - A simple, yet powerful dashboard for your server.      #
-#---------------------------------------------------------------------#
+networks:
+  pihole-net:
+    external: true
+
 services:
   homarr:
     container_name: homarr
@@ -9,7 +10,12 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./homarr/appdata:/appdata
+    networks:
+      - pihole-net
     environment:
-      - SECRET_ENCRYPTION_KEY=REDACTED_GENERATE_NEW_KEY_WITH_openssl_rand_hex_32
+      - SECRET_ENCRYPTION_KEY=${SECRET_ENCRYPTION_KEY}
     ports:
       - '7575:7575'
+    labels:
+      - "com.docker.compose.project=homarr"
+      - "com.docker.compose.service=homarr"
