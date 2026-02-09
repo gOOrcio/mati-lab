@@ -9,7 +9,7 @@ services:
     restart: unless-stopped
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - ./homarr/appdata:/appdata
+      - ./appdata:/appdata
     networks:
       - pihole-net
     environment:
