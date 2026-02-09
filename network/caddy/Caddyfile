@@ -51,9 +51,9 @@
         }
     }
 
-    @dashy host dashy.mati-lab.online
-    handle @dashy {
-        reverse_proxy http://dashy:8080 {
+    @homarr host homarr.mati-lab.online
+    handle @homarr {
+        reverse_proxy http://homarr:7575 {
             header_up Host {host}
             header_up X-Forwarded-Proto https
             header_up X-Forwarded-Ssl on

@@ -4,7 +4,7 @@
 .PHONY: help deploy update restart status logs stop start clean setup env
 
 # Service definitions
-SERVICES := caddy pihole uptime-kuma dashy prometheus grafana
+SERVICES := caddy pihole uptime-kuma homarr prometheus grafana
 OPERATIONS := deploy update restart status logs stop start push save
 
 # Default target
@@ -21,7 +21,7 @@ help:
 	@echo "  stop      - Stop all services"
 	@echo "  start     - Start all services"
 	@echo "  push      - Push all service changes to GitHub"
-	@echo "  save      - Save configs (Uptime Kuma, Grafana, Dashy) and push to GitHub"
+	@echo "  save      - Save configs (Uptime Kuma, Grafana, homarr) and push to GitHub"
 	@echo "  clean     - Clean up old files"
 	@echo "  setup     - Setup scripts permissions"
 	@echo "  env       - Create .env from template"

@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-SERVICE_NAME="dashy"
+SERVICE_NAME="homarr"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/common.sh"
 
 # save = push (conf.yml is bind-mounted, already on host)
-save() { log "Pushing Dashy config to GitHub"; push; }
+save() { log "Pushing Homarr config to GitHub"; push; }
 
 # Handle command line arguments
 case "${1:-help}" in
