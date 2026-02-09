@@ -4,7 +4,7 @@ networks:
 
 services:
   dashy:
-    image: lissy93/dashy
+    image: lissy93/dashy:3.1.0
     container_name: dashy
     volumes:
       - ./config/conf.yml:/app/user-data/conf.yml
