@@ -23,7 +23,33 @@ log_error(){ printf "\033[0;31m[ERROR]\033[0m %s\n" "$*"; }
 # Common functions
 sync_from_github() {
   log "Syncing from GitHub (network directory only)"
-  ssh "${SSH_OPTS[@]}" "$REMOTE" "cd /opt && if [ -d 'mati-lab' ]; then cd mati-lab && git pull origin main; else git clone --filter=blob:none --sparse $GITHUB_REPO && cd mati-lab && git sparse-checkout set network && git checkout main; fi"
+
+  ssh "${SSH_OPTS[@]}" "$REMOTE" "
+    set -euo pipefail
+    cd /opt
+
+    if [ -d mati-lab/.git ]; then
+      cd mati-lab
+
+      # Ensure sparse-checkout is enabled and pinned to only 'network'
+      git sparse-checkout init --cone >/dev/null 2>&1 || true
+      git sparse-checkout set network
+
+      # Force local state to exactly match origin/main
+      git fetch --prune origin
+      git checkout -f main
+      git reset --hard origin/main
+
+      # Optional: remove untracked files inside the sparse checkout
+      # (comment out if you want to keep local untracked files)
+      git clean -fd
+    else
+      git clone --filter=blob:none --sparse -b main \"$GITHUB_REPO\" mati-lab
+      cd mati-lab
+      git sparse-checkout set network
+      git checkout -f main
+    fi
+  "
 }
 
 push_to_github() {
