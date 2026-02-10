@@ -12,9 +12,13 @@
 
     @pihole host pihole.mati-lab.online
     handle @pihole {
+        forward_auth http://authelia:9091 {
+            uri /api/authz/forward-auth
+            copy_headers Remote-User Remote-Groups Remote-Name Remote-Email
+        }
         @pihole_root path /
         redir @pihole_root /admin 301
-        
+
         reverse_proxy http://pihole:8080 {
             header_up Host {host}
             header_up X-Forwarded-Proto https
@@ -24,6 +28,10 @@
 
     @proxmox host proxmox.mati-lab.online
     handle @proxmox {
+        forward_auth http://authelia:9091 {
+            uri /api/authz/forward-auth
+            copy_headers Remote-User Remote-Groups Remote-Name Remote-Email
+        }
         reverse_proxy 192.168.1.11:8006 {
             transport http {
                 tls_insecure_skip_verify
@@ -33,6 +41,10 @@
 
     @homebridge host homebridge.mati-lab.online
     handle @homebridge {
+        forward_auth http://authelia:9091 {
+            uri /api/authz/forward-auth
+            copy_headers Remote-User Remote-Groups Remote-Name Remote-Email
+        }
         reverse_proxy 192.168.1.155 {
             header_up Host {host}
             header_up X-Forwarded-Proto https
@@ -53,6 +65,10 @@
 
     @homarr host homarr.mati-lab.online
     handle @homarr {
+        forward_auth http://authelia:9091 {
+            uri /api/authz/forward-auth
+            copy_headers Remote-User Remote-Groups Remote-Name Remote-Email
+        }
         reverse_proxy http://homarr:7575 {
             header_up Host {host}
             header_up X-Forwarded-Proto https
@@ -62,6 +78,10 @@
 
     @homer host homer.mati-lab.online
     handle @homer {
+        forward_auth http://authelia:9091 {
+            uri /api/authz/forward-auth
+            copy_headers Remote-User Remote-Groups Remote-Name Remote-Email
+        }
         reverse_proxy http://homer:6565 {
             header_up Host {host}
             header_up X-Forwarded-Proto https
@@ -71,6 +91,10 @@
 
     @prometheus host prometheus.mati-lab.online
     handle @prometheus {
+        forward_auth http://authelia:9091 {
+            uri /api/authz/forward-auth
+            copy_headers Remote-User Remote-Groups Remote-Name Remote-Email
+        }
         reverse_proxy http://prometheus:9090 {
             header_up Host {host}
             header_up X-Forwarded-Proto https
@@ -80,6 +104,10 @@
 
     @grafana host grafana.mati-lab.online
     handle @grafana {
+        forward_auth http://authelia:9091 {
+            uri /api/authz/forward-auth
+            copy_headers Remote-User Remote-Groups Remote-Name Remote-Email
+        }
         reverse_proxy http://grafana:3000 {
             header_up Host {host}
             header_up X-Forwarded-Proto https
@@ -90,6 +118,15 @@
     @ntfy host ntfy.mati-lab.online
     handle @ntfy {
         reverse_proxy http://ntfy:80 {
+            header_up Host {host}
+            header_up X-Forwarded-Proto https
+            header_up X-Forwarded-Ssl on
+        }
+    }
+
+    @authelia host authelia.mati-lab.online
+    handle @authelia {
+        reverse_proxy http://authelia:9091 {
             header_up Host {host}
             header_up X-Forwarded-Proto https
             header_up X-Forwarded-Ssl on

@@ -1,0 +1,22 @@
+networks:
+  pihole-net:
+    external: true
+
+services:
+  authelia:
+    image: authelia/authelia:4.38
+    container_name: authelia
+    env_file:
+      - .env
+    volumes:
+      - ./configuration.yml:/config/configuration.yml
+      - ./data:/config/data
+    ports:
+      - 9091:9091
+    restart: unless-stopped
+
+    networks:
+      - pihole-net
+    labels:
+      - "com.docker.compose.project=authelia"
+      - "com.docker.compose.service=authelia"

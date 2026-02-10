@@ -1,0 +1,14 @@
+---
+# Authelia users database
+# Generate password hash: docker run --rm authelia/authelia:4.38 crypto hash generate argon2
+#
+# Place this file at data/users_database.yml (not tracked by git)
+
+users:
+  admin:
+    displayname: "Admin"
+    # password: changeme (replace with argon2 hash from command above)
+    password: "$argon2id$v=19$m=65536,t=3,p=4$REPLACE_WITH_REAL_HASH"
+    email: admin@mati-lab.online
+    groups:
+      - admins

@@ -1,0 +1,17 @@
+# Authelia data (SQLite DB, user database with hashed passwords)
+# NOTE: The data/ directory is intentionally not tracked by git.
+# Before deploying, you must:
+#   1) Create the data/ directory.
+#   2) Copy users_database.yml.example to data/users_database.yml.
+#   3) Generate a password hash and replace the example hash in data/users_database.yml.
+data/
+
+# Environment files
+.env
+.env.local
+.env.production
+
+# Temporary files
+*.tmp
+*.temp
+*.log
