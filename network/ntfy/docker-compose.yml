@@ -18,6 +18,7 @@ services:
       NTFY_BASE_URL: "https://ntfy.mati-lab.online"
       NTFY_UPSTREAM_BASE_URL: "https://ntfy.sh"
       NTFY_BEHIND_PROXY: "true"
+      NTFY_LOG_LEVEL: "debug"
 
       NTFY_AUTH_FILE: "/var/lib/ntfy/auth.db"
       NTFY_AUTH_DEFAULT_ACCESS: "deny-all"
