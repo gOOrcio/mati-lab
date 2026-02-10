@@ -12,6 +12,8 @@ else
   SERVER_USER="${SERVER_USER:-gooral}"
 fi
 
+BRANCH="${BRANCH:-main}"
+
 SSH_OPTS=(-o BatchMode=yes -o StrictHostKeyChecking=accept-new)
 REMOTE="${SERVER_USER}@${SERVER_HOST}"
 GITHUB_REPO="git@github.com:gOOrcio/mati-lab.git"
@@ -22,7 +24,7 @@ log_error(){ printf "\033[0;31m[ERROR]\033[0m %s\n" "$*"; }
 
 # Common functions
 sync_from_github() {
-  log "Syncing from GitHub (network directory only)"
+  log "Syncing from GitHub (branch: $BRANCH)"
 
   ssh "${SSH_OPTS[@]}" "$REMOTE" "
     set -euo pipefail
@@ -37,17 +39,17 @@ sync_from_github() {
 
       # Force local state to exactly match origin/main
       git fetch --prune origin
-      git checkout -f main
-      git reset --hard origin/main
+      git checkout -f $BRANCH
+      git reset --hard origin/$BRANCH
 
       # Optional: remove untracked files inside the sparse checkout
       # (comment out if you want to keep local untracked files)
       git clean -fd
     else
-      git clone --filter=blob:none --sparse -b main \"$GITHUB_REPO\" mati-lab
+      git clone --filter=blob:none --sparse -b $BRANCH \"$GITHUB_REPO\" mati-lab
       cd mati-lab
       git sparse-checkout set network
-      git checkout -f main
+      git checkout -f $BRANCH
     fi
   "
 }
