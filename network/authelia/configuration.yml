@@ -11,6 +11,7 @@ log:
 authentication_backend:
   file:
     path: /config/data/users_database.yml
+    watch: true
 
 session:
   cookies:
