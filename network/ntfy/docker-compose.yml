@@ -1,0 +1,40 @@
+networks:
+  pihole-net:
+    external: true
+
+services:
+  ntfy:
+    image: binwiederhier/ntfy:v2.17
+    container_name: ntfy
+    command:
+      - serve
+    volumes:
+      - ./var/cache/ntfy:/var/cache/ntfy
+      - ./etc/ntfy:/etc/ntfy
+      - ./var/lib/ntfy:/var/lib/ntfy
+    ports:
+      - 8093:80
+    environment:
+      NTFY_BASE_URL: "https://ntfy.mati-lab.online"
+      NTFY_UPSTREAM_BASE_URL: "https://ntfy.sh"
+      NTFY_BEHIND_PROXY: "true"
+
+      NTFY_AUTH_FILE: "/var/lib/ntfy/auth.db"
+      NTFY_AUTH_DEFAULT_ACCESS: "deny-all"
+      NTFY_CACHE_FILE: "/var/cache/ntfy/cache.db"
+
+    healthcheck: # optional: remember to adapt the host:port to your environment
+      test: ["CMD-SHELL", "wget -q --tries=1 http://localhost:80/v1/health -O - | grep -Eo '\"healthy\"\\s*:\\s*true' || exit 1"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+    init: true
+
+    networks:
+      - pihole-net
+    labels:
+      - "com.docker.compose.project=ntfy"
+      - "com.docker.compose.service=ntfy"
+

@@ -87,6 +87,15 @@
         }
     }
 
+    @ntfy host ntfy.mati-lab.online
+    handle @ntfy {
+        reverse_proxy http://ntfy:80 {
+            header_up Host {host}
+            header_up X-Forwarded-Proto https
+            header_up X-Forwarded-Ssl on
+        }
+    }
+
     handle {
         respond "unknown host" 404
     }
