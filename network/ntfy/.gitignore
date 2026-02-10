@@ -12,3 +12,4 @@ grafana-storage/
 
 /etc/ntfy
 /var/cache/ntfy
+var/lib/ntfy
