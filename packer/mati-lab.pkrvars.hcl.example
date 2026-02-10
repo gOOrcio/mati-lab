@@ -1,0 +1,4 @@
+proxmox_password = "your_proxmox_password"
+porxmox_token    = "your_proxmox_api_token"
+vm_ssh_password  = "ubuntu"
+ssh_public_key   = "ssh-rsa AAAA..."

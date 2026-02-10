@@ -1,9 +1,10 @@
-# Environment files
+# Environment files (real secrets - use .env.example as template)
 .env
 .env.local
 .env.caddy
 .env.pihole
-.env**
+.env*
+!.env.example
 
 # Logs
 *.log
@@ -16,8 +17,11 @@
 *.backup
 *.bak
 
+# OS files
+.DS_Store
+
 # IDE files
-.idea
+.idea/
 .project
 
 # Data directories
@@ -26,7 +30,7 @@ secrets
 .vault_password
 unsafe-notes.md
 
-# Packer variables
+# Packer variables (real secrets - use .pkrvars.hcl.example as template)
 **/*.pkrvars.hcl
 
 # Service-specific data directories
