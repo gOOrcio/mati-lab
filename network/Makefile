@@ -6,6 +6,7 @@
 # Service definitions
 SERVICES := pihole authelia caddy uptime-kuma homarr homer prometheus grafana ntfy watchtower
 OPERATIONS := deploy update restart status logs stop start push save
+BRANCH ?= main
 
 # Default target
 help:
@@ -36,17 +37,18 @@ help:
 	@echo "  make deploy-caddy"
 	@echo "  make update"
 	@echo "  make status"
+	@echo "  make deploy-caddy BRANCH=feature/foo"
 
 # All services operations
 deploy update restart status logs stop start push save:
 	@echo "$(shell echo $@ | tr '[:lower:]' '[:upper:]')ing all services..."
-	@cd scripts && ./manage-all.sh $@
+	@cd scripts && BRANCH=$(BRANCH) ./manage-all.sh $@
 
 # Generate service-specific targets dynamically
 define service_target_template
 $(1)-$(2):
 	@echo "$$(shell echo $(1) | tr '[:lower:]' '[:upper:]')ing $$(shell echo $(2) | tr '-' ' ' | sed 's/\b\w/\U&/g')..."
-	@cd scripts && ./manage-$(2).sh $(1)
+	@cd scripts && BRANCH=$(BRANCH) ./manage-$(2).sh $(1)
 endef
 
 $(foreach service,$(SERVICES),$(foreach op,$(OPERATIONS),$(eval $(call service_target_template,$(op),$(service)))))
