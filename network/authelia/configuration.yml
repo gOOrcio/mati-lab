@@ -23,6 +23,11 @@ storage:
 
 access_control:
   default_policy: one_factor
+  rules:
+    - domain: uptime-kuma.mati-lab.online
+      policy: bypass
+    - domain: ntfy.mati-lab.online
+      policy: bypass
 
 notifier:
   filesystem:
