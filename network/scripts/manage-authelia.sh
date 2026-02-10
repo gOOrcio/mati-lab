@@ -12,7 +12,7 @@ REMOTE_DATA="/opt/mati-lab/network/$SERVICE_NAME/data"
 copy_data() {
   if [[ -f "${SERVICE_DIR}/data/users_database.yml" ]]; then
     log "Copying users database to server..."
-    ssh "${SSH_OPTS[@]}" "$REMOTE" "mkdir -p $REMOTE_DATA"
+    ssh "${SSH_OPTS[@]}" "$REMOTE" "sudo mkdir -p $REMOTE_DATA && sudo chown -R ${SERVER_USER}:${SERVER_USER} $REMOTE_DATA"
     scp "${SSH_OPTS[@]}" "${SERVICE_DIR}/data/users_database.yml" "$REMOTE:$REMOTE_DATA/"
   else
     log_error "No users database found at ${SERVICE_DIR}/data/users_database.yml"
