@@ -54,6 +54,10 @@
 
     @uptime-kuma host uptime-kuma.mati-lab.online
     handle @uptime-kuma {
+        forward_auth http://authelia:9091 {
+            uri /api/authz/forward-auth
+            copy_headers Remote-User Remote-Groups Remote-Name Remote-Email
+        }
         reverse_proxy http://uptime-kuma:3001 {
             header_up Host {host}
             header_up X-Forwarded-Proto https

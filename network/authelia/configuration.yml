@@ -22,11 +22,12 @@ storage:
   local:
     path: /config/data/db.sqlite3
 
+totp:
+  issuer: mati-lab.online
+
 access_control:
-  default_policy: one_factor
+  default_policy: two_factor
   rules:
-    - domain: uptime-kuma.mati-lab.online
-      policy: bypass
     - domain: ntfy.mati-lab.online
       policy: bypass
 
