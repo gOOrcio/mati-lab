@@ -3,6 +3,19 @@ networks:
     external: true
 
 services:
+  redis:
+    image: redis:7-alpine
+    container_name: authelia-redis
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "${AUTHELIA_SESSION_REDIS_PASSWORD}"]
+    volumes:
+      - ./redis-data:/data
+    restart: unless-stopped
+    networks:
+      - pihole-net
+    labels:
+      - "com.docker.compose.project=authelia"
+      - "com.docker.compose.service=redis"
+
   authelia:
     image: authelia/authelia:4.38
     container_name: authelia
@@ -14,7 +27,8 @@ services:
     ports:
       - 9091:9091
     restart: unless-stopped
-
+    depends_on:
+      - redis
     networks:
       - pihole-net
     labels:
