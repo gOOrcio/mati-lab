@@ -4,7 +4,7 @@
 .PHONY: help deploy update restart status logs stop start clean setup env
 
 # Service definitions
-SERVICES := caddy pihole uptime-kuma homarr homer prometheus grafana ntfy authelia watchtower
+SERVICES := pihole authelia caddy uptime-kuma homarr homer prometheus grafana ntfy watchtower
 OPERATIONS := deploy update restart status logs stop start push save
 
 # Default target
