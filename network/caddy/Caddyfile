@@ -45,10 +45,7 @@
             uri /api/authz/forward-auth
             copy_headers Remote-User Remote-Groups Remote-Name Remote-Email
         }
-        reverse_proxy https://192.168.1.155:8581 {
-            transport http {
-                tls_insecure_skip_verify
-            }
+        reverse_proxy http://192.168.1.155:8581 {
             header_up Host {host}
             header_up X-Forwarded-Proto https
             header_up X-Forwarded-Ssl on
