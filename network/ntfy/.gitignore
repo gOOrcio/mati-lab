@@ -1,5 +1,3 @@
-# Grafana data and logs
-grafana-storage/
 *.log
 
 # Environment files
