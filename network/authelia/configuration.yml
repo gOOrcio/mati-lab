@@ -14,6 +14,9 @@ authentication_backend:
     watch: true
 
 session:
+  expiration: 12h
+  inactivity: 4h
+  remember_me: 1M
   cookies:
     - domain: 'mati-lab.online'
       authelia_url: 'https://authelia.mati-lab.online'
