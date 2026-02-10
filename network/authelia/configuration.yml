@@ -1,0 +1,29 @@
+---
+# Authelia minimal configuration for mati-lab homelab
+# Docs: https://www.authelia.com/configuration/
+
+server:
+  address: 'tcp://:9091'
+
+log:
+  level: info
+
+authentication_backend:
+  file:
+    path: /config/data/users_database.yml
+
+session:
+  cookies:
+    - domain: 'mati-lab.online'
+      authelia_url: 'https://authelia.mati-lab.online'
+
+storage:
+  local:
+    path: /config/data/db.sqlite3
+
+access_control:
+  default_policy: one_factor
+
+notifier:
+  filesystem:
+    filename: /config/data/notification.txt

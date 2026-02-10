@@ -1,0 +1,12 @@
+# Authelia data (SQLite DB, user database with hashed passwords)
+data/
+
+# Environment files
+.env
+.env.local
+.env.production
+
+# Temporary files
+*.tmp
+*.temp
+*.log
