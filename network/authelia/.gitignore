@@ -5,6 +5,7 @@
 #   2) Copy users_database.yml.example to data/users_database.yml.
 #   3) Generate a password hash and replace the example hash in data/users_database.yml.
 data/
+redis-data
 
 # Environment files
 .env
