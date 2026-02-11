@@ -6,7 +6,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/common.sh"
 
 # Available services
-SERVICES=(pihole authelia caddy uptime-kuma homarr homer prometheus grafana ntfy watchtower)
+SERVICES=(pihole authelia caddy uptime-kuma homarr homer prometheus grafana ntfy diun)
 
 log_success(){ printf "\033[0;32m[SUCCESS]\033[0m %s\n" "$*"; }
 log_warning(){ printf "\033[1;33m[WARNING]\033[0m %s\n" "$*"; }
