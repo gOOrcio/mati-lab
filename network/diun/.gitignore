@@ -3,6 +3,9 @@
 .env.local
 .env.production
 
+# Data directory (diun state)
+data/
+
 # Temporary files
 *.tmp
 *.temp
