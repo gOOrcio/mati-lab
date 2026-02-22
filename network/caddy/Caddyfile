@@ -32,7 +32,7 @@
             uri /api/authz/forward-auth
             copy_headers Remote-User Remote-Groups Remote-Name Remote-Email
         }
-        reverse_proxy 192.168.1.11:8006 {
+        reverse_proxy 192.168.1.184:8006 {
             transport http {
                 tls_insecure_skip_verify
             }
