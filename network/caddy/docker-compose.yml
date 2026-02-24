@@ -21,6 +21,7 @@ services:
       - ./Caddyfile:/etc/caddy/Caddyfile
       - ./data:/data
       - ./config:/config
+      - /var/run/docker.sock:/var/run/docker.sock
     networks:
       - pihole-net
     labels:

@@ -12,43 +12,68 @@
 
     @pihole host pihole.mati-lab.online
     handle @pihole {
-        forward_auth http://authelia:9091 {
-            uri /api/authz/forward-auth
-            copy_headers Remote-User Remote-Groups Remote-Name Remote-Email
+        @pihole_health path /admin/api.php
+        handle @pihole_health {
+            reverse_proxy http://pihole:8080
         }
-        @pihole_root path /
-        redir @pihole_root /admin 301
 
-        reverse_proxy http://pihole:8080 {
-            header_up Host {host}
-            header_up X-Forwarded-Proto https
-            header_up X-Forwarded-Ssl on
+        handle {
+            forward_auth http://authelia:9091 {
+                uri /api/authz/forward-auth
+                copy_headers Remote-User Remote-Groups Remote-Name Remote-Email
+            }
+            @pihole_root path /
+            redir @pihole_root /admin 301
+
+            reverse_proxy http://pihole:8080 {
+                header_up Host {host}
+                header_up X-Forwarded-Proto https
+                header_up X-Forwarded-Ssl on
+            }
         }
     }
 
     @proxmox host proxmox.mati-lab.online
     handle @proxmox {
-        forward_auth http://authelia:9091 {
-            uri /api/authz/forward-auth
-            copy_headers Remote-User Remote-Groups Remote-Name Remote-Email
+        @proxmox_health path /api2/json/version
+        handle @proxmox_health {
+            reverse_proxy 192.168.1.184:8006 {
+                transport http {
+                    tls_insecure_skip_verify
+                }
+            }
         }
-        reverse_proxy 192.168.1.184:8006 {
-            transport http {
-                tls_insecure_skip_verify
+
+        handle {
+            forward_auth http://authelia:9091 {
+                uri /api/authz/forward-auth
+                copy_headers Remote-User Remote-Groups Remote-Name Remote-Email
+            }
+            reverse_proxy 192.168.1.184:8006 {
+                transport http {
+                    tls_insecure_skip_verify
+                }
             }
         }
     }
 
     @homebridge host homebridge.mati-lab.online
     handle @homebridge {
-        forward_auth http://authelia:9091 {
-            uri /api/authz/forward-auth
-            copy_headers Remote-User Remote-Groups Remote-Name Remote-Email
+        @homebridge_health path /health
+        handle @homebridge_health {
+            reverse_proxy http://192.168.1.155:8581
         }
-        reverse_proxy http://192.168.1.155:8581 {
-            header_up Host {host}
-            header_up X-Forwarded-Proto https
-            header_up X-Forwarded-Ssl on
+
+        handle {
+            forward_auth http://authelia:9091 {
+                uri /api/authz/forward-auth
+                copy_headers Remote-User Remote-Groups Remote-Name Remote-Email
+            }
+            reverse_proxy http://192.168.1.155:8581 {
+                header_up Host {host}
+                header_up X-Forwarded-Proto https
+                header_up X-Forwarded-Ssl on
+            }
         }
     }
 
@@ -69,53 +94,81 @@
 
     @homarr host homarr.mati-lab.online
     handle @homarr {
-        forward_auth http://authelia:9091 {
-            uri /api/authz/forward-auth
-            copy_headers Remote-User Remote-Groups Remote-Name Remote-Email
+        @homarr_health path /api/health
+        handle @homarr_health {
+            reverse_proxy http://homarr:7575
         }
-        reverse_proxy http://homarr:7575 {
-            header_up Host {host}
-            header_up X-Forwarded-Proto https
-            header_up X-Forwarded-Ssl on
+
+        handle {
+            forward_auth http://authelia:9091 {
+                uri /api/authz/forward-auth
+                copy_headers Remote-User Remote-Groups Remote-Name Remote-Email
+            }
+            reverse_proxy http://homarr:7575 {
+                header_up Host {host}
+                header_up X-Forwarded-Proto https
+                header_up X-Forwarded-Ssl on
+            }
         }
     }
 
     @homer host homer.mati-lab.online
     handle @homer {
-        forward_auth http://authelia:9091 {
-            uri /api/authz/forward-auth
-            copy_headers Remote-User Remote-Groups Remote-Name Remote-Email
+        @homer_health path /assets/manifest.json
+        handle @homer_health {
+            reverse_proxy http://homer:6565
         }
-        reverse_proxy http://homer:6565 {
-            header_up Host {host}
-            header_up X-Forwarded-Proto https
-            header_up X-Forwarded-Ssl on
+
+        handle {
+            forward_auth http://authelia:9091 {
+                uri /api/authz/forward-auth
+                copy_headers Remote-User Remote-Groups Remote-Name Remote-Email
+            }
+            reverse_proxy http://homer:6565 {
+                header_up Host {host}
+                header_up X-Forwarded-Proto https
+                header_up X-Forwarded-Ssl on
+            }
         }
     }
 
     @prometheus host prometheus.mati-lab.online
     handle @prometheus {
-        forward_auth http://authelia:9091 {
-            uri /api/authz/forward-auth
-            copy_headers Remote-User Remote-Groups Remote-Name Remote-Email
+        @prometheus_health path /-/healthy
+        handle @prometheus_health {
+            reverse_proxy http://prometheus:9090
         }
-        reverse_proxy http://prometheus:9090 {
-            header_up Host {host}
-            header_up X-Forwarded-Proto https
-            header_up X-Forwarded-Ssl on
+
+        handle {
+            forward_auth http://authelia:9091 {
+                uri /api/authz/forward-auth
+                copy_headers Remote-User Remote-Groups Remote-Name Remote-Email
+            }
+            reverse_proxy http://prometheus:9090 {
+                header_up Host {host}
+                header_up X-Forwarded-Proto https
+                header_up X-Forwarded-Ssl on
+            }
         }
     }
 
     @grafana host grafana.mati-lab.online
     handle @grafana {
-        forward_auth http://authelia:9091 {
-            uri /api/authz/forward-auth
-            copy_headers Remote-User Remote-Groups Remote-Name Remote-Email
+        @grafana_health path /api/health
+        handle @grafana_health {
+            reverse_proxy http://grafana:3000
         }
-        reverse_proxy http://grafana:3000 {
-            header_up Host {host}
-            header_up X-Forwarded-Proto https
-            header_up X-Forwarded-Ssl on
+
+        handle {
+            forward_auth http://authelia:9091 {
+                uri /api/authz/forward-auth
+                copy_headers Remote-User Remote-Groups Remote-Name Remote-Email
+            }
+            reverse_proxy http://grafana:3000 {
+                header_up Host {host}
+                header_up X-Forwarded-Proto https
+                header_up X-Forwarded-Ssl on
+            }
         }
     }
 
