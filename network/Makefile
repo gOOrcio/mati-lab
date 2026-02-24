@@ -1,7 +1,7 @@
 # Network Services Makefile
 # Provides convenient shortcuts for common operations
 
-.PHONY: help deploy update restart status logs stop start clean setup env
+.PHONY: help deploy update restart status logs stop start clean setup env rebuild-caddy
 
 # Service definitions
 SERVICES := pihole authelia caddy uptime-kuma homarr homer prometheus grafana ntfy diun
@@ -32,6 +32,7 @@ help:
 	@echo ""
 	@echo "Special targets:"
 	@echo "  check-pihole         - Check Pi-hole DNS resolution"
+	@echo "  rebuild-caddy        - Rebuild Caddy image (use when Dockerfile/plugins change)"
 	@echo ""
 	@echo "Examples:"
 	@echo "  make deploy-caddy"
@@ -57,6 +58,10 @@ $(foreach service,$(SERVICES),$(foreach op,$(OPERATIONS),$(eval $(call service_t
 check-pihole:
 	@echo "Checking Pi-hole DNS resolution..."
 	@cd scripts && ./manage-pihole.sh check
+
+rebuild-caddy:
+	@echo "Rebuilding Caddy..."
+	@cd scripts && BRANCH=$(BRANCH) ./manage-caddy.sh rebuild
 
 # Utility targets
 clean:
