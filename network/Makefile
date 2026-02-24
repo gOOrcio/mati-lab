@@ -4,7 +4,7 @@
 .PHONY: help deploy update restart status logs stop start clean setup env rebuild-caddy
 
 # Service definitions
-SERVICES := pihole authelia caddy uptime-kuma homarr homer prometheus grafana ntfy diun
+SERVICES := pihole authelia caddy uptime-kuma homarr prometheus grafana ntfy diun
 OPERATIONS := deploy update restart status logs stop start push save
 BRANCH ?= main
 
