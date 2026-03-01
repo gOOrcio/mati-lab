@@ -1,0 +1,42 @@
+- name: Deploy application
+  hosts: smart-resume
+  vars_files:
+    - ../group_vars/all/vars.yml
+    - ../group_vars/all/vault.yml
+  tasks:
+    - name: Create app directory
+      ansible.builtin.file:
+        path: "{{ app_remote_path }}"
+        state: directory
+        owner: "{{ vm_ssh_user }}"
+        mode: "0755"
+      become: true
+
+    - name: Sync project files
+      ansible.posix.synchronize:
+        src:  "{{ app_repo_path }}/"
+        dest: "{{ app_remote_path }}/"
+        rsync_opts:
+          - "--exclude=.git"
+          - "--exclude=node_modules"
+          - "--exclude=.venv"
+          - "--exclude=__pycache__"
+          - "--exclude=apps/web/dist"
+          - "--exclude=apps/web/.astro"
+          - "--exclude=apps/api/src/app/resources/docs"
+          - "--exclude=.env"
+          - "--delete"
+
+    - name: Write .env
+      ansible.builtin.template:
+        src:  ../templates/env.j2
+        dest: "{{ app_remote_path }}/.env"
+        owner: "{{ vm_ssh_user }}"
+        mode: "0600"
+
+    - name: Build and start containers
+      community.docker.docker_compose_v2:
+        project_src: "{{ app_remote_path }}"
+        build: always
+        state: present
+        pull: missing
