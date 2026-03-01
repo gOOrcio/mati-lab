@@ -40,3 +40,5 @@
         build: always
         state: present
         pull: missing
+        profiles:
+          - prod
