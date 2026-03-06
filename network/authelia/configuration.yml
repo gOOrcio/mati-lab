@@ -61,7 +61,7 @@ identity_providers:
     clients:
       - client_id: 'proxmox'
         client_name: 'Proxmox VE'
-        client_secret: '$argon2id$v=19$m=65536,t=3,p=4$VdAHHH7+fHDCBgomE3jTBw$xM9/wSPMIRm5VvwpBPgLtebWbykSHGYGafTN6450tRI'
+        client_secret: '{{ secret "/config/data/oidc_proxmox_client_secret.txt" }}'
         authorization_policy: 'two_factor'
         redirect_uris:
           - 'https://proxmox.mati-lab.online'
