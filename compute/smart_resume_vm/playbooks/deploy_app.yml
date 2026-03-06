@@ -34,9 +34,20 @@
         owner: "{{ vm_ssh_user }}"
         mode: "0600"
 
+    - name: Write apps/web/.env
+      ansible.builtin.template:
+        src:  ../templates/web.env.j2
+        dest: "{{ app_remote_path }}/apps/web/.env"
+        owner: "{{ vm_ssh_user }}"
+        mode: "0600"
+
     - name: Build and start containers
       community.docker.docker_compose_v2:
         project_src: "{{ app_remote_path }}"
         build: always
         state: present
         pull: missing
+        profiles:
+          - prod
+      environment:
+        PUBLIC_TURNSTILE_SITE_KEY: "{{ vault_turnstile_site_key }}"

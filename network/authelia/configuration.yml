@@ -49,3 +49,29 @@ access_control:
 notifier:
   filesystem:
     filename: /config/data/notification.txt
+
+identity_providers:
+  oidc:
+    hmac_secret: '{{ secret "/config/data/oidc_hmac_secret.txt" }}'
+    jwks:
+      - key_id: 'main'
+        algorithm: 'RS256'
+        use: 'sig'
+        key: {{ secret "/config/data/oidc.key" | mindent 10 "|" | msquote }}
+    clients:
+      - client_id: 'proxmox'
+        client_name: 'Proxmox VE'
+        client_secret: '{{ secret "/config/data/oidc_proxmox_client_secret.txt" }}'
+        authorization_policy: 'two_factor'
+        redirect_uris:
+          - 'https://proxmox.mati-lab.online'
+        scopes:
+          - 'openid'
+          - 'profile'
+          - 'email'
+        grant_types:
+          - 'authorization_code'
+        response_types:
+          - 'code'
+        userinfo_signed_response_alg: 'none'
+        token_endpoint_auth_method: 'client_secret_basic'
