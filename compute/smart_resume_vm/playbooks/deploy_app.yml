@@ -6,6 +6,14 @@
     - ../group_vars/all/vault.yml
 
   pre_tasks:
+    - name: Lint API code (ruff)
+      ansible.builtin.command:
+        cmd: uv run ruff check src/ tests/
+        chdir: "{{ app_repo_path }}/apps/api"
+      delegate_to: localhost
+      run_once: true
+      changed_when: false
+
     - name: Run API tests (pytest)
       ansible.builtin.command:
         cmd: uv run pytest tests/ -q --tb=short
