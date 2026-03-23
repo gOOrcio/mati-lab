@@ -175,6 +175,15 @@
         }
     }
 
+    @sonarqube host sonarqube.mati-lab.online
+    handle @sonarqube {
+        reverse_proxy 192.168.1.201:9000 {
+            header_up Host {host}
+            header_up X-Forwarded-Proto https
+            header_up X-Forwarded-Ssl on
+        }
+    }
+
     handle {
         respond "unknown host" 404
     }
