@@ -55,5 +55,4 @@
       until: sonar_status.status == 200 and sonar_status.json.status == "UP"
       retries: 30
       delay: 15
-      failed_when: false
       delegate_to: localhost
