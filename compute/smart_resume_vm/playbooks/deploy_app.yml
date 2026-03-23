@@ -3,6 +3,22 @@
   vars_files:
     - ../group_vars/all/vars.yml
     - ../group_vars/all/vault.yml
+
+  pre_tasks:
+    - name: Run API tests (pytest)
+      ansible.builtin.command:
+        cmd: uv run pytest tests/ -q --tb=short
+        chdir: "{{ app_repo_path }}/apps/api"
+      delegate_to: localhost
+      run_once: true
+
+    - name: Run frontend E2E tests (Playwright)
+      ansible.builtin.command:
+        cmd: yarn test:e2e --timeout=30000
+        chdir: "{{ app_repo_path }}/apps/web"
+      delegate_to: localhost
+      run_once: true
+
   tasks:
     - name: Create app directory
       ansible.builtin.file:
