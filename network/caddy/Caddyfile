@@ -35,13 +35,7 @@
 
     @smart-resume host smart-resume.mati-lab.online
     handle @smart-resume {
-        handle {
-            forward_auth http://authelia:9091 {
-                uri /api/authz/forward-auth
-                copy_headers Remote-User Remote-Groups Remote-Name Remote-Email
-            }
-            reverse_proxy 192.168.1.200:4321
-        }
+        reverse_proxy 192.168.1.200:4321
     }
 
     @proxmox host proxmox.mati-lab.online
