@@ -5,6 +5,10 @@
     - ../group_vars/all/vars.yml
     - ../group_vars/all/vault.yml
   tasks:
+    - name: Wait for cloud-init to finish
+      ansible.builtin.command: cloud-init status --wait
+      changed_when: false
+
     - name: Upgrade all packages
       ansible.builtin.apt:
         upgrade: dist

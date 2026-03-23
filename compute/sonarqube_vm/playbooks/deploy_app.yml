@@ -50,10 +50,10 @@
       ansible.builtin.uri:
         url: "http://{{ vm_ip }}:9000/api/system/status"
         method: GET
-        status_code: 200
         return_content: true
       register: sonar_status
-      until: sonar_status.json.status == "UP"
+      until: sonar_status.status == 200 and sonar_status.json.status == "UP"
       retries: 30
       delay: 15
+      failed_when: false
       delegate_to: localhost

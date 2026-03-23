@@ -104,3 +104,15 @@ make rebuild-caddy       # rebuild Caddy Docker image (after Caddyfile/plugin ch
 Creates `compute/sonarqube_vm/` and updates `network/caddy/Caddyfile`. Tasks 1–9 and 11 write files; Tasks 10 and 12–15 require your Proxmox credentials and Cloudflare dashboard access.
 
 The broader SonarQube project (Spring Boot demo app, CI pipelines, quality gates, docs) lives in the companion repo: `~/Projects/sonarqube-sandbox`.
+
+### Demo App + Quality Gates (Plan 2)
+
+**Plan:** `docs/superpowers/plans/2026-03-23-demo-app-quality-gates.md`
+
+Execute in the `sonarqube-sandbox` session after Plan 1 is complete. Builds the Spring Boot Book Library demo app (`spring-demo/`) and provisions quality gates + profiles via `sonar-config/provision.sh` against the live SonarQube instance.
+
+### CI Pipelines + Docs (Plan 3)
+
+**Plan:** `docs/superpowers/plans/2026-03-23-ci-pipelines-docs.md`
+
+Execute in the `sonarqube-sandbox` session after Plan 2. Adds GitHub Actions reusable workflows, wires up personal projects (dietly-scraper, smart-resume, resto-rate), and writes reference documentation.

@@ -31,6 +31,8 @@ services:
       SONAR_JDBC_USERNAME: "{{ postgres_user }}"
       SONAR_JDBC_PASSWORD: "{{ postgres_password }}"
       SONAR_FORCEAUTHENTICATION: "true"
+      SONAR_WEB_JAVAADDITIONALOPTS: "-javaagent:/opt/sonarqube/extensions/plugins/sonarqube-community-branch-plugin-{{ branch_plugin_version }}.jar=web"
+      SONAR_CE_JAVAADDITIONALOPTS: "-javaagent:/opt/sonarqube/extensions/plugins/sonarqube-community-branch-plugin-{{ branch_plugin_version }}.jar=ce"
     volumes:
       - sonarqube_data:/opt/sonarqube/data
       - sonarqube_logs:/opt/sonarqube/logs

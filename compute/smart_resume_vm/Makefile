@@ -1,10 +1,10 @@
 .PHONY: provision configure deploy
 
 provision:
-	cd smart_resume_vm && ansible-playbook playbooks/site.yml
+	ansible-playbook playbooks/site.yml
 
 configure:
-	cd smart_resume_vm && ansible-playbook playbooks/configure_vm.yml
+	ansible-playbook playbooks/configure_vm.yml
 
 deploy:
-	cd smart_resume_vm && ansible-playbook playbooks/deploy_app.yml
+	ansible-playbook playbooks/deploy_app.yml
