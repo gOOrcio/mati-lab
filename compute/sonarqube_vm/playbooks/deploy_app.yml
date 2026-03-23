@@ -1,0 +1,59 @@
+- name: Deploy SonarQube
+  hosts: sonarqube
+  gather_facts: false
+  vars_files:
+    - ../group_vars/all/vars.yml
+    - ../group_vars/all/vault.yml
+
+  tasks:
+    - name: Create app directory
+      ansible.builtin.file:
+        path: "{{ app_remote_path }}"
+        state: directory
+        owner: "{{ vm_ssh_user }}"
+        mode: "0755"
+      become: true
+
+    - name: Create plugins directory
+      ansible.builtin.file:
+        path: "{{ app_remote_path }}/plugins"
+        state: directory
+        owner: "{{ vm_ssh_user }}"
+        mode: "0755"
+      become: true
+
+    - name: Write docker-compose.yml
+      ansible.builtin.template:
+        src: ../templates/docker-compose.yml.j2
+        dest: "{{ app_remote_path }}/docker-compose.yml"
+        owner: "{{ vm_ssh_user }}"
+        mode: "0644"
+      become: true
+
+    - name: Download community-branch-plugin JAR
+      ansible.builtin.get_url:
+        url: "https://github.com/mc1arke/sonarqube-community-branch-plugin/releases/download/{{ branch_plugin_version }}/sonarqube-community-branch-plugin-{{ branch_plugin_version }}.jar"
+        dest: "{{ app_remote_path }}/plugins/sonarqube-community-branch-plugin-{{ branch_plugin_version }}.jar"
+        checksum: "sha256:{{ vault_branch_plugin_sha256 }}"
+        owner: "{{ vm_ssh_user }}"
+        mode: "0644"
+      become: true
+
+    - name: Start SonarQube stack
+      community.docker.docker_compose_v2:
+        project_src: "{{ app_remote_path }}"
+        state: present
+        pull: missing
+      become: true
+
+    - name: Wait for SonarQube to be ready
+      ansible.builtin.uri:
+        url: "http://{{ vm_ip }}:9000/api/system/status"
+        method: GET
+        status_code: 200
+        return_content: true
+      register: sonar_status
+      until: sonar_status.json.status == "UP"
+      retries: 30
+      delay: 15
+      delegate_to: localhost
