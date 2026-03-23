@@ -1,1 +1,2 @@
 smart_resume_vm/group_vars/all/vault.yml
+sonarqube_vm/group_vars/all/vault.yml

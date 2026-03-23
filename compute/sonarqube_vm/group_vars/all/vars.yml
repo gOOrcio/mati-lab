@@ -1,0 +1,41 @@
+# Proxmox connection
+proxmox_host: "192.168.1.184"
+proxmox_node: "proxmox"
+proxmox_api_user: "root@pam"
+proxmox_api_token_id:     "{{ vault_proxmox_api_token_id }}"
+proxmox_api_token_secret: "{{ vault_proxmox_api_token_secret }}"
+
+# VM spec
+vm_id: 103
+vm_name: "sonarqube"
+vm_template_id: 9000
+vm_cores: 4
+vm_memory_mb: 4096
+vm_disk_size: "30G"
+vm_storage: "local-lvm"
+
+# Network (static)
+vm_ip: "192.168.1.201"
+vm_gateway: "192.168.1.1"
+vm_nameserver: "192.168.1.1"
+vm_cidr: 24
+
+# SSH
+vm_ssh_user: "debian"
+vm_ssh_key_path: "~/.ssh/id_ed25519.pub"
+
+# App paths
+app_remote_path: "/opt/sonarqube"
+
+# SonarQube — MUST be pinned together, check compatibility matrix before changing:
+# https://github.com/mc1arke/sonarqube-community-branch-plugin#compatibility
+sonarqube_version: "26.2.0.119303-community"      # concrete tag — DO NOT use "lts-community" (floating)
+branch_plugin_version: "26.2.0"
+# SHA256 of the plugin JAR — get from GitHub Releases page for the version above
+# https://github.com/mc1arke/sonarqube-community-branch-plugin/releases
+branch_plugin_sha256: "{{ vault_branch_plugin_sha256 }}"
+
+# PostgreSQL
+postgres_db: "sonarqube"
+postgres_user: "sonarqube"
+postgres_password: "{{ vault_postgres_password }}"
