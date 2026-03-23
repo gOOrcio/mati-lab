@@ -37,3 +37,7 @@ unsafe-notes.md
 uptime-kuma/data
 
 .ai
+
+# Claude Code — not committed to git
+.claude/
+docs/superpowers/
