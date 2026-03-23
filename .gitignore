@@ -41,3 +41,4 @@ uptime-kuma/data
 # Claude Code — not committed to git
 .claude/
 docs/superpowers/
+CLAUDE.md
