@@ -29,7 +29,7 @@ app_remote_path: "/opt/sonarqube"
 
 # SonarQube — MUST be pinned together, check compatibility matrix before changing:
 # https://github.com/mc1arke/sonarqube-community-branch-plugin#compatibility
-sonarqube_version: "26.2.0.119303-community"      # concrete tag — DO NOT use "lts-community" (floating)
+sonarqube_image: "sonarqube:26.2.0.119303-community"      # concrete tag — DO NOT use "lts-community" (floating)
 branch_plugin_version: "26.2.0"
 # SHA256 of the plugin JAR — get from GitHub Releases page for the version above
 # https://github.com/mc1arke/sonarqube-community-branch-plugin/releases
