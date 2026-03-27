@@ -22,7 +22,7 @@ Personal homelab configuration running on a Proxmox host with a Raspberry Pi as 
 
 | VM | ID | IP | Purpose |
 |----|----|----|---------|
-| ollama-gpu | 101 | — | Local LLM inference |
+| ollama-gpu | 101 | 192.168.1.48 | Local LLM inference (RTX 3070, GPU passthrough) |
 | smart-resume | 102 | 192.168.1.200 | Personal AI-powered CV app |
 | sonarqube | 103 | 192.168.1.201 | Code quality platform (SonarQube CE + community-branch-plugin) |
 
