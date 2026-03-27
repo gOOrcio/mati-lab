@@ -8,10 +8,10 @@ proxmox_api_token_secret: "{{ vault_proxmox_api_token_secret }}"
 # VM spec
 vm_id: 101
 vm_name: "ollama-gpu"
-# NOTE: create_vm.yml requires an Ubuntu 24.04 cloud-init template.
-# Template 9000 is Debian 12 — create a separate Ubuntu 24.04 template and set its ID here.
-# See: https://cloudinit.readthedocs.io/en/latest/ for how to create one in Proxmox.
-vm_template_id: 9001
+# Ubuntu 24.04 cloud-init template with Nvidia drivers + Ollama pre-installed.
+# To re-create this template: clone VM 101, generalize (clear machine-id, SSH host keys),
+# shut down, and convert to template.
+vm_template_id: 100
 vm_cores: 4
 vm_memory_mb: 12288
 vm_disk_size: "128G"
