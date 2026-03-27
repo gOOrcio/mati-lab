@@ -74,6 +74,7 @@
         build: always
         state: present
         pull: missing
+        remove_orphans: true
         profiles:
           - prod
       environment:
