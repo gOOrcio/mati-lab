@@ -1,0 +1,105 @@
+- name: Deploy Ollama
+  hosts: ollama-gpu
+  gather_facts: false
+  vars_files:
+    - ../group_vars/all/vars.yml
+    - ../group_vars/all/vault.yml
+
+  tasks:
+    - name: Create ollama group
+      ansible.builtin.group:
+        name: ollama
+        system: true
+        state: present
+      become: true
+
+    - name: Create ollama user
+      ansible.builtin.user:
+        name: ollama
+        group: ollama
+        system: true
+        shell: /bin/false
+        home: /usr/share/ollama
+        create_home: true
+        state: present
+      become: true
+
+    - name: Check current Ollama version
+      ansible.builtin.command: /usr/local/bin/ollama --version
+      register: ollama_current_version
+      failed_when: false
+      changed_when: false
+
+    - name: Download Ollama binary
+      ansible.builtin.get_url:
+        url: "https://github.com/ollama/ollama/releases/download/v{{ ollama_version }}/ollama-linux-amd64"
+        dest: /usr/local/bin/ollama
+        mode: "0755"
+        owner: root
+        group: root
+      become: true
+      when: ollama_version not in (ollama_current_version.stdout | default(''))
+
+    - name: Install Ollama systemd service
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/ollama.service
+        content: |
+          [Unit]
+          Description=Ollama Service
+          After=network-online.target
+
+          [Service]
+          ExecStart=/usr/local/bin/ollama serve
+          User=ollama
+          Group=ollama
+          Restart=always
+          RestartSec=3
+          Environment="PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+          Environment="OLLAMA_HOST={{ ollama_host }}"
+
+          [Install]
+          WantedBy=default.target
+        owner: root
+        group: root
+        mode: "0644"
+      become: true
+      notify: Restart Ollama
+
+    - name: Enable and start Ollama
+      ansible.builtin.systemd:
+        name: ollama
+        enabled: true
+        state: started
+        daemon_reload: true
+      become: true
+
+    - name: Wait for Ollama to be ready
+      ansible.builtin.uri:
+        url: "http://{{ vm_ip }}:11434"
+        method: GET
+        status_code: 200
+      register: ollama_status
+      until: ollama_status.status == 200
+      retries: 10
+      delay: 5
+      delegate_to: localhost
+
+    - name: Pull Ollama models
+      ansible.builtin.command:
+        cmd: "ollama pull {{ item }}"
+      loop: "{{ ollama_models }}"
+      become: true
+      become_user: ollama
+      environment:
+        OLLAMA_HOST: "http://{{ vm_ip }}:11434"
+      changed_when: true
+      delegate_to: localhost
+      # Note: large models (qwen3.5:9b = 6.6GB) can take several minutes each
+
+  handlers:
+    - name: Restart Ollama
+      ansible.builtin.systemd:
+        name: ollama
+        state: restarted
+        daemon_reload: true
+      become: true

@@ -1,0 +1,48 @@
+# Proxmox connection
+proxmox_host: "192.168.1.184"
+proxmox_node: "proxmox"
+proxmox_api_user: "root@pam"
+proxmox_api_token_id:     "{{ vault_proxmox_api_token_id }}"
+proxmox_api_token_secret: "{{ vault_proxmox_api_token_secret }}"
+
+# VM spec
+vm_id: 101
+vm_name: "ollama-gpu"
+# NOTE: create_vm.yml requires an Ubuntu 24.04 cloud-init template.
+# Template 9000 is Debian 12 — create a separate Ubuntu 24.04 template and set its ID here.
+# See: https://cloudinit.readthedocs.io/en/latest/ for how to create one in Proxmox.
+vm_template_id: 9001
+vm_cores: 4
+vm_memory_mb: 12288
+vm_disk_size: "128G"
+vm_storage: "local-lvm"
+
+# GPU passthrough (PCIe)
+# Get the PCI address from Proxmox shell: lspci | grep -i nvidia
+vm_gpu_pcie: "0000:26:00"
+
+# Network (static)
+vm_ip: "192.168.1.48"
+vm_gateway: "192.168.1.1"
+vm_nameserver: "192.168.1.1"
+vm_cidr: 24
+
+# SSH
+vm_ssh_user: "ollama-gpu"
+vm_ssh_key_path: "~/.ssh/id_ed25519.pub"
+
+# Nvidia driver — open kernel module variant, pinned to Ubuntu 24.04 package
+nvidia_driver_package: "nvidia-driver-590-open"
+
+# Ollama
+ollama_version: "0.17.5"
+ollama_host: "0.0.0.0:11434"
+
+# Models to pull — pulled in order, large models last
+# smart-resume requires: qwen2.5:7b-instruct, nomic-embed-text
+ollama_models:
+  - "nomic-embed-text:latest"
+  - "qwen2.5:7b-instruct"
+  - "qwen3.5:2b"
+  - "qwen3.5:4b"
+  - "qwen3.5:9b"

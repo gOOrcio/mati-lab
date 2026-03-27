@@ -1,0 +1,75 @@
+- name: Create VM from cloud-init template
+  hosts: localhost
+  gather_facts: false
+  vars_files:
+    - ../group_vars/all/vars.yml
+    - ../group_vars/all/vault.yml
+  tasks:
+    # NOTE: GPU passthrough requires an Ubuntu 24.04 cloud-init template (vm_template_id: 9001).
+    # This is NOT template 9000 (Debian 12). Create the Ubuntu template first if it doesn't exist.
+    - name: Clone template
+      community.general.proxmox_kvm:
+        api_host:         "{{ proxmox_host }}"
+        api_user:         "{{ proxmox_api_user }}"
+        api_token_id:     "{{ proxmox_api_token_id }}"
+        api_token_secret: "{{ proxmox_api_token_secret }}"
+        node:    "{{ proxmox_node }}"
+        clone:   "{{ vm_template_id }}"
+        vmid:    "{{ vm_template_id }}"
+        name:    "{{ vm_name }}"
+        storage: "{{ vm_storage }}"
+        full:    true
+        state:   present
+
+    - name: Configure cloud-init and hardware (UEFI + q35 + GPU passthrough)
+      community.general.proxmox_kvm:
+        api_host:         "{{ proxmox_host }}"
+        api_user:         "{{ proxmox_api_user }}"
+        api_token_id:     "{{ proxmox_api_token_id }}"
+        api_token_secret: "{{ proxmox_api_token_secret }}"
+        node:    "{{ proxmox_node }}"
+        vmid:    "{{ vm_id }}"
+        cores:   "{{ vm_cores }}"
+        memory:  "{{ vm_memory_mb }}"
+        bios:    ovmf
+        machine: q35
+        hostpci:
+          hostpci0: "{{ vm_gpu_pcie }},pcie=1"
+        ipconfig:
+          ipconfig0: "ip={{ vm_ip }}/{{ vm_cidr }},gw={{ vm_gateway }}"
+        nameservers: ["{{ vm_nameserver }}"]
+        sshkeys: "{{ lookup('file', vm_ssh_key_path) }}"
+        cipassword: "{{ vault_vm_root_password }}"
+        update: true
+
+    - name: Resize disk
+      community.general.proxmox_disk:
+        api_host:         "{{ proxmox_host }}"
+        api_user:         "{{ proxmox_api_user }}"
+        api_token_id:     "{{ proxmox_api_token_id }}"
+        api_token_secret: "{{ proxmox_api_token_secret }}"
+        vmid:  "{{ vm_id }}"
+        disk:  scsi0
+        size:  "{{ vm_disk_size }}"
+        state: resized
+
+    - name: Wait for Proxmox lock to clear
+      ansible.builtin.pause:
+        seconds: 15
+
+    - name: Start VM
+      community.general.proxmox_kvm:
+        api_host:         "{{ proxmox_host }}"
+        api_user:         "{{ proxmox_api_user }}"
+        api_token_id:     "{{ proxmox_api_token_id }}"
+        api_token_secret: "{{ proxmox_api_token_secret }}"
+        node:  "{{ proxmox_node }}"
+        vmid:  "{{ vm_id }}"
+        state: started
+        timeout: 120
+
+    - name: Wait for SSH
+      ansible.builtin.wait_for:
+        host:    "{{ vm_ip }}"
+        port:    22
+        timeout: 120
