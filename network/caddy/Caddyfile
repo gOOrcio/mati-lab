@@ -184,6 +184,26 @@
         }
     }
 
+    @loki host loki.mati-lab.online
+    handle @loki {
+        @loki_health path /ready
+        handle @loki_health {
+            reverse_proxy http://loki:3100
+        }
+
+        handle {
+            forward_auth http://authelia:9091 {
+                uri /api/authz/forward-auth
+                copy_headers Remote-User Remote-Groups Remote-Name Remote-Email
+            }
+            reverse_proxy http://loki:3100 {
+                header_up Host {host}
+                header_up X-Forwarded-Proto https
+                header_up X-Forwarded-Ssl on
+            }
+        }
+    }
+
     handle {
         respond "unknown host" 404
     }
