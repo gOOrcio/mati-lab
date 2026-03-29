@@ -1,0 +1,21 @@
+networks:
+  pihole-net:
+    external: true
+
+volumes:
+  loki-data: {}
+
+services:
+  loki:
+    image: grafana/loki:3.5.0
+    container_name: loki
+    restart: always
+    command: -config.file=/etc/loki/loki-config.yml
+    volumes:
+      - ./loki-config.yml:/etc/loki/loki-config.yml
+      - loki-data:/loki
+    networks:
+      - pihole-net
+    labels:
+      - "com.docker.compose.project=loki"
+      - "com.docker.compose.service=loki"
