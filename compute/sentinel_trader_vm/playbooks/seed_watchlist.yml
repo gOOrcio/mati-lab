@@ -1,0 +1,48 @@
+- name: Seed initial watchlist
+  hosts: sentinel-trader
+  gather_facts: false
+  vars_files:
+    - ../group_vars/all/vars.yml
+    - ../group_vars/all/vault.yml
+
+  tasks:
+    - name: Seed watchlist tickers
+      # Run once after first deploy. Safe to re-run — duplicates are ignored by INSERT OR IGNORE.
+      ansible.builtin.command:
+        cmd: >
+          docker compose run --rm app python -c "
+          import asyncio
+          from src.db.repository import Repository
+
+          WATCHLIST = [
+              ('NVDA.US',  'US', 'stock', 'Technology', 'large', 'AI/GPU leader'),
+              ('AAPL.US',  'US', 'stock', 'Technology', 'large', 'Large cap tech'),
+              ('MSFT.US',  'US', 'stock', 'Technology', 'large', 'Large cap tech'),
+              ('AMZN.US',  'US', 'stock', 'Technology', 'large', 'Large cap tech'),
+              ('META.US',  'US', 'stock', 'Technology', 'large', 'Large cap tech'),
+              ('SAP.DE',   'EU', 'stock', 'Technology', 'large', 'EU tech leader'),
+              ('ASML.NL',  'EU', 'stock', 'Technology', 'large', 'Semiconductor equipment'),
+              ('CDR.PL',   'PL', 'stock', 'Technology', 'mid',   'Polish gaming'),
+              ('PKN.PL',   'PL', 'stock', 'Energy',     'large', 'Polish energy'),
+              ('PKO.PL',   'PL', 'stock', 'Finance',    'large', 'Polish banking'),
+          ]
+
+          async def seed():
+              repo = Repository()
+              await repo.connect()
+              for ticker, market, inst_type, sector, cap, reason in WATCHLIST:
+                  await repo.add_watchlist_entry(
+                      ticker=ticker, market=market, instrument_type=inst_type,
+                      sector=sector, market_cap_category=cap, added_reason=reason,
+                  )
+              await repo.close()
+              print('Watchlist seeded OK')
+
+          asyncio.run(seed())
+          "
+        chdir: "{{ app_remote_path }}"
+      register: seed_result
+
+    - name: Show seed output
+      ansible.builtin.debug:
+        msg: "{{ seed_result.stdout }}"

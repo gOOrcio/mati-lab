@@ -26,4 +26,4 @@ scrape_configs:
   - job_name: sentinel-trader
     scrape_interval: 30s
     static_configs:
-      - targets: [ 'sentinel-trader:9090' ]
+      - targets: [ '192.168.1.202:9090' ]   # sentinel-trader VM on LAN

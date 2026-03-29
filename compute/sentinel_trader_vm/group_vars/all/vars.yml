@@ -1,0 +1,50 @@
+# Proxmox connection
+proxmox_host: "192.168.1.184"
+proxmox_node: "proxmox"
+proxmox_api_user: "root@pam"
+proxmox_api_token_id:     "{{ vault_proxmox_api_token_id }}"
+proxmox_api_token_secret: "{{ vault_proxmox_api_token_secret }}"
+
+# VM spec
+vm_id: 104
+vm_name: "sentinel-trader"
+vm_template_id: 9000     # Debian 12 cloud-init template
+vm_cores: 4
+vm_memory_mb: 6144
+vm_disk_size: "32G"
+vm_storage: "local-lvm"
+
+# Network (static)
+vm_ip: "192.168.1.202"
+vm_gateway: "192.168.1.1"
+vm_nameserver: "192.168.1.1"
+vm_cidr: 24
+
+# SSH
+vm_ssh_user: "debian"
+vm_ssh_key_path: "~/.ssh/id_ed25519.pub"
+
+# App — local source path (rsync'd to remote on deploy)
+app_repo_path: "/home/gooral/Projects/sentinel-trader"
+app_remote_path: "/opt/sentinel-trader"
+
+# Monitoring host (192.168.1.252 — runs Prometheus + Loki on pihole-net)
+monitoring_host_ip: "192.168.1.252"
+loki_url: "http://192.168.1.252:3100"
+
+# Ollama (shared VM on LAN — already running)
+ollama_base_url: "http://192.168.1.48:11434"
+ollama_model: "mistral:7b-instruct-v0.3-q4_K_M"
+
+# IB Gateway — paper trading first, switch trading_mode to 'live' when ready
+ib_trading_mode: "paper"
+ib_host: "ib-gateway"
+ib_port: 4004
+ib_client_id: 1
+ib_paper: "true"
+
+# Reddit user agent (non-secret)
+reddit_user_agent: "sentinel-trader:v0.1"
+
+# Database
+db_path: "data/sentinel.db"

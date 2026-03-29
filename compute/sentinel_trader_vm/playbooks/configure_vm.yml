@@ -1,0 +1,81 @@
+- name: Configure SentinelTrader VM
+  hosts: sentinel-trader
+  become: true
+  vars_files:
+    - ../group_vars/all/vars.yml
+    - ../group_vars/all/vault.yml
+
+  tasks:
+    - name: Wait for cloud-init to finish
+      ansible.builtin.command: cloud-init status --wait
+      changed_when: false
+
+    - name: Upgrade all packages
+      ansible.builtin.apt:
+        upgrade: dist
+        update_cache: true
+
+    - name: Install required packages
+      ansible.builtin.apt:
+        name:
+          - ca-certificates
+          - curl
+          - gnupg
+          - ufw
+          - fail2ban
+          - rsync
+        state: present
+
+    - name: Add Docker GPG key
+      ansible.builtin.apt_key:
+        url: https://download.docker.com/linux/debian/gpg
+        state: present
+
+    - name: Add Docker repository
+      ansible.builtin.apt_repository:
+        repo: >
+          deb [arch=amd64]
+          https://download.docker.com/linux/debian
+          {{ ansible_distribution_release }} stable
+
+    - name: Install Docker
+      ansible.builtin.apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-compose-plugin
+        update_cache: true
+
+    - name: Add deploy user to docker group
+      ansible.builtin.user:
+        name: "{{ vm_ssh_user }}"
+        groups: docker
+        append: true
+
+    - name: Reset SSH connection to pick up new group membership
+      ansible.builtin.meta: reset_connection
+
+    - name: Configure UFW — allow SSH
+      community.general.ufw:
+        rule: allow
+        port: "22"
+        proto: tcp
+
+    - name: Configure UFW — allow Prometheus scrape from monitoring host
+      community.general.ufw:
+        rule: allow
+        port: "9090"
+        proto: tcp
+        src: "{{ monitoring_host_ip }}"
+
+    - name: Enable UFW
+      community.general.ufw:
+        state: enabled
+        policy: deny
+
+    - name: Enable fail2ban
+      ansible.builtin.service:
+        name: fail2ban
+        enabled: true
+        state: started

@@ -1,0 +1,52 @@
+- name: Deploy SentinelTrader app
+  hosts: sentinel-trader
+  gather_facts: false
+  vars_files:
+    - ../group_vars/all/vars.yml
+    - ../group_vars/all/vault.yml
+
+  tasks:
+    - name: Create app directory
+      ansible.builtin.file:
+        path:  "{{ app_remote_path }}"
+        state: directory
+        owner: "{{ vm_ssh_user }}"
+        mode:  "0755"
+      become: true
+
+    - name: Create data directory
+      ansible.builtin.file:
+        path:  "{{ app_remote_path }}/data"
+        state: directory
+        owner: "{{ vm_ssh_user }}"
+        mode:  "0750"
+      become: true
+
+    - name: Sync project files
+      ansible.posix.synchronize:
+        src:  "{{ app_repo_path }}/"
+        dest: "{{ app_remote_path }}/"
+        rsync_opts:
+          - "--exclude=.git"
+          - "--exclude=.venv"
+          - "--exclude=__pycache__"
+          - "--exclude=.env"
+          - "--exclude=data/"
+          - "--exclude=tests/"
+          - "--delete"
+
+    - name: Write .env
+      ansible.builtin.template:
+        src:   ../templates/env.j2
+        dest:  "{{ app_remote_path }}/.env"
+        owner: "{{ vm_ssh_user }}"
+        mode:  "0640"
+      become: true
+
+    - name: Build and start containers
+      community.docker.docker_compose_v2:
+        project_src: "{{ app_remote_path }}"
+        build:       always
+        state:       present
+        pull:        missing
+        remove_orphans: true
