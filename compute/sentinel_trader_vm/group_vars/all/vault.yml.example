@@ -1,0 +1,20 @@
+# Copy to vault.yml and encrypt: ansible-vault encrypt vault.yml
+# ansible-vault edit vault.yml  — to edit in place
+
+vault_proxmox_api_token_id: "ansible"
+vault_proxmox_api_token_secret: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+vault_vm_root_password: "change-me"
+
+vault_ib_tws_userid: "your_ibkr_username"
+vault_ib_tws_password: "your_ibkr_password"
+
+vault_anthropic_api_key: "sk-ant-..."
+
+vault_telegram_bot_token: "1234567890:AAAA..."
+vault_telegram_chat_id: "123456789"
+
+vault_finnhub_api_key: "your-finnhub-key"
+vault_alpha_vantage_api_key: "your-av-key"
+
+vault_reddit_client_id: "your-reddit-client-id"
+vault_reddit_client_secret: "your-reddit-client-secret"
