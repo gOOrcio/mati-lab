@@ -1,0 +1,22 @@
+networks:
+  pihole-net:
+    external: true
+
+services:
+  registry-mirror:
+    image: registry:2
+    container_name: registry-mirror
+    restart: always
+    security_opt: [no-new-privileges:true]
+    networks: [pihole-net]
+    ports:
+      - "5000:5000"
+    environment:
+      REGISTRY_PROXY_REMOTEURL: https://registry-1.docker.io
+      REGISTRY_STORAGE_DELETE_ENABLED: "true"
+      REGISTRY_STORAGE_CACHE_BLOBDESCRIPTOR: inmemory
+    volumes:
+      - registry-data:/var/lib/registry
+
+volumes:
+  registry-data: {}
