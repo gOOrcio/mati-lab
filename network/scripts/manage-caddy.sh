@@ -23,6 +23,7 @@ build_and_push() {
 }
 
 deploy() {
+  log "Deploying $SERVICE_NAME"
   build_and_push
   sync_from_github
   copy_env_file "../$SERVICE_NAME"
@@ -31,6 +32,7 @@ deploy() {
 }
 
 rebuild() {
+  log "Rebuilding $SERVICE_NAME"
   build_and_push
   sync_from_github
   copy_env_file "../$SERVICE_NAME"
@@ -44,6 +46,7 @@ update() {
   sync_from_github
   copy_env_file "../$SERVICE_NAME"
   compose_cmd down
+  compose_cmd pull
   compose_cmd up -d
 }
 
