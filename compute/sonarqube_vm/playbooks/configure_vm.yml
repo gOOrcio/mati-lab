@@ -55,6 +55,13 @@
     - name: Reset SSH connection to pick up new group membership
       ansible.builtin.meta: reset_connection
 
+    - name: Configure Docker daemon
+      ansible.builtin.template:
+        src: ../../../network/ansible/templates/daemon.json.j2
+        dest: /etc/docker/daemon.json
+        mode: "0644"
+      notify: Restart Docker
+
     - name: Configure UFW — allow SSH
       community.general.ufw:
         rule: allow
@@ -92,3 +99,9 @@
         value: "131072"
         state: present
         reload: true
+
+  handlers:
+    - name: Restart Docker
+      ansible.builtin.systemd:
+        name: docker
+        state: restarted

@@ -24,6 +24,11 @@ vm_cidr: 24
 vm_ssh_user: "debian"
 vm_ssh_key_path: "~/.ssh/id_ed25519.pub"
 
+# Docker
+docker_registry_mirror: "http://192.168.1.252:5000"
+docker_log_max_size: "10m"
+docker_log_max_file: "3"
+
 # App
 app_repo_path: "/home/gooral/Projects/smart-resume"
 app_remote_path: "/opt/smart-resume"

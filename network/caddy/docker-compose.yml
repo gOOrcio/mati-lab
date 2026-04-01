@@ -4,7 +4,7 @@ networks:
 
 services:
   caddy:
-    image: 192.168.1.252:5000/caddy-cloudflare:latest
+    image: 192.168.1.252:5001/caddy-cloudflare:latest
     container_name: caddy
     restart: unless-stopped
     security_opt: [no-new-privileges:true]
