@@ -23,7 +23,7 @@ services:
       - node_textfile:/var/lib/node_exporter/textfile_collector:rw
 
   cadvisor:
-    image: gcr.io/cadvisor/cadvisor:latest
+    image: gcr.io/cadvisor/cadvisor:v0.56.2
     container_name: cadvisor
     restart: always
     networks: [monitoring]
