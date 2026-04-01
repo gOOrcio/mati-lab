@@ -148,7 +148,7 @@ groups:
             model:
               expr: |
                 sum by (container) (
-                  rate({job="docker"} |~ "(?i)error" [5m])
+                  rate({job="docker"} |~ "(?i)error"[5m])
                 )
               instant: true
               intervalMs: 1000
