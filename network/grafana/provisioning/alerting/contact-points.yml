@@ -1,0 +1,14 @@
+apiVersion: 1
+
+contactPoints:
+  - orgId: 1
+    name: ntfy-alerts
+    receivers:
+      - uid: ntfy-alerts
+        type: webhook
+        settings:
+          url: http://ntfy:80/alerts
+          httpMethod: POST
+          title: "{{ template \"default.title\" . }}"
+          message: "{{ template \"default.message\" . }}"
+        disableResolveMessage: false

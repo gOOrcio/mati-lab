@@ -2,6 +2,7 @@ apiVersion: 1
 
 datasources:
   - name: prometheus-mati-lab
+    uid: prometheus-mati-lab
     type: prometheus
     url: http://prometheus:9090
     access: proxy
