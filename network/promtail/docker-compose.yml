@@ -1,0 +1,19 @@
+networks:
+  pihole-net:
+    external: true
+
+services:
+  promtail:
+    image: grafana/promtail:3.5.0
+    container_name: promtail
+    restart: always
+    security_opt: [no-new-privileges:true]
+    networks: [pihole-net]
+    command: -config.file=/etc/promtail/promtail-config.yml
+    volumes:
+      - ./promtail-config.yml:/etc/promtail/promtail-config.yml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+    labels:
+      - "com.docker.compose.project=promtail"
+      - "com.docker.compose.service=promtail"
