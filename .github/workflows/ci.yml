@@ -25,7 +25,7 @@ jobs:
         run: yamllint network/*/docker-compose.yml compute/*/playbooks/*.yml
 
       - name: Shell lint
-        run: shellcheck network/scripts/*.sh
+        run: shellcheck -x network/scripts/*.sh
 
       - name: Docker Compose validate
         run: |

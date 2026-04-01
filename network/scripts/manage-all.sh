@@ -3,6 +3,7 @@ set -Eeuo pipefail
 
 # Load common functions
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=network/scripts/common.sh
 source "$SCRIPT_DIR/common.sh"
 
 # Available services
@@ -55,6 +56,7 @@ show_all() {
 
 # Setup host directory structure
 setup_host() {
+  # shellcheck disable=SC2029 # intentional client-side expansion
   ssh "${SSH_OPTS[@]}" "$REMOTE" "sudo mkdir -p /opt && sudo chown -R ${SERVER_USER}:${SERVER_USER} /opt"
 }
 
@@ -77,6 +79,7 @@ show_usage() {
 [[ $# -eq 0 ]] && show_usage
 
 # Check if first argument is a service name
+# shellcheck disable=SC2076 # intentional literal match, not regex
 if [[ " ${SERVICES[*]} " =~ " $1 " ]]; then
   # Service-specific action
   SERVICE=$1

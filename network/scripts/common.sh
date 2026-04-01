@@ -26,6 +26,7 @@ log_error(){ printf "\033[0;31m[ERROR]\033[0m %s\n" "$*"; }
 sync_from_github() {
   log "Syncing from GitHub (branch: $BRANCH)"
 
+  # shellcheck disable=SC2029 # intentional client-side expansion of BRANCH/GITHUB_REPO
   ssh "${SSH_OPTS[@]}" "$REMOTE" "
     set -euo pipefail
     cd /opt
@@ -56,6 +57,7 @@ sync_from_github() {
 
 push_to_github() {
   log "Pushing $SERVICE_NAME changes to GitHub"
+  # shellcheck disable=SC2029 # intentional client-side expansion of SERVICE_NAME
   ssh "${SSH_OPTS[@]}" "$REMOTE" "cd /opt/mati-lab && git pull origin main && git add network/$SERVICE_NAME/ && git diff --cached --quiet || git commit -m 'Update $SERVICE_NAME: $(date)' && git push origin main"
   log_success "Changes pushed to GitHub!"
   log "Run 'git pull' to see changes locally"
@@ -73,6 +75,7 @@ compose_cmd() {
   local env_flag=""
   [[ -f "../$SERVICE_NAME/.env" ]] && env_flag="--env-file .env"
   
+  # shellcheck disable=SC2029 # intentional client-side expansion of service_dir/env_flag
   ssh "${SSH_OPTS[@]}" "$REMOTE" "cd $service_dir && sudo -E docker compose $env_flag ${*}"
 }
 

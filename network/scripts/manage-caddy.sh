@@ -3,6 +3,7 @@ set -Eeuo pipefail
 
 SERVICE_NAME="caddy"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=network/scripts/common.sh
 source "$SCRIPT_DIR/common.sh"
 
 # Override deploy and update to use --build for custom Dockerfile

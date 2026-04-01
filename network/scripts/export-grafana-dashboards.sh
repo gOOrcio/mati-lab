@@ -28,7 +28,7 @@ fetch() {
 LIST=$(fetch "/api/search?type=dash-db")
 [[ -z "$LIST" ]] && echo "No dashboards or Grafana unavailable" && exit 0
 
-UIDS=($(echo "$LIST" | jq -r '.[].uid'))
+mapfile -t UIDS < <(echo "$LIST" | jq -r '.[].uid')
 [[ ${#UIDS[@]} -eq 0 ]] && echo "No dashboards to export" && exit 0
 
 find "$DASHBOARDS_DIR" -maxdepth 1 -name '*.json' -delete
