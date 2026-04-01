@@ -31,6 +31,7 @@ services:
       retries: 3
       start_period: 40s
     restart: unless-stopped
+    security_opt: [no-new-privileges:true]
     init: true
 
     networks:

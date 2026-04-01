@@ -10,6 +10,7 @@ services:
     volumes:
       - ./redis-data:/data
     restart: unless-stopped
+    security_opt: [no-new-privileges:true]
     networks:
       - pihole-net
     labels:
@@ -27,6 +28,7 @@ services:
     ports:
       - 9091:9091
     restart: unless-stopped
+    security_opt: [no-new-privileges:true]
     depends_on:
       - redis
     networks:

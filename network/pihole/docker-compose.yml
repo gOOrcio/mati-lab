@@ -26,11 +26,10 @@ services:
       - VIRTUAL_HOST=pihole.mati-lab.online
       - PROXY_LOCATION=/
       - PROXY_SUBDIR=/
-    cap_add:
-      - SYS_NICE
-      - NET_ADMIN
-      - NET_BROADCAST
+    cap_add: [NET_ADMIN, NET_RAW]
+    cap_drop: [ALL]
     restart: always
+    security_opt: [no-new-privileges:true]
     labels:
       - "com.docker.compose.project=pihole"
       - "com.docker.compose.service=pihole"

@@ -8,6 +8,7 @@ services:
     image: prom/node-exporter:v1.10.2
     container_name: node-exporter
     restart: always
+    security_opt: [no-new-privileges:true]
     networks: [monitoring]
     pid: host
     command:
@@ -26,6 +27,7 @@ services:
     image: gcr.io/cadvisor/cadvisor:v0.56.2
     container_name: cadvisor
     restart: always
+    security_opt: [no-new-privileges:true]
     networks: [monitoring]
     privileged: true
     command:

@@ -4,5 +4,6 @@ services:
     container_name: cloudflared
     command: tunnel --no-autoupdate run
     restart: unless-stopped
+    security_opt: [no-new-privileges:true]
     environment:
       - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
