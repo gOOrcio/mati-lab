@@ -31,8 +31,7 @@ jobs:
         run: |
           failed=0
           for f in network/*/docker-compose.yml; do
-            dir=$(dirname "$f")
-            if ! docker compose -f "$f" config --quiet 2>/dev/null; then
+            if ! docker compose -f "$f" config --quiet 2>&1; then
               echo "::error file=$f::Invalid compose file"
               failed=1
             fi
