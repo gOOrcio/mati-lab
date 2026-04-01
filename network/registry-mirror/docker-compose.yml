@@ -16,7 +16,7 @@ services:
       REGISTRY_STORAGE_DELETE_ENABLED: "true"
       REGISTRY_STORAGE_CACHE_BLOBDESCRIPTOR: inmemory
     volumes:
-      - registry-mirror-data:/var/lib/registry
+      - registry-data:/var/lib/registry
 
   registry-private:
     image: registry:2
@@ -32,5 +32,5 @@ services:
       - registry-private-data:/var/lib/registry
 
 volumes:
-  registry-mirror-data: {}
+  registry-data: {}
   registry-private-data: {}

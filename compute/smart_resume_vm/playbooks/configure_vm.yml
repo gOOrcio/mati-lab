@@ -52,22 +52,10 @@
       ansible.builtin.meta: reset_connection
 
     - name: Configure Docker daemon
-      ansible.builtin.copy:
+      ansible.builtin.template:
+        src: ../../../network/ansible/templates/daemon.json.j2
         dest: /etc/docker/daemon.json
         mode: "0644"
-        content: |
-          {
-            "registry-mirrors": ["{{ docker_registry_mirror }}"],
-            "log-driver": "json-file",
-            "log-opts": {
-              "max-size": "{{ docker_log_max_size }}",
-              "max-file": "{{ docker_log_max_file }}"
-            },
-            "default-address-pools": [
-              { "base": "172.17.0.0/16", "size": 24 },
-              { "base": "172.18.0.0/16", "size": 24 }
-            ]
-          }
       notify: Restart Docker
 
     - name: Configure UFW — allow SSH
