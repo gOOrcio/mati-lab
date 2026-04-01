@@ -22,7 +22,7 @@ jobs:
           sudo apt-get install -y -qq shellcheck > /dev/null
 
       - name: YAML lint
-        run: yamllint -d '{extends: relaxed, rules: {line-length: disable, truthy: disable}}' network/*/docker-compose.yml compute/*/playbooks/*.yml
+        run: yamllint network/*/docker-compose.yml compute/*/playbooks/*.yml
 
       - name: Shell lint
         run: shellcheck network/scripts/*.sh
