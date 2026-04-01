@@ -22,6 +22,7 @@ ufw_rules:
   - { rule: allow, port: "53", proto: tcp, from: "172.18.0.0/16", comment: "DNS TCP Docker" }
   - { rule: allow, port: "53", proto: udp, from: "172.18.0.0/16", comment: "DNS UDP Docker" }
   - { rule: allow, port: "5000", proto: tcp, from: "192.168.1.0/24", comment: "Docker registry mirror LAN" }
+  - { rule: allow, port: "5001", proto: tcp, from: "192.168.1.0/24", comment: "Docker private registry LAN" }
 
 # fail2ban
 fail2ban_maxretry: 5
