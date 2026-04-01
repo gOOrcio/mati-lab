@@ -1,0 +1,5 @@
+default:
+  user: prometheus@pve
+  token_name: prometheus
+  token_value: __PVE_API_TOKEN__
+  verify_ssl: false

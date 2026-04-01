@@ -1,0 +1,19 @@
+networks:
+  pihole-net:
+    external: true
+
+services:
+  pve-exporter:
+    image: prompve/prometheus-pve-exporter:latest
+    container_name: pve-exporter
+    restart: always
+    security_opt: [no-new-privileges:true]
+    networks: [pihole-net]
+    env_file:
+      - .env
+    volumes:
+      - ./pve.yml:/etc/pve.yml:ro
+    command: ["--config.file", "/etc/pve.yml"]
+    labels:
+      - "com.docker.compose.project=pve-exporter"
+      - "com.docker.compose.service=pve-exporter"

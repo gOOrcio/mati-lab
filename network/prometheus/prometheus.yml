@@ -27,3 +27,13 @@ scrape_configs:
     scrape_interval: 30s
     static_configs:
       - targets: [ '192.168.1.202:9090' ]   # sentinel-trader VM on LAN
+
+  - job_name: proxmox
+    scrape_interval: 30s
+    metrics_path: /pve
+    params:
+      target: ['192.168.1.184']
+      cluster: ['1']
+      node: ['1']
+    static_configs:
+      - targets: [ 'pve-exporter:9221' ]   # PVE exporter on Pi
