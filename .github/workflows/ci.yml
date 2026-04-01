@@ -29,6 +29,10 @@ jobs:
 
       - name: Docker Compose validate
         run: |
+          # Create empty .env stubs for services that use env_file (actual secrets are gitignored)
+          for dir in network/*/; do
+            touch "$dir/.env"
+          done
           failed=0
           for f in network/*/docker-compose.yml; do
             if ! docker compose -f "$f" config --quiet 2>&1; then
