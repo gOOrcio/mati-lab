@@ -1,0 +1,184 @@
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: infrastructure
+    folder: Alerts
+    interval: 1m
+    rules:
+      - uid: disk-usage-high
+        title: Disk Usage High
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: prometheus-mati-lab
+            model:
+              expr: |
+                (
+                  node_filesystem_size_bytes{fstype!~"tmpfs|overlay|squashfs", mountpoint="/"}
+                  - node_filesystem_avail_bytes{fstype!~"tmpfs|overlay|squashfs", mountpoint="/"}
+                ) / node_filesystem_size_bytes{fstype!~"tmpfs|overlay|squashfs", mountpoint="/"} * 100
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params: [80]
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params: [A]
+                  reducer:
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              refId: C
+              type: threshold
+        noDataState: NoData
+        execErrState: Error
+        for: 5m
+        annotations:
+          summary: Disk usage above 80%
+          description: "Disk usage on {{ $labels.instance }} is {{ printf \"%.0f\" $values.A.Value }}%"
+        labels:
+          severity: warning
+
+      - uid: iowait-high
+        title: IO Wait High
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: prometheus-mati-lab
+            model:
+              expr: |
+                avg by (instance) (
+                  rate(node_cpu_seconds_total{mode="iowait"}[5m])
+                ) * 100
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params: [50]
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params: [A]
+                  reducer:
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              refId: C
+              type: threshold
+        noDataState: NoData
+        execErrState: Error
+        for: 5m
+        annotations:
+          summary: IO wait above 50%
+          description: "IO wait on {{ $labels.instance }} is {{ printf \"%.0f\" $values.A.Value }}% — possible storage saturation"
+        labels:
+          severity: warning
+
+      - uid: memory-usage-high
+        title: Memory Usage High
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: prometheus-mati-lab
+            model:
+              expr: |
+                (
+                  1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)
+                ) * 100
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params: [90]
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params: [A]
+                  reducer:
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              refId: C
+              type: threshold
+        noDataState: NoData
+        execErrState: Error
+        for: 5m
+        annotations:
+          summary: Memory usage above 90%
+          description: "Memory usage on {{ $labels.instance }} is {{ printf \"%.0f\" $values.A.Value }}%"
+        labels:
+          severity: critical
+
+      - uid: container-errors
+        title: Container Error Rate High
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: loki-sentinel
+            model:
+              expr: |
+                sum by (container) (
+                  rate({job="docker"} |~ "(?i)error"[5m])
+                )
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params: [0.1]
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params: [A]
+                  reducer:
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              refId: C
+              type: threshold
+        noDataState: NoData
+        execErrState: Error
+        for: 5m
+        annotations:
+          summary: Container error rate elevated
+          description: "Container {{ $labels.container }} is logging errors at {{ printf \"%.2f\" $values.A.Value }} errors/sec"
+        labels:
+          severity: warning
