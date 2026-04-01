@@ -1,0 +1,123 @@
+{
+  "id": null,
+  "title": "Container Logs",
+  "tags": ["logs", "docker", "loki"],
+  "timezone": "browser",
+  "refresh": "10s",
+  "schemaVersion": 39,
+  "templating": {
+    "list": [
+      {
+        "name": "container",
+        "type": "query",
+        "datasource": "loki-sentinel",
+        "query": "label_values(container)",
+        "refresh": 2,
+        "includeAll": true,
+        "multi": true,
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": "$__all"
+        },
+        "sort": 1
+      },
+      {
+        "name": "search",
+        "type": "textbox",
+        "current": {
+          "text": "",
+          "value": ""
+        },
+        "label": "Search"
+      },
+      {
+        "name": "level",
+        "type": "custom",
+        "query": "info,warn,error,fatal,debug",
+        "includeAll": true,
+        "multi": true,
+        "allValue": ".*",
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": "$__all"
+        },
+        "label": "Level"
+      }
+    ]
+  },
+  "panels": [
+    {
+      "title": "Log Volume",
+      "type": "timeseries",
+      "gridPos": { "h": 5, "w": 24, "x": 0, "y": 0 },
+      "datasource": "loki-sentinel",
+      "targets": [
+        {
+          "expr": "sum by (container) (count_over_time({container=~\"$container\"} [$__interval]))",
+          "legendFormat": "{{container}}"
+        }
+      ],
+      "options": {
+        "tooltip": { "mode": "multi" }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 50,
+            "stacking": { "mode": "normal" }
+          }
+        }
+      }
+    },
+    {
+      "title": "Errors & Warnings",
+      "type": "timeseries",
+      "gridPos": { "h": 4, "w": 24, "x": 0, "y": 5 },
+      "datasource": "loki-sentinel",
+      "targets": [
+        {
+          "expr": "sum by (container) (count_over_time({container=~\"$container\"} |~ \"(?i)(error|fatal|panic|warn|warning)\" [$__interval]))",
+          "legendFormat": "{{container}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 70,
+            "stacking": { "mode": "normal" }
+          },
+          "color": { "mode": "fixed", "fixedColor": "red" }
+        }
+      }
+    },
+    {
+      "title": "Logs",
+      "type": "logs",
+      "gridPos": { "h": 18, "w": 24, "x": 0, "y": 9 },
+      "datasource": "loki-sentinel",
+      "targets": [
+        {
+          "expr": "{container=~\"$container\"} |~ \"(?i)$search\" |~ \"(?i)${level:regex}\"",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "showTime": true,
+        "showLabels": true,
+        "showCommonLabels": false,
+        "wrapLogMessage": true,
+        "sortOrder": "Descending",
+        "dedupStrategy": "none",
+        "enableLogDetails": true
+      }
+    }
+  ],
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  }
+}
