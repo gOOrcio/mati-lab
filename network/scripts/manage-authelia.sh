@@ -3,6 +3,7 @@ set -Eeuo pipefail
 
 SERVICE_NAME="authelia"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=network/scripts/common.sh
 source "$SCRIPT_DIR/common.sh"
 
 SERVICE_DIR="../$SERVICE_NAME"
@@ -12,6 +13,7 @@ REMOTE_DATA="/opt/mati-lab/network/$SERVICE_NAME/data"
 copy_data() {
   if [[ -f "${SERVICE_DIR}/data/users_database.yml" ]]; then
     log "Copying data files to server..."
+    # shellcheck disable=SC2029 # intentional client-side expansion
     ssh "${SSH_OPTS[@]}" "$REMOTE" "sudo mkdir -p $REMOTE_DATA && sudo chown -R ${SERVER_USER}:${SERVER_USER} $REMOTE_DATA"
     scp "${SSH_OPTS[@]}" "${SERVICE_DIR}/data/users_database.yml" "$REMOTE:$REMOTE_DATA/"
   else

@@ -22,17 +22,20 @@ jobs:
           sudo apt-get install -y -qq shellcheck > /dev/null
 
       - name: YAML lint
-        run: yamllint -d '{extends: relaxed, rules: {line-length: disable, truthy: disable}}' network/*/docker-compose.yml compute/*/playbooks/*.yml
+        run: yamllint network/*/docker-compose.yml compute/*/playbooks/*.yml
 
       - name: Shell lint
-        run: shellcheck network/scripts/*.sh
+        run: shellcheck -x network/scripts/*.sh
 
       - name: Docker Compose validate
         run: |
+          # Create empty .env stubs for services that use env_file (actual secrets are gitignored)
+          for dir in network/*/; do
+            touch "$dir/.env"
+          done
           failed=0
           for f in network/*/docker-compose.yml; do
-            dir=$(dirname "$f")
-            if ! docker compose -f "$f" config --quiet 2>/dev/null; then
+            if ! docker compose -f "$f" config --quiet 2>&1; then
               echo "::error file=$f::Invalid compose file"
               failed=1
             fi

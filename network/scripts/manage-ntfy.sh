@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
+# shellcheck disable=SC2034 # used by common.sh after source
 SERVICE_NAME="ntfy"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=network/scripts/common.sh
 source "$SCRIPT_DIR/common.sh"
 
 # save = push (monitors are in app/data, already on host)
