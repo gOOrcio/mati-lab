@@ -37,6 +37,7 @@
         "query": "info,warn,error,fatal,debug",
         "includeAll": true,
         "multi": true,
+        "allValue": ".*",
         "current": {
           "selected": true,
           "text": "All",
@@ -78,7 +79,7 @@
       "datasource": "loki-sentinel",
       "targets": [
         {
-          "expr": "sum by (container) (count_over_time({container=~\"$container\"} |~ \"(?i)error|fatal|panic\" [$__interval]))",
+          "expr": "sum by (container) (count_over_time({container=~\"$container\"} |~ \"(?i)(error|fatal|panic|warn|warning)\" [$__interval]))",
           "legendFormat": "{{container}}"
         }
       ],
@@ -100,7 +101,7 @@
       "datasource": "loki-sentinel",
       "targets": [
         {
-          "expr": "{container=~\"$container\"} |~ \"(?i)$search\" |~ \"(?i)$level\"",
+          "expr": "{container=~\"$container\"} |~ \"(?i)$search\" |~ \"(?i)${level:regex}\"",
           "refId": "A"
         }
       ],
