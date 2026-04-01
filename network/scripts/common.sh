@@ -6,7 +6,7 @@ set -Eeuo pipefail
 
 # Load environment variables
 if [ -f "../.env" ]; then
-  export "$(cat ../.env | grep -v '^#' | xargs)"
+  export "$(grep -v '^#' ../.env | xargs)"
 else
   SERVER_HOST="${SERVER_HOST:-192.168.1.252}"
   SERVER_USER="${SERVER_USER:-gooral}"
