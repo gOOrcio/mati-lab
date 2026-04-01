@@ -1,0 +1,35 @@
+# Network Pi configuration
+pi_hostname: network
+pi_user: gooral
+pi_timezone: Europe/Warsaw
+
+# Docker
+docker_registry_mirror: "http://192.168.1.252:5000"
+docker_log_max_size: "10m"
+docker_log_max_file: "3"
+
+# UFW firewall rules
+ufw_default_incoming: deny
+ufw_default_outgoing: allow
+ufw_rules:
+  - { rule: allow, port: "22", proto: tcp, from: "192.168.1.0/24", comment: "SSH LAN" }
+  - { rule: allow, port: "22", proto: tcp, from: "10.0.0.0/24", comment: "SSH VPN" }
+  - { rule: allow, port: "80", proto: tcp, comment: "HTTP" }
+  - { rule: allow, port: "443", proto: tcp, comment: "HTTPS" }
+  - { rule: allow, port: "443", proto: udp, comment: "HTTPS QUIC" }
+  - { rule: allow, port: "53", proto: tcp, from: "192.168.1.0/24", comment: "DNS TCP LAN" }
+  - { rule: allow, port: "53", proto: udp, from: "192.168.1.0/24", comment: "DNS UDP LAN" }
+  - { rule: allow, port: "53", proto: tcp, from: "172.18.0.0/16", comment: "DNS TCP Docker" }
+  - { rule: allow, port: "53", proto: udp, from: "172.18.0.0/16", comment: "DNS UDP Docker" }
+  - { rule: allow, port: "5000", proto: tcp, from: "192.168.1.0/24", comment: "Docker registry mirror LAN" }
+
+# fail2ban
+fail2ban_maxretry: 5
+fail2ban_bantime: 3600
+fail2ban_findtime: 600
+
+# SSH hardening
+ssh_permit_root_login: "prohibit-password"
+ssh_password_authentication: "no"
+ssh_pubkey_authentication: "yes"
+ssh_max_auth_tries: 3
