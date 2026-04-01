@@ -15,7 +15,7 @@ services:
     environment:
       CONTAINERS: 1
       IMAGES: 0
-      NETWORKS: 0
+      NETWORKS: 1
       VOLUMES: 0
       INFO: 0
     volumes:
