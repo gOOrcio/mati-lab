@@ -9,11 +9,13 @@ services:
     restart: always
     security_opt: [no-new-privileges:true]
     networks: [pihole-net]
+    environment:
+      PVE_USER: ${PVE_USER}
+      PVE_TOKEN_NAME: ${PVE_TOKEN_NAME}
+      PVE_TOKEN_VALUE: ${PVE_TOKEN_VALUE}
+      PVE_VERIFY_SSL: "false"
     env_file:
       - .env
-    volumes:
-      - ./pve.yml:/etc/pve.yml:ro
-    command: ["--config.file", "/etc/pve.yml"]
     labels:
       - "com.docker.compose.project=pve-exporter"
       - "com.docker.compose.service=pve-exporter"
