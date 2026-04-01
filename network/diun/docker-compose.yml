@@ -22,6 +22,7 @@ services:
       - "DIUN_NOTIF_NTFY_PRIORITY=3"
       - "DIUN_NOTIF_NTFY_TAGS=package"
     restart: unless-stopped
+    security_opt: [no-new-privileges:true]
 
     networks:
       - pihole-net
