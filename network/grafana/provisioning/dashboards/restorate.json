@@ -1,0 +1,650 @@
+{
+  "uid": "restorate",
+  "title": "Restorate",
+  "schemaVersion": 38,
+  "version": 1,
+  "refresh": "30s",
+  "time": { "from": "now-1h", "to": "now" },
+  "timepicker": {},
+  "tags": ["restorate"],
+  "editable": true,
+  "graphTooltip": 1,
+  "panels": [
+    {
+      "id": 1,
+      "type": "row",
+      "title": "Overview",
+      "collapsed": false,
+      "gridPos": { "x": 0, "y": 0, "w": 24, "h": 1 }
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Requests/sec",
+      "gridPos": { "x": 0, "y": 1, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus-mati-lab" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus-mati-lab" },
+          "expr": "sum(rate(rpc_requests_total{job=\"restorate\"}[5m]))",
+          "legendFormat": "req/s"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": { "lineInterpolation": "smooth" }
+        },
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Error Rate %",
+      "gridPos": { "x": 12, "y": 1, "w": 6, "h": 4 },
+      "datasource": { "type": "prometheus", "uid": "prometheus-mati-lab" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus-mati-lab" },
+          "expr": "(sum(rate(rpc_requests_total{job=\"restorate\",status!=\"OK\"}[5m])) / sum(rate(rpc_requests_total{job=\"restorate\"}[5m]))) * 100 or vector(0)",
+          "legendFormat": ""
+        }
+      ],
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "background"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "value": null, "color": "green" },
+              { "value": 1, "color": "yellow" },
+              { "value": 5, "color": "red" }
+            ]
+          },
+          "custom": {}
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Active Sessions",
+      "gridPos": { "x": 18, "y": 1, "w": 6, "h": 4 },
+      "datasource": { "type": "prometheus", "uid": "prometheus-mati-lab" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus-mati-lab" },
+          "expr": "restorate_active_sessions{job=\"restorate\"}",
+          "legendFormat": ""
+        }
+      ],
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "colorMode": "value"
+      },
+      "fieldConfig": {
+        "defaults": { "unit": "short", "custom": {} },
+        "overrides": []
+      }
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Latency Percentiles (P50 / P95 / P99)",
+      "gridPos": { "x": 12, "y": 5, "w": 12, "h": 4 },
+      "datasource": { "type": "prometheus", "uid": "prometheus-mati-lab" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus-mati-lab" },
+          "expr": "histogram_quantile(0.50, sum(rate(rpc_request_duration_seconds_bucket{job=\"restorate\"}[5m])) by (le))",
+          "legendFormat": "P50"
+        },
+        {
+          "refId": "B",
+          "datasource": { "type": "prometheus", "uid": "prometheus-mati-lab" },
+          "expr": "histogram_quantile(0.95, sum(rate(rpc_request_duration_seconds_bucket{job=\"restorate\"}[5m])) by (le))",
+          "legendFormat": "P95"
+        },
+        {
+          "refId": "C",
+          "datasource": { "type": "prometheus", "uid": "prometheus-mati-lab" },
+          "expr": "histogram_quantile(0.99, sum(rate(rpc_request_duration_seconds_bucket{job=\"restorate\"}[5m])) by (le))",
+          "legendFormat": "P99"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": { "lineInterpolation": "smooth" }
+        },
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 6,
+      "type": "row",
+      "title": "Users & Auth",
+      "collapsed": false,
+      "gridPos": { "x": 0, "y": 9, "w": 24, "h": 1 }
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "Logins/hour",
+      "gridPos": { "x": 0, "y": 10, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus-mati-lab" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus-mati-lab" },
+          "expr": "sum by (provider) (increase(restorate_logins_total{job=\"restorate\"}[1h]))",
+          "legendFormat": "{{provider}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "short", "custom": { "lineInterpolation": "smooth" } },
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "Registrations over time",
+      "gridPos": { "x": 12, "y": 10, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus-mati-lab" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus-mati-lab" },
+          "expr": "increase(restorate_registrations_total{job=\"restorate\"}[1h])",
+          "legendFormat": "registrations/h"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "short", "custom": { "lineInterpolation": "smooth" } },
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 9,
+      "type": "timeseries",
+      "title": "Login Failures by Reason",
+      "gridPos": { "x": 0, "y": 18, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus-mati-lab" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus-mati-lab" },
+          "expr": "sum by (reason) (rate(restorate_login_failures_total{job=\"restorate\"}[5m]))",
+          "legendFormat": "{{reason}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "short", "custom": { "lineInterpolation": "smooth" } },
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 10,
+      "type": "timeseries",
+      "title": "Account Deletions",
+      "gridPos": { "x": 12, "y": 18, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus-mati-lab" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus-mati-lab" },
+          "expr": "increase(restorate_account_deletions_total{job=\"restorate\"}[1h])",
+          "legendFormat": "deletions/h"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "short", "custom": { "lineInterpolation": "smooth" } },
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 11,
+      "type": "row",
+      "title": "App Activity",
+      "collapsed": false,
+      "gridPos": { "x": 0, "y": 26, "w": 24, "h": 1 }
+    },
+    {
+      "id": 12,
+      "type": "timeseries",
+      "title": "Reviews Created/hour",
+      "gridPos": { "x": 0, "y": 27, "w": 8, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus-mati-lab" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus-mati-lab" },
+          "expr": "increase(restorate_reviews_created_total{job=\"restorate\"}[1h])",
+          "legendFormat": "created/h"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "short", "custom": { "lineInterpolation": "smooth" } },
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 13,
+      "type": "timeseries",
+      "title": "Wishlist Adds / Removes",
+      "gridPos": { "x": 8, "y": 27, "w": 8, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus-mati-lab" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus-mati-lab" },
+          "expr": "increase(restorate_wishlist_adds_total{job=\"restorate\"}[1h])",
+          "legendFormat": "adds/h"
+        },
+        {
+          "refId": "B",
+          "datasource": { "type": "prometheus", "uid": "prometheus-mati-lab" },
+          "expr": "increase(restorate_wishlist_removes_total{job=\"restorate\"}[1h])",
+          "legendFormat": "removes/h"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "short", "custom": { "lineInterpolation": "smooth" } },
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 14,
+      "type": "timeseries",
+      "title": "Friend Requests",
+      "gridPos": { "x": 16, "y": 27, "w": 8, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus-mati-lab" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus-mati-lab" },
+          "expr": "increase(restorate_friend_requests_sent_total{job=\"restorate\"}[1h])",
+          "legendFormat": "sent/h"
+        },
+        {
+          "refId": "B",
+          "datasource": { "type": "prometheus", "uid": "prometheus-mati-lab" },
+          "expr": "increase(restorate_friend_requests_accepted_total{job=\"restorate\"}[1h])",
+          "legendFormat": "accepted/h"
+        },
+        {
+          "refId": "C",
+          "datasource": { "type": "prometheus", "uid": "prometheus-mati-lab" },
+          "expr": "increase(restorate_friend_requests_declined_total{job=\"restorate\"}[1h])",
+          "legendFormat": "declined/h"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "short", "custom": { "lineInterpolation": "smooth" } },
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 15,
+      "type": "stat",
+      "title": "CSV Exports (last 1h)",
+      "gridPos": { "x": 0, "y": 35, "w": 4, "h": 4 },
+      "datasource": { "type": "prometheus", "uid": "prometheus-mati-lab" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus-mati-lab" },
+          "expr": "increase(restorate_csv_exports_total{job=\"restorate\"}[1h])",
+          "legendFormat": ""
+        }
+      ],
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "colorMode": "value"
+      },
+      "fieldConfig": {
+        "defaults": { "unit": "short", "custom": {} },
+        "overrides": []
+      }
+    },
+    {
+      "id": 16,
+      "type": "timeseries",
+      "title": "Google Places API — Requests & Errors",
+      "gridPos": { "x": 4, "y": 35, "w": 20, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus-mati-lab" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus-mati-lab" },
+          "expr": "sum by (operation) (rate(restorate_google_places_requests_total{job=\"restorate\"}[5m]))",
+          "legendFormat": "req/s {{operation}}"
+        },
+        {
+          "refId": "B",
+          "datasource": { "type": "prometheus", "uid": "prometheus-mati-lab" },
+          "expr": "sum by (operation) (rate(restorate_google_places_errors_total{job=\"restorate\"}[5m]))",
+          "legendFormat": "err/s {{operation}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "reqps", "custom": { "lineInterpolation": "smooth" } },
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 17,
+      "type": "row",
+      "title": "Per-Endpoint Performance",
+      "collapsed": false,
+      "gridPos": { "x": 0, "y": 43, "w": 24, "h": 1 }
+    },
+    {
+      "id": 18,
+      "type": "heatmap",
+      "title": "Latency Heatmap (All Methods)",
+      "gridPos": { "x": 0, "y": 44, "w": 24, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus-mati-lab" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus-mati-lab" },
+          "expr": "sum(rate(rpc_request_duration_seconds_bucket{job=\"restorate\"}[5m])) by (le)",
+          "legendFormat": "{{le}}",
+          "format": "heatmap"
+        }
+      ],
+      "options": {
+        "calculate": false,
+        "yAxis": { "unit": "s", "decimals": 2 },
+        "cellGap": 1,
+        "color": { "scheme": "Spectral", "mode": "scheme" }
+      },
+      "fieldConfig": {
+        "defaults": { "unit": "short", "custom": {} },
+        "overrides": []
+      }
+    },
+    {
+      "id": 19,
+      "type": "table",
+      "title": "Top 10 Slowest Endpoints (P95)",
+      "gridPos": { "x": 0, "y": 52, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus-mati-lab" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus-mati-lab" },
+          "expr": "topk(10, histogram_quantile(0.95, sum by (method, le) (rate(rpc_request_duration_seconds_bucket{job=\"restorate\"}[5m]))))",
+          "legendFormat": "{{method}}",
+          "instant": true
+        }
+      ],
+      "transformations": [
+        { "id": "sortBy", "options": { "fields": [{ "desc": true, "displayName": "Value" }] } }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "s", "custom": {} },
+        "overrides": []
+      },
+      "options": { "sortBy": [{ "desc": true, "displayName": "Value" }] }
+    },
+    {
+      "id": 20,
+      "type": "timeseries",
+      "title": "Requests/sec by Method",
+      "gridPos": { "x": 12, "y": 52, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus-mati-lab" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus-mati-lab" },
+          "expr": "sum by (method) (rate(rpc_requests_total{job=\"restorate\"}[5m]))",
+          "legendFormat": "{{method}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": {
+            "lineInterpolation": "smooth",
+            "stacking": { "mode": "normal", "group": "A" }
+          }
+        },
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 21,
+      "type": "timeseries",
+      "title": "Error Count by Method & Status",
+      "gridPos": { "x": 0, "y": 60, "w": 24, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus-mati-lab" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus-mati-lab" },
+          "expr": "sum by (method, status) (rate(rpc_requests_total{job=\"restorate\",status!=\"OK\"}[5m]))",
+          "legendFormat": "{{method}} — {{status}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "reqps", "custom": { "lineInterpolation": "smooth" } },
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 22,
+      "type": "row",
+      "title": "Infrastructure",
+      "collapsed": false,
+      "gridPos": { "x": 0, "y": 68, "w": 24, "h": 1 }
+    },
+    {
+      "id": 23,
+      "type": "timeseries",
+      "title": "Memory",
+      "gridPos": { "x": 0, "y": 69, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus-mati-lab" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus-mati-lab" },
+          "expr": "process_resident_memory_bytes{job=\"restorate\"}",
+          "legendFormat": "RSS"
+        },
+        {
+          "refId": "B",
+          "datasource": { "type": "prometheus", "uid": "prometheus-mati-lab" },
+          "expr": "go_memstats_heap_alloc_bytes{job=\"restorate\"}",
+          "legendFormat": "heap alloc"
+        },
+        {
+          "refId": "C",
+          "datasource": { "type": "prometheus", "uid": "prometheus-mati-lab" },
+          "expr": "go_memstats_stack_inuse_bytes{job=\"restorate\"}",
+          "legendFormat": "stack in-use"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "bytes", "custom": { "lineInterpolation": "smooth" } },
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 24,
+      "type": "timeseries",
+      "title": "Goroutines",
+      "gridPos": { "x": 12, "y": 69, "w": 6, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus-mati-lab" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus-mati-lab" },
+          "expr": "go_goroutines{job=\"restorate\"}",
+          "legendFormat": "goroutines"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "short", "custom": { "lineInterpolation": "smooth" } },
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 25,
+      "type": "timeseries",
+      "title": "GC Pause Duration",
+      "gridPos": { "x": 18, "y": 69, "w": 6, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus-mati-lab" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus-mati-lab" },
+          "expr": "go_gc_duration_seconds{job=\"restorate\",quantile=\"0.99\"}",
+          "legendFormat": "P99"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "s", "custom": { "lineInterpolation": "smooth" } },
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 26,
+      "type": "timeseries",
+      "title": "DB Query Latency (P95 by operation)",
+      "gridPos": { "x": 0, "y": 77, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus-mati-lab" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus-mati-lab" },
+          "expr": "histogram_quantile(0.95, sum by (operation, le) (rate(restorate_db_query_duration_seconds_bucket{job=\"restorate\"}[5m])))",
+          "legendFormat": "P95 {{operation}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "s", "custom": { "lineInterpolation": "smooth" } },
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 27,
+      "type": "timeseries",
+      "title": "Process CPU Usage",
+      "gridPos": { "x": 12, "y": 77, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus-mati-lab" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus-mati-lab" },
+          "expr": "rate(process_cpu_seconds_total{job=\"restorate\"}[5m])",
+          "legendFormat": "CPU"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "short", "custom": { "lineInterpolation": "smooth" } },
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 28,
+      "type": "row",
+      "title": "Logs",
+      "collapsed": false,
+      "gridPos": { "x": 0, "y": 85, "w": 24, "h": 1 }
+    },
+    {
+      "id": 29,
+      "type": "logs",
+      "title": "Log Stream",
+      "gridPos": { "x": 0, "y": 86, "w": 24, "h": 12 },
+      "datasource": { "type": "loki", "uid": "loki-sentinel" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "loki", "uid": "loki-sentinel" },
+          "expr": "{compose_project=\"restorate\"}"
+        }
+      ],
+      "options": {
+        "dedupStrategy": "none",
+        "showLabels": false,
+        "showTime": true,
+        "wrapLogMessage": false,
+        "sortOrder": "Descending"
+      },
+      "fieldConfig": { "defaults": {}, "overrides": [] }
+    },
+    {
+      "id": 30,
+      "type": "timeseries",
+      "title": "Error Log Count over Time",
+      "gridPos": { "x": 0, "y": 98, "w": 12, "h": 8 },
+      "datasource": { "type": "loki", "uid": "loki-sentinel" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "loki", "uid": "loki-sentinel" },
+          "expr": "sum(rate({compose_project=\"restorate\"} |= \"error\" [5m]))",
+          "legendFormat": "errors/s"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "short", "custom": { "lineInterpolation": "smooth" } },
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 31,
+      "type": "barchart",
+      "title": "Log Volume by Level",
+      "gridPos": { "x": 12, "y": 98, "w": 12, "h": 8 },
+      "datasource": { "type": "loki", "uid": "loki-sentinel" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "loki", "uid": "loki-sentinel" },
+          "expr": "sum by (level) (rate({compose_project=\"restorate\"}[5m]))",
+          "legendFormat": "{{level}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "short", "custom": {} },
+        "overrides": []
+      },
+      "options": { "stacking": "normal" }
+    }
+  ]
+}

@@ -6,9 +6,9 @@ scrape_configs:
     static_configs:
       - targets: [ 'prometheus:9090' ]
 
-  - job_name: resto-rate-local-rpc
+  - job_name: restorate
     static_configs:
-      - targets: [192.168.1.173:3001]
+      - targets: ['192.168.1.203:3001']
     metrics_path: /metrics
 
   - job_name: node-exporter

@@ -206,3 +206,303 @@ groups:
           description: "Container {{ $labels.container }} is logging errors at {{ printf \"%.2f\" $values.A.Value }} errors/sec"
         labels:
           severity: warning
+
+  - orgId: 1
+    name: restorate
+    folder: Restorate
+    interval: 1m
+    rules:
+      - uid: restorate-high-error-rate
+        title: High Error Rate
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: prometheus-mati-lab
+            relativeTimeRange:
+              from: 600
+              to: 0
+            model:
+              expr: |
+                sum(rate(rpc_requests_total{job="restorate",status!="OK"}[5m]))
+                /
+                sum(rate(rpc_requests_total{job="restorate"}[5m]))
+                and on() sum(rate(rpc_requests_total{job="restorate"}[5m])) > 0
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+          - refId: C
+            datasourceUid: __expr__
+            relativeTimeRange:
+              from: 0
+              to: 0
+            model:
+              conditions:
+                - evaluator:
+                    params: [0.05]
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params: [A]
+                  reducer:
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              refId: C
+              type: threshold
+        noDataState: NoData
+        execErrState: Error
+        for: 5m
+        annotations:
+          summary: High error rate on Restorate
+          description: "Restorate error rate is {{ printf \"%.1f\" (mulf $values.A.Value 100) }}% (threshold: 5%)"
+        labels:
+          severity: warning
+
+      - uid: restorate-high-p95-latency
+        title: High P95 Latency
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: prometheus-mati-lab
+            relativeTimeRange:
+              from: 600
+              to: 0
+            model:
+              expr: |
+                histogram_quantile(0.95,
+                  sum(rate(rpc_request_duration_seconds_bucket{job="restorate"}[5m])) by (le))
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+          - refId: C
+            datasourceUid: __expr__
+            relativeTimeRange:
+              from: 0
+              to: 0
+            model:
+              conditions:
+                - evaluator:
+                    params: [2]
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params: [A]
+                  reducer:
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              refId: C
+              type: threshold
+        noDataState: NoData
+        execErrState: Error
+        for: 5m
+        annotations:
+          summary: High P95 latency on Restorate
+          description: "Restorate P95 latency is {{ printf \"%.2f\" $values.A.Value }}s (threshold: 2s)"
+        labels:
+          severity: warning
+
+      - uid: restorate-app-down
+        title: App Down
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: prometheus-mati-lab
+            relativeTimeRange:
+              from: 600
+              to: 0
+            model:
+              expr: up{job="restorate"}
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+          - refId: C
+            datasourceUid: __expr__
+            relativeTimeRange:
+              from: 0
+              to: 0
+            model:
+              conditions:
+                - evaluator:
+                    params: [1]
+                    type: lt
+                  operator:
+                    type: and
+                  query:
+                    params: [A]
+                  reducer:
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              refId: C
+              type: threshold
+        noDataState: Alerting
+        execErrState: Alerting
+        for: 1m
+        annotations:
+          summary: Restorate is down
+          description: "Prometheus cannot scrape Restorate at {{ $labels.instance }}"
+        labels:
+          severity: critical
+
+      - uid: restorate-high-memory
+        title: High Memory
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: prometheus-mati-lab
+            relativeTimeRange:
+              from: 600
+              to: 0
+            model:
+              expr: process_resident_memory_bytes{job="restorate"}
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+          - refId: C
+            datasourceUid: __expr__
+            relativeTimeRange:
+              from: 0
+              to: 0
+            model:
+              conditions:
+                - evaluator:
+                    params: [500000000]
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params: [A]
+                  reducer:
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              refId: C
+              type: threshold
+        noDataState: NoData
+        execErrState: Error
+        for: 5m
+        annotations:
+          summary: High memory usage on Restorate
+          description: "Restorate RSS is {{ printf \"%.0f\" (divf $values.A.Value 1000000) }}MB (threshold: 500MB)"
+        labels:
+          severity: warning
+
+      - uid: restorate-high-db-latency
+        title: High DB Latency
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: prometheus-mati-lab
+            relativeTimeRange:
+              from: 600
+              to: 0
+            model:
+              expr: |
+                histogram_quantile(0.95,
+                  sum(rate(restorate_db_query_duration_seconds_bucket{job="restorate"}[5m])) by (le))
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+          - refId: C
+            datasourceUid: __expr__
+            relativeTimeRange:
+              from: 0
+              to: 0
+            model:
+              conditions:
+                - evaluator:
+                    params: [1]
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params: [A]
+                  reducer:
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              refId: C
+              type: threshold
+        noDataState: NoData
+        execErrState: Error
+        for: 5m
+        annotations:
+          summary: High DB query latency on Restorate
+          description: "Restorate DB P95 latency is {{ printf \"%.2f\" $values.A.Value }}s (threshold: 1s)"
+        labels:
+          severity: warning
+
+      - uid: restorate-google-places-error-ratio
+        title: Google Places Error Ratio
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: prometheus-mati-lab
+            relativeTimeRange:
+              from: 600
+              to: 0
+            model:
+              expr: |
+                sum(rate(restorate_google_places_errors_total{job="restorate"}[5m]))
+                /
+                sum(rate(restorate_google_places_requests_total{job="restorate"}[5m]))
+                and
+                sum(rate(restorate_google_places_requests_total{job="restorate"}[5m])) > 0.1
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+          - refId: C
+            datasourceUid: __expr__
+            relativeTimeRange:
+              from: 0
+              to: 0
+            model:
+              conditions:
+                - evaluator:
+                    params: [0.05]
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params: [A]
+                  reducer:
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              refId: C
+              type: threshold
+        noDataState: NoData
+        execErrState: Error
+        for: 5m
+        annotations:
+          summary: High Google Places error ratio on Restorate
+          description: "Google Places error rate is {{ printf \"%.1f\" (mulf $values.A.Value 100) }}% (threshold: 5%)"
+        labels:
+          severity: warning
