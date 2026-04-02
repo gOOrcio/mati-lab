@@ -42,7 +42,6 @@ vite_api_url: "https://restorate.mati-lab.online"
 # PostgreSQL
 postgres_db: "restorate"
 postgres_user: "restorate"
-postgres_password: "{{ vault_postgres_password }}"
 
 # Valkey
 valkey_password: "{{ vault_valkey_password }}"
