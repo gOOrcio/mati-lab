@@ -40,10 +40,12 @@
         mode: "0755"
       become: true
 
-    - name: Sync valkey.conf
-      ansible.posix.synchronize:
-        src: "{{ app_repo_path }}/valkey.conf"
+    - name: Write valkey.conf
+      ansible.builtin.template:
+        src: ../templates/valkey.conf.j2
         dest: "{{ app_remote_path }}/valkey.conf"
+        owner: "{{ vm_ssh_user }}"
+        mode: "0644"
 
     - name: Write docker-compose.yml
       ansible.builtin.template:
