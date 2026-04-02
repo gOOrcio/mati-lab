@@ -6,21 +6,30 @@
     - ../group_vars/all/vault.yml
 
   pre_tasks:
-    - name: Check API builds cleanly
+    - name: Build and push API image
       ansible.builtin.command:
-        cmd: bunx nx run api:build
+        cmd: >-
+          docker buildx build --push
+          -t {{ registry_image_api }}
+          -f Dockerfile.api
+          .
         chdir: "{{ app_repo_path }}"
       delegate_to: localhost
       run_once: true
-      changed_when: false
+      changed_when: true
 
-    - name: Type-check frontend
+    - name: Build and push web image
       ansible.builtin.command:
-        cmd: bunx nx run web:check
+        cmd: >-
+          docker buildx build --push
+          -t {{ registry_image_web }}
+          --build-arg VITE_API_URL={{ vite_api_url }}
+          -f Dockerfile.web
+          .
         chdir: "{{ app_repo_path }}"
       delegate_to: localhost
       run_once: true
-      changed_when: false
+      changed_when: true
 
   tasks:
     - name: Create app directory
@@ -31,72 +40,49 @@
         mode: "0755"
       become: true
 
-    - name: Sync project files
+    - name: Sync valkey.conf
       ansible.posix.synchronize:
-        src:  "{{ app_repo_path }}/"
-        dest: "{{ app_remote_path }}/"
-        rsync_opts:
-          - "--exclude=.git"
-          - "--exclude=node_modules"
-          - "--exclude=dist"
-          - "--exclude=.svelte-kit"
-          - "--exclude=apps/api/tmp"
-          - "--exclude=.env"
-          - "--delete"
-
-    - name: Write Dockerfile for API
-      ansible.builtin.template:
-        src:  ../templates/Dockerfile.api.j2
-        dest: "{{ app_remote_path }}/Dockerfile.api"
-        owner: "{{ vm_ssh_user }}"
-        mode: "0644"
-
-    - name: Write Dockerfile for web
-      ansible.builtin.template:
-        src:  ../templates/Dockerfile.web.j2
-        dest: "{{ app_remote_path }}/Dockerfile.web"
-        owner: "{{ vm_ssh_user }}"
-        mode: "0644"
+        src: "{{ app_repo_path }}/valkey.conf"
+        dest: "{{ app_remote_path }}/valkey.conf"
 
     - name: Write docker-compose.yml
       ansible.builtin.template:
-        src:  ../templates/docker-compose.yml.j2
+        src: ../templates/docker-compose.yml.j2
         dest: "{{ app_remote_path }}/docker-compose.yml"
         owner: "{{ vm_ssh_user }}"
         mode: "0644"
 
     - name: Write Caddyfile
       ansible.builtin.template:
-        src:  ../templates/Caddyfile.j2
+        src: ../templates/Caddyfile.j2
         dest: "{{ app_remote_path }}/Caddyfile"
         owner: "{{ vm_ssh_user }}"
         mode: "0644"
 
     - name: Write API .env
       ansible.builtin.template:
-        src:  ../templates/api.env.j2
+        src: ../templates/api.env.j2
         dest: "{{ app_remote_path }}/api.env"
         owner: "{{ vm_ssh_user }}"
         mode: "0600"
 
     - name: Write postgres.env
       ansible.builtin.template:
-        src:  ../templates/postgres.env.j2
+        src: ../templates/postgres.env.j2
         dest: "{{ app_remote_path }}/postgres.env"
         owner: "{{ vm_ssh_user }}"
         mode: "0600"
 
     - name: Write web .env
       ansible.builtin.template:
-        src:  ../templates/web.env.j2
+        src: ../templates/web.env.j2
         dest: "{{ app_remote_path }}/web.env"
         owner: "{{ vm_ssh_user }}"
         mode: "0600"
 
-    - name: Build and start containers
+    - name: Pull latest images and start stack
       community.docker.docker_compose_v2:
         project_src: "{{ app_remote_path }}"
-        build: always
+        pull: always
         state: present
-        pull: missing
         remove_orphans: true

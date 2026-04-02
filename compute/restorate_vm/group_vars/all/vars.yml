@@ -32,6 +32,8 @@ docker_log_max_file: "3"
 # App
 app_repo_path: "/home/gooral/Projects/resto-rate"
 app_remote_path: "/opt/restorate"
+registry_image_api: "registry.mati-lab.online/restorate-api:latest"
+registry_image_web: "registry.mati-lab.online/restorate-web:latest"
 
 # API / frontend URLs
 api_host: "restorate.mati-lab.online"
