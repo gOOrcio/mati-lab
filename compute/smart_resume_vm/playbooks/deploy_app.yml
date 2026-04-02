@@ -60,6 +60,7 @@
       ansible.builtin.file:
         path: "{{ app_remote_path }}/compose.yml"
         state: absent
+      become: true
 
     - name: Write docker-compose.yml
       ansible.builtin.template:
