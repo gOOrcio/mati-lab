@@ -50,7 +50,7 @@
         {
           "refId": "A",
           "datasource": { "type": "prometheus", "uid": "prometheus-mati-lab" },
-          "expr": "sum(rate(rpc_requests_total{job=\"restorate\",status!=\"OK\"}[5m])) / (sum(rate(rpc_requests_total{job=\"restorate\"}[5m])) > 0) * 100",
+          "expr": "(sum(rate(rpc_requests_total{job=\"restorate\",status!=\"OK\"}[5m])) / sum(rate(rpc_requests_total{job=\"restorate\"}[5m]))) * 100 or vector(0)",
           "legendFormat": ""
         }
       ],
