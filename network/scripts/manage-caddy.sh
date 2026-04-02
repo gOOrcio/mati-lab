@@ -27,8 +27,7 @@ deploy() {
   build_and_push
   sync_from_github
   copy_env_file "../$SERVICE_NAME"
-  compose_cmd pull
-  compose_cmd up -d
+  compose_cmd up -d --pull always
 }
 
 rebuild() {
@@ -36,18 +35,14 @@ rebuild() {
   build_and_push
   sync_from_github
   copy_env_file "../$SERVICE_NAME"
-  compose_cmd down
-  compose_cmd pull
-  compose_cmd up -d
+  compose_cmd up -d --pull always
 }
 
 update() {
   log "Updating $SERVICE_NAME (pull only, no rebuild)"
   sync_from_github
   copy_env_file "../$SERVICE_NAME"
-  compose_cmd pull  # pull while Caddy is still up so registry.mati-lab.online is reachable
-  compose_cmd down
-  compose_cmd up -d
+  compose_cmd up -d --pull always
 }
 
 save() { push; }
