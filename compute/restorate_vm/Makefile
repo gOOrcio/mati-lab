@@ -41,9 +41,11 @@ db-backup:
 	@set -e; \
 	 TIMESTAMP=$$(date +%Y%m%d_%H%M%S); \
 	 OUTFILE=$(BACKUP_DIR)/restorate_$$TIMESTAMP.dump; \
+	 TMPFILE=$$OUTFILE.tmp; \
 	 echo "Backing up to $$OUTFILE ..."; \
-	 $(SSH) "docker exec $(DB_CONTAINER) pg_dump -U $(DB_USER) -Fc $(DB_NAME)" > $$OUTFILE && \
-	 echo "Done — $$(du -sh $$OUTFILE | cut -f1)"
+	 $(SSH) "docker exec $(DB_CONTAINER) pg_dump -U $(DB_USER) -Fc $(DB_NAME)" > $$TMPFILE && \
+	 mv $$TMPFILE $$OUTFILE && \
+	 echo "Done — $$(du -sh $$OUTFILE | cut -f1)" || { rm -f $$TMPFILE; exit 1; }
 
 ## db-restore FILE=<path>: Restore a dump created by db-backup.
 ##   Example: make db-restore FILE=backups/restorate_20260402_120000.dump
@@ -53,7 +55,7 @@ db-restore:
 	@test -f "$(FILE)" || { echo "File not found: $(FILE)"; exit 1; }
 	@echo "Restoring $(FILE) into $(DB_NAME) on $(SSH_HOST) ..."
 	$(SSH) "docker exec -i $(DB_CONTAINER) pg_restore -U $(DB_USER) -d $(DB_NAME) \
-	        --clean --if-exists --no-owner --exit-on-error" < $(FILE)
+	        --clean --if-exists --no-owner --exit-on-error" < "$(FILE)"
 	@echo "Done. Restarting API to re-run migrations ..."
 	$(SSH) "cd $(APP_DIR) && docker compose restart api"
 
