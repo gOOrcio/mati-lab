@@ -1,0 +1,17 @@
+:80 {
+    # Connect-RPC service routes — pattern: /<pkg>.<version>.<ServiceName>/
+    @connect_rpc path_regexp ^/[a-z][a-z0-9]*\.[a-z][a-z0-9]*\.[A-Z]
+    handle @connect_rpc {
+        reverse_proxy api:3001
+    }
+
+    # REST API routes
+    handle /api/* {
+        reverse_proxy api:3001
+    }
+
+    # SvelteKit frontend
+    handle {
+        reverse_proxy web:3000
+    }
+}
