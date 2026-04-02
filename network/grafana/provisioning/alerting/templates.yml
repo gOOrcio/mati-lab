@@ -1,0 +1,10 @@
+apiVersion: 1
+
+templates:
+  - orgId: 1
+    name: mati-lab.title
+    template: "{{ define \"mati-lab.title\" }}{{ if eq .Status \"resolved\" }}✅ {{ (index .Alerts 0).Labels.alertname }} resolved{{ else }}{{ $n := len .Alerts }}{{ if eq $n 1 }}{{ $a := index .Alerts 0 }}{{ if eq $a.Labels.severity \"critical\" }}🔴{{ else }}⚠️{{ end }} {{ $a.Labels.alertname }}{{ else }}⚠️ {{ $n }} alerts firing{{ end }}{{ end }}{{ end }}"
+
+  - orgId: 1
+    name: mati-lab.message
+    template: "{{ define \"mati-lab.message\" }}{{ range $i, $a := .Alerts }}{{ if $i }}\n{{ end }}{{ if $a.Annotations.description }}{{ $a.Annotations.description }}{{ else }}{{ $a.Annotations.summary }}{{ end }}{{ end }}{{ end }}"
