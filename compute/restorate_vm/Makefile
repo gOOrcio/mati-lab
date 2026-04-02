@@ -38,10 +38,11 @@ deploy:
 ##            Backups are portable across Postgres minor versions via pg_restore.
 db-backup:
 	@mkdir -p $(BACKUP_DIR)
-	@TIMESTAMP=$$(date +%Y%m%d_%H%M%S); \
+	@set -e; \
+	 TIMESTAMP=$$(date +%Y%m%d_%H%M%S); \
 	 OUTFILE=$(BACKUP_DIR)/restorate_$$TIMESTAMP.dump; \
 	 echo "Backing up to $$OUTFILE ..."; \
-	 $(SSH) "docker exec $(DB_CONTAINER) pg_dump -U $(DB_USER) -Fc $(DB_NAME)" > $$OUTFILE; \
+	 $(SSH) "docker exec $(DB_CONTAINER) pg_dump -U $(DB_USER) -Fc $(DB_NAME)" > $$OUTFILE && \
 	 echo "Done — $$(du -sh $$OUTFILE | cut -f1)"
 
 ## db-restore FILE=<path>: Restore a dump created by db-backup.
@@ -77,8 +78,8 @@ db-logs:
 	$(SSH_TTY) "docker logs -f --tail=100 $(DB_CONTAINER)"
 
 ## db-psql-exec SQL="<query>": Run a one-shot SQL statement (no TTY needed, good for scripts).
-##   Note: intended for simple queries; for complex SQL use db-shell instead.
+##   SQL is passed via stdin so quoting/special characters are handled safely.
 ##   Example: make db-psql-exec SQL="SELECT count(*) FROM users"
 db-psql-exec:
 	@test -n "$(SQL)" || { echo "Usage: make db-psql-exec SQL=\"<query>\""; exit 1; }
-	$(SSH) "docker exec $(DB_CONTAINER) psql -U $(DB_USER) -d $(DB_NAME) -v ON_ERROR_STOP=1 -X -c '$(SQL)'"
+	@printf '%s' '$(SQL)' | $(SSH) "docker exec -i $(DB_CONTAINER) psql -U $(DB_USER) -d $(DB_NAME) -v ON_ERROR_STOP=1 -X -f -"
