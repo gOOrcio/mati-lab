@@ -40,7 +40,7 @@ db-backup:
 	@mkdir -p $(BACKUP_DIR)
 	@set -e; \
 	 TIMESTAMP=$$(date +%Y%m%d_%H%M%S); \
-	 OUTFILE=$(BACKUP_DIR)/restorate_$$TIMESTAMP.dump; \
+	 OUTFILE=$(BACKUP_DIR)/$(DB_NAME)_$$TIMESTAMP.dump; \
 	 TMPFILE=$$OUTFILE.tmp; \
 	 echo "Backing up to $$OUTFILE ..."; \
 	 $(SSH) "docker exec $(DB_CONTAINER) pg_dump -U $(DB_USER) -Fc $(DB_NAME)" > $$TMPFILE && \
