@@ -1,0 +1,31 @@
+# syntax=docker/dockerfile:1
+
+# ── Build stage ────────────────────────────────────────────────────────────────
+FROM oven/bun:1 AS builder
+
+WORKDIR /app
+
+# Cache deps separately from source
+COPY package.json bun.lock* ./
+COPY nx.json tsconfig.base.json ./
+COPY apps/web/ apps/web/
+COPY packages/ packages/
+
+RUN bun install --frozen-lockfile
+
+# VITE_API_URL must be set at BUILD time — Vite inlines it into the bundle
+ARG VITE_API_URL
+ENV VITE_API_URL=$VITE_API_URL
+
+RUN bunx nx run web:build
+
+# ── Runtime stage ──────────────────────────────────────────────────────────────
+FROM oven/bun:1
+
+WORKDIR /app
+# SvelteKit adapter-node outputs a self-contained build directory
+COPY --from=builder /app/apps/web/build ./
+
+EXPOSE 3000
+ENV HOST=0.0.0.0
+CMD ["node", "index.js"]

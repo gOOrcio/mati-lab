@@ -1,0 +1,90 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: restorate-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: "{{ postgres_db }}"
+      POSTGRES_USER: "{{ postgres_user }}"
+      POSTGRES_PASSWORD: "{{ postgres_password }}"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - restorate-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U {{ postgres_user }}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  valkey:
+    image: valkey/valkey:8.0-alpine
+    container_name: restorate-valkey
+    restart: unless-stopped
+    command: ["valkey-server", "/etc/valkey/valkey.conf"]
+    volumes:
+      - valkeydata:/data
+      - ./valkey.conf:/etc/valkey/valkey.conf:ro
+    networks:
+      - restorate-net
+    healthcheck:
+      test: ["CMD", "valkey-cli", "-a", "{{ valkey_password }}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: restorate-api
+    restart: unless-stopped
+    env_file: api.env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      valkey:
+        condition: service_healthy
+    networks:
+      - restorate-net
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+      args:
+        VITE_API_URL: "{{ vite_api_url }}"
+    container_name: restorate-web
+    restart: unless-stopped
+    env_file: web.env
+    depends_on:
+      - api
+    networks:
+      - restorate-net
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: restorate-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - api
+      - web
+    networks:
+      - restorate-net
+
+volumes:
+  pgdata:
+  valkeydata:
+  caddy_data:
+  caddy_config:
+
+networks:
+  restorate-net:
+    driver: bridge

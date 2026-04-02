@@ -1,0 +1,95 @@
+- name: Deploy Restorate
+  hosts: restorate
+  gather_facts: false
+  vars_files:
+    - ../group_vars/all/vars.yml
+    - ../group_vars/all/vault.yml
+
+  pre_tasks:
+    - name: Check API builds cleanly
+      ansible.builtin.command:
+        cmd: bunx nx run api:build
+        chdir: "{{ app_repo_path }}"
+      delegate_to: localhost
+      run_once: true
+      changed_when: false
+
+    - name: Type-check frontend
+      ansible.builtin.command:
+        cmd: bunx nx run web:check
+        chdir: "{{ app_repo_path }}"
+      delegate_to: localhost
+      run_once: true
+      changed_when: false
+
+  tasks:
+    - name: Create app directory
+      ansible.builtin.file:
+        path: "{{ app_remote_path }}"
+        state: directory
+        owner: "{{ vm_ssh_user }}"
+        mode: "0755"
+      become: true
+
+    - name: Sync project files
+      ansible.posix.synchronize:
+        src:  "{{ app_repo_path }}/"
+        dest: "{{ app_remote_path }}/"
+        rsync_opts:
+          - "--exclude=.git"
+          - "--exclude=node_modules"
+          - "--exclude=dist"
+          - "--exclude=.svelte-kit"
+          - "--exclude=apps/api/tmp"
+          - "--exclude=.env"
+          - "--delete"
+
+    - name: Write Dockerfile for API
+      ansible.builtin.template:
+        src:  ../templates/Dockerfile.api.j2
+        dest: "{{ app_remote_path }}/Dockerfile.api"
+        owner: "{{ vm_ssh_user }}"
+        mode: "0644"
+
+    - name: Write Dockerfile for web
+      ansible.builtin.template:
+        src:  ../templates/Dockerfile.web.j2
+        dest: "{{ app_remote_path }}/Dockerfile.web"
+        owner: "{{ vm_ssh_user }}"
+        mode: "0644"
+
+    - name: Write docker-compose.yml
+      ansible.builtin.template:
+        src:  ../templates/docker-compose.yml.j2
+        dest: "{{ app_remote_path }}/docker-compose.yml"
+        owner: "{{ vm_ssh_user }}"
+        mode: "0644"
+
+    - name: Write Caddyfile
+      ansible.builtin.template:
+        src:  ../templates/Caddyfile.j2
+        dest: "{{ app_remote_path }}/Caddyfile"
+        owner: "{{ vm_ssh_user }}"
+        mode: "0644"
+
+    - name: Write API .env
+      ansible.builtin.template:
+        src:  ../templates/api.env.j2
+        dest: "{{ app_remote_path }}/api.env"
+        owner: "{{ vm_ssh_user }}"
+        mode: "0600"
+
+    - name: Write web .env
+      ansible.builtin.template:
+        src:  ../templates/web.env.j2
+        dest: "{{ app_remote_path }}/web.env"
+        owner: "{{ vm_ssh_user }}"
+        mode: "0600"
+
+    - name: Build and start containers
+      community.docker.docker_compose_v2:
+        project_src: "{{ app_remote_path }}"
+        build: always
+        state: present
+        pull: missing
+        remove_orphans: true
