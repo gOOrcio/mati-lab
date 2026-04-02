@@ -14,6 +14,11 @@
     # Compress responses
     encode zstd gzip
 
+    # Block Prometheus metrics from public access
+    handle /metrics {
+        respond 404
+    }
+
     # Connect-RPC service routes — pattern: /<pkg>.<version>.<ServiceName>/
     # pkg names can contain underscores (e.g. google_maps)
     @connect_rpc path_regexp ^/[a-z][a-z0-9_]*\.[a-z][a-z0-9_]*\.[A-Z]
@@ -22,7 +27,16 @@
     }
 
     # REST API routes
-    handle /api/* {
+    handle /place-photo {
+        reverse_proxy api:3001
+    }
+    handle /health {
+        reverse_proxy api:3001
+    }
+    handle /export/reviews {
+        reverse_proxy api:3001
+    }
+    handle /admin/invite-secret {
         reverse_proxy api:3001
     }
 
