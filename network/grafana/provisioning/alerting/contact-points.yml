@@ -10,7 +10,8 @@ contactPoints:
           url: http://ntfy:80/alerts
           httpMethod: POST
           httpHeaderName1: Authorization
-          httpHeaderValue1: "Bearer ${NTFY_ALERTS_TOKEN}"
           title: "{{ template \"default.title\" . }}"
           message: "{{ template \"default.message\" . }}"
+        secureSettings:
+          httpHeaderValue1: "Bearer ${NTFY_ALERTS_TOKEN}"
         disableResolveMessage: false
