@@ -3,15 +3,21 @@
 # ── Build stage ────────────────────────────────────────────────────────────────
 FROM golang:1.25-alpine AS builder
 
-RUN apk add --no-cache git curl unzip
+RUN apk add --no-cache git curl
 
-# Install buf CLI
-RUN curl -sSL "https://github.com/bufbuild/buf/releases/latest/download/buf-Linux-x86_64" \
-      -o /usr/local/bin/buf && chmod +x /usr/local/bin/buf
+ARG BUF_VERSION=1.49.0
+# Install buf CLI (pinned + checksum verified)
+RUN curl -sSL "https://github.com/bufbuild/buf/releases/download/v${BUF_VERSION}/buf-Linux-x86_64" \
+      -o /usr/local/bin/buf && \
+    curl -sSL "https://github.com/bufbuild/buf/releases/download/v${BUF_VERSION}/buf-Linux-x86_64.sha256" \
+      -o /tmp/buf.sha256 && \
+    echo "$(cat /tmp/buf.sha256)  /usr/local/bin/buf" | sha256sum -c - && \
+    chmod +x /usr/local/bin/buf && \
+    rm /tmp/buf.sha256
 
-# Install protoc plugins
-RUN go install google.golang.org/protobuf/cmd/protoc-gen-go@latest && \
-    go install connectrpc.com/connect/cmd/protoc-gen-connect-go@latest
+# Install protoc plugins (pinned versions)
+RUN go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.36.5 && \
+    go install connectrpc.com/connect/cmd/protoc-gen-connect-go@v1.17.0
 
 WORKDIR /build
 
@@ -28,7 +34,7 @@ COPY buf.yaml buf.gen.yaml ./
 RUN buf generate
 
 # Build binary — adjust the main package path if needed
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /api ./apps/api/...
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /api ./apps/api
 
 # ── Runtime stage ──────────────────────────────────────────────────────────────
 FROM alpine:3.21

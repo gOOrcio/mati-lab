@@ -79,6 +79,13 @@
         owner: "{{ vm_ssh_user }}"
         mode: "0600"
 
+    - name: Write postgres.env
+      ansible.builtin.template:
+        src:  ../templates/postgres.env.j2
+        dest: "{{ app_remote_path }}/postgres.env"
+        owner: "{{ vm_ssh_user }}"
+        mode: "0600"
+
     - name: Write web .env
       ansible.builtin.template:
         src:  ../templates/web.env.j2

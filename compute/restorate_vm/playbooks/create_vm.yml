@@ -12,9 +12,9 @@
         api_token_id:     "{{ proxmox_api_token_id }}"
         api_token_secret: "{{ proxmox_api_token_secret }}"
         node:    "{{ proxmox_node }}"
-        clone:   "{{ vm_template_id }}"
         vmid:    "{{ vm_template_id }}"
-        name:    "{{ vm_name }}"
+        newid:   "{{ vm_id }}"
+        clone:   "{{ vm_name }}"
         storage: "{{ vm_storage }}"
         full:    true
         state:   present

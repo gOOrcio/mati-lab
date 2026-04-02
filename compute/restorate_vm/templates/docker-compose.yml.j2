@@ -3,10 +3,7 @@ services:
     image: postgres:17-alpine
     container_name: restorate-db
     restart: unless-stopped
-    environment:
-      POSTGRES_DB: "{{ postgres_db }}"
-      POSTGRES_USER: "{{ postgres_user }}"
-      POSTGRES_PASSWORD: "{{ postgres_password }}"
+    env_file: postgres.env
     volumes:
       - pgdata:/var/lib/postgresql/data
     networks:
@@ -22,13 +19,15 @@ services:
     container_name: restorate-valkey
     restart: unless-stopped
     command: ["valkey-server", "/etc/valkey/valkey.conf"]
+    environment:
+      VALKEY_PASSWORD: "{{ valkey_password }}"
     volumes:
       - valkeydata:/data
       - ./valkey.conf:/etc/valkey/valkey.conf:ro
     networks:
       - restorate-net
     healthcheck:
-      test: ["CMD", "valkey-cli", "-a", "{{ valkey_password }}", "ping"]
+      test: ["CMD-SHELL", "valkey-cli -a \"$$VALKEY_PASSWORD\" ping"]
       interval: 10s
       timeout: 5s
       retries: 5
