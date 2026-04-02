@@ -10,7 +10,7 @@ vm_id: 105
 vm_name: "restorate"
 vm_template_id: 9000
 vm_cores: 2
-vm_memory_mb: 2048
+vm_memory_mb: 4096
 vm_disk_size: "20G"
 vm_storage: "local-lvm"
 

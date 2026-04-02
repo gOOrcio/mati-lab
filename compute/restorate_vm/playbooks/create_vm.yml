@@ -27,6 +27,7 @@
         api_token_secret: "{{ proxmox_api_token_secret }}"
         node:   "{{ proxmox_node }}"
         vmid:   "{{ vm_id }}"
+        name:   "{{ vm_name }}"
         cores:  "{{ vm_cores }}"
         memory: "{{ vm_memory_mb }}"
         ipconfig:
