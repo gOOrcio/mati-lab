@@ -50,7 +50,7 @@
         {
           "refId": "A",
           "datasource": { "type": "prometheus", "uid": "prometheus-mati-lab" },
-          "expr": "sum(rate(rpc_requests_total{job=\"restorate\",status!=\"OK\"}[5m])) / sum(rate(rpc_requests_total{job=\"restorate\"}[5m])) * 100",
+          "expr": "sum(rate(rpc_requests_total{job=\"restorate\",status!=\"OK\"}[5m])) / (sum(rate(rpc_requests_total{job=\"restorate\"}[5m])) > 0) * 100",
           "legendFormat": ""
         }
       ],
@@ -365,7 +365,7 @@
     {
       "id": 18,
       "type": "heatmap",
-      "title": "Latency Heatmap by Method",
+      "title": "Latency Heatmap (All Methods)",
       "gridPos": { "x": 0, "y": 44, "w": 24, "h": 8 },
       "datasource": { "type": "prometheus", "uid": "prometheus-mati-lab" },
       "targets": [
@@ -527,8 +527,8 @@
         {
           "refId": "A",
           "datasource": { "type": "prometheus", "uid": "prometheus-mati-lab" },
-          "expr": "rate(go_gc_duration_seconds_sum{job=\"restorate\"}[5m])",
-          "legendFormat": "GC pause rate"
+          "expr": "go_gc_duration_seconds{job=\"restorate\",quantile=\"0.99\"}",
+          "legendFormat": "P99"
         }
       ],
       "fieldConfig": {
@@ -572,7 +572,7 @@
         }
       ],
       "fieldConfig": {
-        "defaults": { "unit": "percentunit", "custom": { "lineInterpolation": "smooth" } },
+        "defaults": { "unit": "short", "custom": { "lineInterpolation": "smooth" } },
         "overrides": []
       },
       "options": {}
