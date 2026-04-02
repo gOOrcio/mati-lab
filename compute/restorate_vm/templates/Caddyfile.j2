@@ -1,6 +1,22 @@
+{
+    # Structured JSON access log (written to stdout, picked up by Docker)
+    log default {
+        output stdout
+        format json
+        level INFO
+    }
+}
+
 :80 {
+    # Hide the server identity — infrastructure concern, not the app's job
+    header -Server
+
+    # Compress responses
+    encode zstd gzip
+
     # Connect-RPC service routes — pattern: /<pkg>.<version>.<ServiceName>/
-    @connect_rpc path_regexp ^/[a-z][a-z0-9]*\.[a-z][a-z0-9]*\.[A-Z]
+    # pkg names can contain underscores (e.g. google_maps)
+    @connect_rpc path_regexp ^/[a-z][a-z0-9_]*\.[a-z][a-z0-9_]*\.[A-Z]
     handle @connect_rpc {
         reverse_proxy api:3001
     }
