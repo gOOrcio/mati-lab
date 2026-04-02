@@ -26,6 +26,7 @@
       ansible.builtin.command:
         cmd: >-
           docker buildx build --push
+          --platform linux/amd64
           -t {{ registry_image_api }}
           apps/api
         chdir: "{{ app_repo_path }}"
@@ -37,6 +38,7 @@
       ansible.builtin.command:
         cmd: >-
           docker buildx build --push
+          --platform linux/amd64
           -t {{ registry_image_web }}
           --build-arg PUBLIC_TURNSTILE_SITE_KEY={{ vault_turnstile_site_key }}
           apps/web
