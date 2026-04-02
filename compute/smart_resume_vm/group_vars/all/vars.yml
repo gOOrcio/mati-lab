@@ -32,3 +32,5 @@ docker_log_max_file: "3"
 # App
 app_repo_path: "/home/gooral/Projects/smart-resume"
 app_remote_path: "/opt/smart-resume"
+registry_image_api: "registry.mati-lab.online/smart-resume-api:latest"
+registry_image_web: "registry.mati-lab.online/smart-resume-web:latest"
