@@ -38,6 +38,11 @@
         reverse_proxy 192.168.1.200:4321
     }
 
+    @restorate host restorate.mati-lab.online
+    handle @restorate {
+        reverse_proxy 192.168.1.203:80
+    }
+
     @proxmox host proxmox.mati-lab.online
     handle @proxmox {
         @proxmox_health path /api2/json/version

@@ -1,4 +1,4 @@
-{{ api_host }} {
+:80 {
     # Connect-RPC service routes — pattern: /<pkg>.<version>.<ServiceName>/
     @connect_rpc path_regexp ^/[a-z][a-z0-9]*\.[a-z][a-z0-9]*\.[A-Z]
     handle @connect_rpc {
