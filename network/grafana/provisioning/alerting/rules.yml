@@ -226,6 +226,7 @@ groups:
                 sum(rate(rpc_requests_total{job="restorate",status!="OK"}[5m]))
                 /
                 sum(rate(rpc_requests_total{job="restorate"}[5m]))
+                and on() sum(rate(rpc_requests_total{job="restorate"}[5m])) > 0
               instant: true
               intervalMs: 1000
               maxDataPoints: 43200
@@ -354,7 +355,7 @@ groups:
         for: 1m
         annotations:
           summary: Restorate is down
-          description: "Prometheus cannot scrape Restorate at 192.168.1.203:3001"
+          description: "Prometheus cannot scrape Restorate at {{ $labels.instance }}"
         labels:
           severity: critical
 
@@ -401,7 +402,7 @@ groups:
         for: 5m
         annotations:
           summary: High memory usage on Restorate
-          description: "Restorate RSS is {{ printf \"%.0f\" (divf $values.A.Value 1048576) }}MB (threshold: 500MB)"
+          description: "Restorate RSS is {{ printf \"%.0f\" (divf $values.A.Value 1000000) }}MB (threshold: 500MB)"
         labels:
           severity: warning
 
