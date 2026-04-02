@@ -1,0 +1,15 @@
+services:
+  web:
+    image: "{{ registry_image_web }}"
+    container_name: smart-resume-web
+    restart: unless-stopped
+    ports:
+      - "4321:80"
+
+  api:
+    image: "{{ registry_image_api }}"
+    container_name: smart-resume-api
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    env_file: .env
