@@ -42,7 +42,6 @@ update() {
   log "Updating $SERVICE_NAME (pull only, no rebuild)"
   sync_from_github
   copy_env_file "../$SERVICE_NAME"
-  compose_cmd pull  # pull while Caddy is still up so registry.mati-lab.online is reachable
   compose_cmd up -d --pull always
 }
 
