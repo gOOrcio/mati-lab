@@ -42,6 +42,8 @@ services:
         condition: service_healthy
       valkey:
         condition: service_healthy
+    ports:
+      - "3001:3001"  # Prometheus scrapes this directly; not routed through Caddy
     networks:
       - restorate-net
 
@@ -69,9 +71,23 @@ services:
     networks:
       - restorate-net
 
+  promtail:
+    image: grafana/promtail:3.5.0
+    container_name: restorate-promtail
+    restart: unless-stopped
+    command: -config.file=/etc/promtail/promtail-config.yml
+    volumes:
+      - ./promtail-config.yml:/etc/promtail/promtail-config.yml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - promtail-positions:/var/lib/promtail
+    security_opt: [no-new-privileges:true]
+    networks:
+      - restorate-net
+
 volumes:
   pgdata:
   valkeydata:
+  promtail-positions:
 
 networks:
   restorate-net:
