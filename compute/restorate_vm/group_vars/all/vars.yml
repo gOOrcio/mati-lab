@@ -26,6 +26,7 @@ vm_ssh_key_path: "~/.ssh/id_ed25519.pub"
 
 # Docker
 docker_registry_mirror: "http://192.168.1.252:5000"
+loki_push_url: "http://192.168.1.252:3100/loki/api/v1/push"
 docker_log_max_size: "10m"
 docker_log_max_file: "3"
 

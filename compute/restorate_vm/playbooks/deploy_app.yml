@@ -61,6 +61,13 @@
         owner: "{{ vm_ssh_user }}"
         mode: "0644"
 
+    - name: Write Promtail config
+      ansible.builtin.template:
+        src: ../templates/promtail-config.yml.j2
+        dest: "{{ app_remote_path }}/promtail-config.yml"
+        owner: "{{ vm_ssh_user }}"
+        mode: "0644"
+
     - name: Write API .env
       ansible.builtin.template:
         src: ../templates/api.env.j2
