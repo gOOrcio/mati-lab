@@ -8,13 +8,8 @@
 }
 
 :80 {
-    # Security headers
-    header {
-        X-Content-Type-Options "nosniff"
-        X-Frame-Options "DENY"
-        Referrer-Policy "strict-origin-when-cross-origin"
-        -Server
-    }
+    # Hide the server identity — infrastructure concern, not the app's job
+    header -Server
 
     # Compress responses
     encode zstd gzip
