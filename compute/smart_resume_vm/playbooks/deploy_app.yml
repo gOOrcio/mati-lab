@@ -56,6 +56,12 @@
         mode: "0755"
       become: true
 
+    - name: Remove legacy compose.yml left by rsync-based deploys
+      ansible.builtin.file:
+        path: "{{ app_remote_path }}/compose.yml"
+        state: absent
+      become: true
+
     - name: Write docker-compose.yml
       ansible.builtin.template:
         src: ../templates/docker-compose.yml.j2
