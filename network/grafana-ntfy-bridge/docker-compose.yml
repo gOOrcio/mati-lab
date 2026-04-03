@@ -10,7 +10,6 @@ services:
     security_opt: [no-new-privileges:true]
     networks: [pihole-net]
     environment:
-      - AUTH_TOKEN=${AUTH_TOKEN}
       - NTFY_URL=http://ntfy:80/
       - NTFY_TOPIC=alerts
       - NTFY_TOKEN=${NTFY_TOKEN}
