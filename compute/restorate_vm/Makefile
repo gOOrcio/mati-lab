@@ -29,10 +29,10 @@ provision: install-deps
 # Worker lives in ~/Projects/resto-rate/infra/maintenance/worker/
 # Requires: bun install (once) + bunx wrangler login (once)
 #
-## maintenance-on UNTIL="2026-04-04T18:00" [MESSAGE="Upgrading the database"]
-##   Enable deliberate maintenance window. UNTIL is required (ISO datetime).
+## maintenance-on UNTIL="2026-04-04T18:00:00Z" [MESSAGE="Upgrading the database"]
+##   Enable deliberate maintenance window. UNTIL is required (ISO datetime with timezone).
 maintenance-on:
-	@test -n "$(UNTIL)" || { echo "Usage: make maintenance-on UNTIL=\"2026-04-04T18:00\" [MESSAGE=\"...\"]"; exit 1; }
+	@test -n "$(UNTIL)" || { echo "Usage: make maintenance-on UNTIL=\"2026-04-04T18:00:00Z\" [MESSAGE=\"...\"]"; exit 1; }
 	cd ~/Projects/resto-rate/infra/maintenance/worker && \
 	  bunx wrangler deploy \
 	    --var MAINTENANCE_UNTIL:"$(UNTIL)" \
