@@ -1,11 +1,20 @@
 - name: Deploy Restorate
   hosts: restorate
   gather_facts: false
+  vars:
+    clean_deploy: false
   vars_files:
     - ../group_vars/all/vars.yml
     - ../group_vars/all/vault.yml
 
   pre_tasks:
+    - name: Tear down stack and wipe database (clean deploy)
+      community.docker.docker_compose_v2:
+        project_src: "{{ app_remote_path }}"
+        state: absent
+        remove_volumes: true
+      when: clean_deploy | bool
+      ignore_errors: true  # app dir may not exist on first run
     - name: Build and push API image
       ansible.builtin.command:
         cmd: >-

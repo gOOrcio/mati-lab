@@ -30,6 +30,9 @@ loki_push_url: "http://192.168.1.252:3100/loki/api/v1/push"
 docker_log_max_size: "10m"
 docker_log_max_file: "3"
 
+# Invite system (set to true to require invites; secrets go in vault)
+invite_required: true
+
 # App
 app_repo_path: "/home/gooral/Projects/resto-rate"
 app_remote_path: "/opt/restorate"
