@@ -259,7 +259,7 @@ groups:
         for: 5m
         annotations:
           summary: High error rate on Restorate
-          description: "Restorate error rate is {{ printf \"%.1f\" (mulf $values.A.Value 100) }}% (threshold: 5%)"
+          description: "Restorate error rate is {{ if $values.A }}{{ humanizePercentage $values.A.Value }}{{ else }}N/A{{ end }} (threshold: 5%)"
         labels:
           severity: warning
 
@@ -402,7 +402,7 @@ groups:
         for: 5m
         annotations:
           summary: High memory usage on Restorate
-          description: "Restorate RSS is {{ printf \"%.0f\" (divf $values.A.Value 1000000) }}MB (threshold: 500MB)"
+          description: "Restorate RSS is {{ if $values.A }}{{ humanize $values.A.Value }}B{{ else }}N/A{{ end }} (threshold: 500MB)"
         labels:
           severity: warning
 
@@ -503,6 +503,6 @@ groups:
         for: 5m
         annotations:
           summary: High Google Places error ratio on Restorate
-          description: "Google Places error rate is {{ printf \"%.1f\" (mulf $values.A.Value 100) }}% (threshold: 5%)"
+          description: "Google Places error rate is {{ if $values.A }}{{ humanizePercentage $values.A.Value }}{{ else }}N/A{{ end }} (threshold: 5%)"
         labels:
           severity: warning
