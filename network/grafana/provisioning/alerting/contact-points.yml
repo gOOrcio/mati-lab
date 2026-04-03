@@ -7,7 +7,7 @@ contactPoints:
       - uid: ntfy-alerts
         type: webhook
         settings:
-          url: http://ntfy:80/alerts
+          url: http://grafana-ntfy-bridge:4000/webhook
           httpMethod: POST
           httpHeaderName1: Authorization
           title: "{{ template \"mati-lab.title\" . }}"
