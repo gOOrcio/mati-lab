@@ -1,5 +1,6 @@
 .PHONY: provision configure deploy install-deps \
-        db-backup db-restore db-clean db-shell db-logs db-psql-exec
+        db-backup db-restore db-clean db-shell db-logs db-psql-exec \
+        maintenance-on maintenance-off
 
 # ── SSH / container config ────────────────────────────────────────────────────
 # Defaults match group_vars/all/vars.yml; override on the command line as needed:
@@ -23,6 +24,25 @@ install-deps:
 
 provision: install-deps
 	ansible-playbook playbooks/site.yml
+
+# ── Maintenance page (Cloudflare Worker) ─────────────────────────────────────
+# Worker lives in ~/Projects/resto-rate/infra/maintenance/worker/
+# Requires: bun install (once) + bunx wrangler login (once)
+#
+## maintenance-on UNTIL="2026-04-04T18:00" [MESSAGE="Upgrading the database"]
+##   Enable deliberate maintenance window. UNTIL is required (ISO datetime).
+maintenance-on:
+	@test -n "$(UNTIL)" || { echo "Usage: make maintenance-on UNTIL=\"2026-04-04T18:00\" [MESSAGE=\"...\"]"; exit 1; }
+	cd ~/Projects/resto-rate/infra/maintenance/worker && \
+	  bunx wrangler deploy \
+	    --var MAINTENANCE_UNTIL:"$(UNTIL)" \
+	    --var MAINTENANCE_MESSAGE:"$(MESSAGE)"
+	@echo "Maintenance ON until $(UNTIL)"
+
+## maintenance-off: Disable deliberate maintenance, restore normal proxy behaviour.
+maintenance-off:
+	cd ~/Projects/resto-rate/infra/maintenance/worker && bunx wrangler deploy
+	@echo "Maintenance OFF — worker back to transparent proxy mode"
 
 configure:
 	ansible-playbook playbooks/configure_vm.yml
