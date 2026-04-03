@@ -9,9 +9,6 @@ contactPoints:
         settings:
           url: http://grafana-ntfy-bridge:4000/webhook
           httpMethod: POST
-          httpHeaderName1: Authorization
           title: "{{ template \"mati-lab.title\" . }}"
           message: "{{ template \"mati-lab.message\" . }}"
-        secureSettings:
-          httpHeaderValue1: "Bearer ${BRIDGE_AUTH_TOKEN}"
         disableResolveMessage: false
