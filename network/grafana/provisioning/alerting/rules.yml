@@ -53,7 +53,7 @@ groups:
         for: 5m
         annotations:
           summary: Disk usage above 80%
-          description: "Disk usage on {{ $labels.instance }} is {{ printf \"%.0f\" $values.A.Value }}%"
+          description: "Disk usage on {{ $labels.instance }} is {{ if $values.A }}{{ printf \"%.0f\" $values.A.Value }}%{{ else }}N/A{{ end }}"
         labels:
           severity: warning
 
@@ -103,7 +103,7 @@ groups:
         for: 5m
         annotations:
           summary: IO wait above 50%
-          description: "IO wait on {{ $labels.instance }} is {{ printf \"%.0f\" $values.A.Value }}% — possible storage saturation"
+          description: "IO wait on {{ $labels.instance }} is {{ if $values.A }}{{ printf \"%.0f\" $values.A.Value }}%{{ else }}N/A{{ end }} — possible storage saturation"
         labels:
           severity: warning
 
@@ -153,7 +153,7 @@ groups:
         for: 5m
         annotations:
           summary: Memory usage above 90%
-          description: "Memory usage on {{ $labels.instance }} is {{ printf \"%.0f\" $values.A.Value }}%"
+          description: "Memory usage on {{ $labels.instance }} is {{ if $values.A }}{{ printf \"%.0f\" $values.A.Value }}%{{ else }}N/A{{ end }}"
         labels:
           severity: critical
 
