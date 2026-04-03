@@ -31,11 +31,16 @@ services:
     privileged: true
     command:
       - '-port=9092'
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:9092/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
     volumes:
       - /:/rootfs:ro
       - /var/run:/var/run:ro
       - /sys:/sys:ro
-      - /var/lib/docker/:/var/lib/docker:ro
+      - /mnt/nvme/docker/:/var/lib/docker:ro
       - /dev/disk/:/dev/disk:ro
 
 volumes:
