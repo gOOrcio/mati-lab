@@ -1,0 +1,19 @@
+networks:
+  pihole-net:
+    external: true
+
+services:
+  grafana-ntfy-bridge:
+    image: registry.mati-lab.online/grafana-ntfy-bridge:latest
+    container_name: grafana-ntfy-bridge
+    restart: unless-stopped
+    security_opt: [no-new-privileges:true]
+    networks: [pihole-net]
+    environment:
+      - AUTH_TOKEN=${AUTH_TOKEN}
+      - NTFY_URL=http://ntfy:80/
+      - NTFY_TOPIC=alerts
+      - NTFY_TOKEN=${NTFY_TOKEN}
+    labels:
+      - "com.docker.compose.project=grafana-ntfy-bridge"
+      - "com.docker.compose.service=grafana-ntfy-bridge"

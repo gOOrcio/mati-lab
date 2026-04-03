@@ -48,12 +48,12 @@ groups:
               expression: A
               refId: C
               type: threshold
-        noDataState: NoData
-        execErrState: Error
+        noDataState: Alerting
+        execErrState: Alerting
         for: 5m
         annotations:
           summary: Disk usage above 80%
-          description: "Disk usage on {{ $labels.instance }} is {{ printf \"%.0f\" $values.A.Value }}%"
+          description: "Disk usage on {{ $labels.instance }} is {{ if $values.A }}{{ printf \"%.0f\" $values.A.Value }}%{{ else }}N/A{{ end }}"
         labels:
           severity: warning
 
@@ -98,12 +98,12 @@ groups:
               expression: A
               refId: C
               type: threshold
-        noDataState: NoData
-        execErrState: Error
+        noDataState: Alerting
+        execErrState: Alerting
         for: 5m
         annotations:
           summary: IO wait above 50%
-          description: "IO wait on {{ $labels.instance }} is {{ printf \"%.0f\" $values.A.Value }}% — possible storage saturation"
+          description: "IO wait on {{ $labels.instance }} is {{ if $values.A }}{{ printf \"%.0f\" $values.A.Value }}%{{ else }}N/A{{ end }} — possible storage saturation"
         labels:
           severity: warning
 
@@ -148,12 +148,12 @@ groups:
               expression: A
               refId: C
               type: threshold
-        noDataState: NoData
-        execErrState: Error
+        noDataState: Alerting
+        execErrState: Alerting
         for: 5m
         annotations:
           summary: Memory usage above 90%
-          description: "Memory usage on {{ $labels.instance }} is {{ printf \"%.0f\" $values.A.Value }}%"
+          description: "Memory usage on {{ $labels.instance }} is {{ if $values.A }}{{ printf \"%.0f\" $values.A.Value }}%{{ else }}N/A{{ end }}"
         labels:
           severity: critical
 
@@ -183,7 +183,7 @@ groups:
             model:
               conditions:
                 - evaluator:
-                    params: [0.1]
+                    params: [0.5]
                     type: gt
                   operator:
                     type: and
@@ -198,9 +198,9 @@ groups:
               expression: A
               refId: C
               type: threshold
-        noDataState: NoData
+        noDataState: OK
         execErrState: Error
-        for: 5m
+        for: 10m
         annotations:
           summary: Container error rate elevated
           description: "Container {{ $labels.container }} is logging errors at {{ printf \"%.2f\" $values.A.Value }} errors/sec"
@@ -254,8 +254,8 @@ groups:
               expression: A
               refId: C
               type: threshold
-        noDataState: NoData
-        execErrState: Error
+        noDataState: OK
+        execErrState: OK
         for: 5m
         annotations:
           summary: High error rate on Restorate
@@ -303,12 +303,12 @@ groups:
               expression: A
               refId: C
               type: threshold
-        noDataState: NoData
-        execErrState: Error
+        noDataState: OK
+        execErrState: OK
         for: 5m
         annotations:
           summary: High P95 latency on Restorate
-          description: "Restorate P95 latency is {{ printf \"%.2f\" $values.A.Value }}s (threshold: 2s)"
+          description: "Restorate P95 latency is {{ if $values.A }}{{ printf \"%.2f\" $values.A.Value }}s{{ else }}N/A{{ end }} (threshold: 2s)"
         labels:
           severity: warning
 
@@ -397,8 +397,8 @@ groups:
               expression: A
               refId: C
               type: threshold
-        noDataState: NoData
-        execErrState: Error
+        noDataState: OK
+        execErrState: OK
         for: 5m
         annotations:
           summary: High memory usage on Restorate
@@ -446,12 +446,12 @@ groups:
               expression: A
               refId: C
               type: threshold
-        noDataState: NoData
-        execErrState: Error
+        noDataState: OK
+        execErrState: OK
         for: 5m
         annotations:
           summary: High DB query latency on Restorate
-          description: "Restorate DB P95 latency is {{ printf \"%.2f\" $values.A.Value }}s (threshold: 1s)"
+          description: "Restorate DB P95 latency is {{ if $values.A }}{{ printf \"%.2f\" $values.A.Value }}s{{ else }}N/A{{ end }} (threshold: 1s)"
         labels:
           severity: warning
 
@@ -498,8 +498,8 @@ groups:
               expression: A
               refId: C
               type: threshold
-        noDataState: NoData
-        execErrState: Error
+        noDataState: OK
+        execErrState: OK
         for: 5m
         annotations:
           summary: High Google Places error ratio on Restorate

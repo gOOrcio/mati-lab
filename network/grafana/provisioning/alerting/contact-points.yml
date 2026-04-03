@@ -7,11 +7,11 @@ contactPoints:
       - uid: ntfy-alerts
         type: webhook
         settings:
-          url: http://ntfy:80/alerts
+          url: http://grafana-ntfy-bridge:4000/webhook
           httpMethod: POST
           httpHeaderName1: Authorization
           title: "{{ template \"mati-lab.title\" . }}"
           message: "{{ template \"mati-lab.message\" . }}"
         secureSettings:
-          httpHeaderValue1: "Bearer ${NTFY_ALERTS_TOKEN}"
+          httpHeaderValue1: "Bearer ${BRIDGE_AUTH_TOKEN}"
         disableResolveMessage: false
