@@ -203,7 +203,7 @@ groups:
         for: 10m
         annotations:
           summary: Container error rate elevated
-          description: "Container {{ $labels.container }} is logging errors at {{ printf \"%.2f\" $values.A.Value }} errors/sec"
+          description: "Container {{ $labels.container }} is logging errors at {{ if $values.A }}{{ printf \"%.2f\" $values.A.Value }}{{ else }}N/A{{ end }} errors/sec"
         labels:
           severity: warning
 
