@@ -13,5 +13,5 @@ contactPoints:
           title: "{{ template \"mati-lab.title\" . }}"
           message: "{{ template \"mati-lab.message\" . }}"
         secureSettings:
-          httpHeaderValue1: "Bearer ${NTFY_ALERTS_TOKEN}"
+          httpHeaderValue1: "Bearer ${BRIDGE_AUTH_TOKEN}"
         disableResolveMessage: false
