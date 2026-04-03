@@ -63,6 +63,10 @@ rebuild-caddy:
 	@echo "Rebuilding Caddy..."
 	@cd scripts && BRANCH=$(BRANCH) ./manage-caddy.sh rebuild
 
+rebuild-grafana-ntfy-bridge:
+	@echo "Rebuilding Grafana-Ntfy-Bridge..."
+	@cd scripts && BRANCH=$(BRANCH) ./manage-grafana-ntfy-bridge.sh rebuild
+
 # Utility targets
 clean:
 	@echo "Cleaning up old files..."
