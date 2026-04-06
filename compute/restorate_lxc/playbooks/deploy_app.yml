@@ -84,7 +84,15 @@
       loop:
         - "{{ app_remote_path }}"
         - "{{ app_remote_path }}/web"
-        - "{{ app_remote_path }}/backups"
+      become: true
+
+    - name: Create backups directory (owned by postgres for pg_dump)
+      ansible.builtin.file:
+        path: "{{ app_remote_path }}/backups"
+        state: directory
+        owner: postgres
+        group: postgres
+        mode: "0700"
       become: true
 
     - name: Copy Go API binary
@@ -129,15 +137,6 @@
         mode: "0644"
       become: true
       notify: Reload Caddy
-
-    - name: Write Promtail config
-      ansible.builtin.template:
-        src: ../templates/promtail-config.yml.j2
-        dest: /etc/promtail/config.yml
-        owner: root
-        mode: "0644"
-      become: true
-      notify: Restart Promtail
 
     - name: Write API .env
       ansible.builtin.template:
@@ -207,6 +206,15 @@
         - /etc/promtail
         - /var/lib/promtail
       become: true
+
+    - name: Write Promtail config
+      ansible.builtin.template:
+        src: ../templates/promtail-config.yml.j2
+        dest: /etc/promtail/config.yml
+        owner: root
+        mode: "0644"
+      become: true
+      notify: Restart Promtail
 
     - name: Write Promtail systemd unit
       ansible.builtin.copy:

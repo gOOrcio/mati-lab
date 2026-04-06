@@ -18,6 +18,8 @@
           - gnupg
           - ufw
           - fail2ban
+          - rsync
+          - unzip
         state: present
 
     - name: Ensure APT keyrings directory exists

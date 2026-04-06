@@ -19,6 +19,9 @@ scrape_configs:
     relabel_configs:
       - source_labels: ['__journal__systemd_unit']
         target_label: unit
+      # Map journal priority to level label for Grafana dashboards
+      - source_labels: ['__journal_priority_keyword']
+        target_label: level
       # Only ship logs from our services
       - source_labels: ['__journal__systemd_unit']
         regex: '(restorate-api|restorate-web|caddy|postgresql|valkey)\.service'
