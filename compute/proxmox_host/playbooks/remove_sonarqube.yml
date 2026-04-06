@@ -1,0 +1,48 @@
+- name: Remove SonarQube VM
+  hosts: localhost
+  gather_facts: false
+  vars_files:
+    - ../group_vars/all/vars.yml
+    - ../group_vars/all/vault.yml
+  tasks:
+    - name: Confirm removal
+      ansible.builtin.pause:
+        prompt: >
+          This will PERMANENTLY DELETE VM {{ sonarqube_vm_id }} (SonarQube)
+          and all its data. Type 'yes' to continue
+      register: confirm
+
+    - name: Abort if not confirmed
+      ansible.builtin.fail:
+        msg: "Aborted by user"
+      when: confirm.user_input != 'yes'
+
+    - name: Stop SonarQube VM
+      community.general.proxmox_kvm:
+        api_host:         "{{ proxmox_host }}"
+        api_user:         "{{ proxmox_api_user }}"
+        api_token_id:     "{{ proxmox_api_token_id }}"
+        api_token_secret: "{{ proxmox_api_token_secret }}"
+        node:  "{{ proxmox_node }}"
+        vmid:  "{{ sonarqube_vm_id }}"
+        state: stopped
+        force: true
+        timeout: 120
+
+    - name: Delete SonarQube VM
+      community.general.proxmox_kvm:
+        api_host:         "{{ proxmox_host }}"
+        api_user:         "{{ proxmox_api_user }}"
+        api_token_id:     "{{ proxmox_api_token_id }}"
+        api_token_secret: "{{ proxmox_api_token_secret }}"
+        node:  "{{ proxmox_node }}"
+        vmid:  "{{ sonarqube_vm_id }}"
+        state: absent
+
+    - name: Done
+      ansible.builtin.debug:
+        msg: >
+          VM {{ sonarqube_vm_id }} deleted. Next steps:
+          1. Remove compute/sonarqube_vm/ from git
+          2. Remove sonarqube block from network/caddy/Caddyfile
+          3. Redeploy Caddy
