@@ -19,8 +19,26 @@ scrape_configs:
     relabel_configs:
       - source_labels: ['__journal__systemd_unit']
         target_label: unit
-      # Map journal priority to level label for Grafana dashboards
-      - source_labels: ['__journal__priority_keyword']
+      # Map journal priority (0-7) to human-readable level for Grafana dashboards
+      - source_labels: ['__journal__priority']
+        regex: '^[0-2]$'
+        replacement: critical
+        target_label: level
+      - source_labels: ['__journal__priority']
+        regex: '^3$'
+        replacement: error
+        target_label: level
+      - source_labels: ['__journal__priority']
+        regex: '^4$'
+        replacement: warning
+        target_label: level
+      - source_labels: ['__journal__priority']
+        regex: '^[5-6]$'
+        replacement: info
+        target_label: level
+      - source_labels: ['__journal__priority']
+        regex: '^7$'
+        replacement: debug
         target_label: level
       # Only ship logs from our services
       - source_labels: ['__journal__systemd_unit']
