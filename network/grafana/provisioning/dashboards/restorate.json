@@ -589,11 +589,11 @@
       "type": "logs",
       "title": "Log Stream",
       "gridPos": { "x": 0, "y": 86, "w": 24, "h": 12 },
-      "datasource": { "type": "loki", "uid": "loki-sentinel" },
+      "datasource": { "type": "loki", "uid": "loki" },
       "targets": [
         {
           "refId": "A",
-          "datasource": { "type": "loki", "uid": "loki-sentinel" },
+          "datasource": { "type": "loki", "uid": "loki" },
           "expr": "{compose_project=\"restorate\"}"
         }
       ],
@@ -611,11 +611,11 @@
       "type": "timeseries",
       "title": "Error Log Count over Time",
       "gridPos": { "x": 0, "y": 98, "w": 12, "h": 8 },
-      "datasource": { "type": "loki", "uid": "loki-sentinel" },
+      "datasource": { "type": "loki", "uid": "loki" },
       "targets": [
         {
           "refId": "A",
-          "datasource": { "type": "loki", "uid": "loki-sentinel" },
+          "datasource": { "type": "loki", "uid": "loki" },
           "expr": "sum(rate({compose_project=\"restorate\"} |= \"error\" [5m]))",
           "legendFormat": "errors/s"
         }
@@ -631,11 +631,11 @@
       "type": "barchart",
       "title": "Log Volume by Level",
       "gridPos": { "x": 12, "y": 98, "w": 12, "h": 8 },
-      "datasource": { "type": "loki", "uid": "loki-sentinel" },
+      "datasource": { "type": "loki", "uid": "loki" },
       "targets": [
         {
           "refId": "A",
-          "datasource": { "type": "loki", "uid": "loki-sentinel" },
+          "datasource": { "type": "loki", "uid": "loki" },
           "expr": "sum by (level) (rate({compose_project=\"restorate\"}[5m]))",
           "legendFormat": "{{level}}"
         }
