@@ -1,0 +1,15 @@
+[Unit]
+Description=Smart Resume API
+After=network.target
+
+[Service]
+Type=exec
+User=www-data
+WorkingDirectory={{ app_remote_path }}/api
+EnvironmentFile={{ app_remote_path }}/api/.env
+ExecStart={{ app_remote_path }}/api/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port {{ api_port }}
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
