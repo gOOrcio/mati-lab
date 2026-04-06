@@ -7,9 +7,9 @@
   tasks:
     - name: Download Debian 12 LXC template (if missing)
       ansible.builtin.command:
-        cmd: >-
-          ssh root@{{ proxmox_host }}
-          pveam download local debian-12-standard_12.7-1_amd64.tar.zst
+        cmd: pveam download local debian-12-standard_12.7-1_amd64.tar.zst
+      delegate_to: proxmox
+      become: true
       register: template_download
       changed_when: "'download' in template_download.stdout"
       failed_when:

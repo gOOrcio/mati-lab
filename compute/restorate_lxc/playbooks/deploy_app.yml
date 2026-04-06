@@ -112,6 +112,9 @@
         delete: true
         rsync_opts:
           - "--exclude=node_modules"
+          - "--no-owner"
+          - "--no-group"
+          - "--chown=restorate:restorate"
       notify: Restart Web
 
     - name: Rsync production node_modules
@@ -119,6 +122,10 @@
         src: "{{ app_repo_path }}/node_modules/"
         dest: "{{ app_remote_path }}/web/node_modules/"
         delete: true
+        rsync_opts:
+          - "--no-owner"
+          - "--no-group"
+          - "--chown=restorate:restorate"
 
     - name: Write Valkey config
       ansible.builtin.template:

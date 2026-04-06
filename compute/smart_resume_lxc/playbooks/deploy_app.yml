@@ -54,6 +54,9 @@
           - "--exclude=__pycache__"
           - "--exclude=.venv"
           - "--exclude=.ruff_cache"
+          - "--no-owner"
+          - "--no-group"
+          - "--chown=www-data:www-data"
       loop:
         - pyproject.toml
         - uv.lock
@@ -64,6 +67,10 @@
         src: "{{ app_repo_path }}/apps/web/dist/"
         dest: "{{ app_remote_path }}/web/"
         delete: true
+        rsync_opts:
+          - "--no-owner"
+          - "--no-group"
+          - "--chown=www-data:www-data"
 
     - name: Install Python dependencies
       ansible.builtin.command:
