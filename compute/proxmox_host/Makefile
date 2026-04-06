@@ -1,6 +1,9 @@
-.PHONY: zfs-arc ollama-balloon verify-gpu remove-sonarqube
+.PHONY: install-deps zfs-arc ollama-balloon verify-gpu remove-sonarqube
 
-zfs-arc:
+install-deps:
+	ansible-galaxy collection install -r requirements.yml
+
+zfs-arc: install-deps
 	ansible-playbook playbooks/zfs_arc.yml
 
 ollama-balloon:

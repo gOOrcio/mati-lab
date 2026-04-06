@@ -272,8 +272,8 @@ WantedBy=multi-user.target
 
 **PostgreSQL backup** (`pg_backup.timer.j2` + `pg_backup.service.j2`):
 - Timer fires daily at 03:00
-- Service runs: `pg_dump -U restorate restorate | gzip > /opt/restorate/backups/restorate-$(date +%F).sql.gz`
-- Cleanup: `find /opt/restorate/backups -name '*.sql.gz' -mtime +7 -delete`
+- Service runs: `pg_dump -Fc restorate > /opt/restorate/backups/restorate-$(date +%F).dump` (custom format, restore with `pg_restore`)
+- Cleanup: `find /opt/restorate/backups -name '*.dump' -mtime +7 -delete`
 
 **Promtail:**
 - Installed as a standalone binary + systemd service

@@ -29,13 +29,9 @@
     - name: Install uv
       ansible.builtin.shell: curl -LsSf https://astral.sh/uv/install.sh | sh
       args:
-        creates: /root/.local/bin/uv
-
-    - name: Symlink uv to /usr/local/bin
-      ansible.builtin.file:
-        src: /root/.local/bin/uv
-        dest: /usr/local/bin/uv
-        state: link
+        creates: /usr/local/bin/uv
+      environment:
+        UV_INSTALL_DIR: /usr/local/bin
 
     # ── Caddy ────────────────────────────────────────────────────────────────
     - name: Ensure APT keyrings directory exists

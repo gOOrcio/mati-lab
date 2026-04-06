@@ -57,6 +57,7 @@
             END IF;
           END $$;"
       changed_when: false
+      no_log: true
 
     - name: Check if database exists
       ansible.builtin.command:
