@@ -1,0 +1,8 @@
+[Unit]
+Description=PostgreSQL daily backup for {{ postgres_db }}
+
+[Service]
+Type=oneshot
+User=postgres
+ExecStart=/bin/bash -c 'pg_dump -Fc {{ postgres_db }} > {{ app_remote_path }}/backups/{{ postgres_db }}-$(date +%%F).sql.gz'
+ExecStartPost=/usr/bin/find {{ app_remote_path }}/backups -name '*.sql.gz' -mtime +7 -delete

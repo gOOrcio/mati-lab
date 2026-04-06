@@ -1,0 +1,49 @@
+# Proxmox connection
+proxmox_host: "192.168.1.184"
+proxmox_node: "proxmox"
+proxmox_api_user: "root@pam"
+proxmox_api_token_id:     "{{ vault_proxmox_api_token_id }}"
+proxmox_api_token_secret: "{{ vault_proxmox_api_token_secret }}"
+
+# LXC spec
+lxc_id: 111
+lxc_name: "restorate"
+lxc_template: "local:vztmpl/debian-12-standard_12.7-1_amd64.tar.zst"
+lxc_cores: 2
+lxc_memory_mb: 2048
+lxc_swap_mb: 256
+lxc_disk_size: "20"
+lxc_storage: "local-lvm"
+
+# Network (static)
+lxc_ip: "192.168.1.211"          # temporary — change to .203 after cutover
+lxc_ip_final: "192.168.1.203"    # documented target
+lxc_gateway: "192.168.1.1"
+lxc_nameserver: "192.168.1.1"
+lxc_cidr: 24
+
+# SSH
+lxc_ssh_key_path: "~/.ssh/id_ed25519.pub"
+
+# App
+app_repo_path: "/home/gooral/Projects/resto-rate"
+app_remote_path: "/opt/restorate"
+
+# API / frontend URLs
+api_host: "restorate.mati-lab.online"
+vite_api_url: "https://restorate.mati-lab.online"
+api_port: 3001
+web_port: 3000
+
+# PostgreSQL
+postgres_db: "restorate"
+postgres_user: "restorate"
+
+# Valkey
+valkey_port: 6379
+
+# Invite system
+invite_required: true
+
+# Monitoring
+loki_push_url: "http://192.168.1.252:3100/loki/api/v1/push"

@@ -1,0 +1,17 @@
+[Unit]
+Description=Restorate Web (SvelteKit SSR)
+After=network.target restorate-api.service
+
+[Service]
+Type=exec
+User=restorate
+WorkingDirectory={{ app_remote_path }}/web
+Environment=HOST=0.0.0.0
+Environment=PORT={{ web_port }}
+Environment=ORIGIN=https://{{ api_host }}
+ExecStart=/usr/bin/node index.js
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

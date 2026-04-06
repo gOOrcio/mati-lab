@@ -1,0 +1,25 @@
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /var/lib/promtail/positions.yaml
+
+clients:
+  - url: {{ loki_push_url }}
+
+scrape_configs:
+  - job_name: journal
+    journal:
+      json: false
+      max_age: 12h
+      labels:
+        job: restorate
+        host: restorate
+    relabel_configs:
+      - source_labels: ['__journal__systemd_unit']
+        target_label: unit
+      # Only ship logs from our services
+      - source_labels: ['__journal__systemd_unit']
+        regex: '(restorate-api|restorate-web|caddy|postgresql|valkey)\.service'
+        action: keep

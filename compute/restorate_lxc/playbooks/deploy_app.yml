@@ -1,0 +1,273 @@
+- name: Deploy Restorate
+  hosts: restorate
+  gather_facts: false
+  vars:
+    clean_deploy: false
+  vars_files:
+    - ../group_vars/all/vars.yml
+    - ../group_vars/all/vault.yml
+
+  pre_tasks:
+    - name: Clean deploy — stop services and wipe database
+      when: clean_deploy | bool
+      block:
+        - name: Stop application services
+          ansible.builtin.systemd:
+            name: "{{ item }}"
+            state: stopped
+          loop:
+            - restorate-api
+            - restorate-web
+          failed_when: false
+          become: true
+        - name: Wipe database
+          ansible.builtin.command:
+            cmd: >-
+              sudo -u postgres psql -d {{ postgres_db }} -v ON_ERROR_STOP=1 -X
+              -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public; GRANT ALL ON SCHEMA public TO {{ postgres_user }};"
+          become: true
+
+    - name: Generate protobuf code
+      ansible.builtin.command:
+        cmd: buf generate --template apps/api/buf.gen.yaml
+        chdir: "{{ app_repo_path }}"
+      delegate_to: localhost
+      run_once: true
+      changed_when: true
+
+    - name: Build Go API binary
+      ansible.builtin.command:
+        cmd: go build -ldflags="-s -w" -o /tmp/restorate-api ./src
+        chdir: "{{ app_repo_path }}/apps/api"
+      delegate_to: localhost
+      run_once: true
+      changed_when: true
+      environment:
+        CGO_ENABLED: "0"
+        GOOS: linux
+        GOARCH: amd64
+
+    - name: Generate web protobuf code
+      ansible.builtin.command:
+        cmd: bunx nx run protos:generate:web
+        chdir: "{{ app_repo_path }}"
+      delegate_to: localhost
+      run_once: true
+      changed_when: true
+
+    - name: Build SvelteKit app
+      ansible.builtin.command:
+        cmd: bunx vite build
+        chdir: "{{ app_repo_path }}/apps/web"
+      delegate_to: localhost
+      run_once: true
+      changed_when: true
+      environment:
+        VITE_API_URL: "{{ vite_api_url }}"
+
+    - name: Install production node_modules
+      ansible.builtin.command:
+        cmd: bun install --production --frozen-lockfile
+        chdir: "{{ app_repo_path }}"
+      delegate_to: localhost
+      run_once: true
+      changed_when: true
+
+  tasks:
+    - name: Create app directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        owner: restorate
+        group: restorate
+        mode: "0755"
+      loop:
+        - "{{ app_remote_path }}"
+        - "{{ app_remote_path }}/web"
+        - "{{ app_remote_path }}/backups"
+      become: true
+
+    - name: Copy Go API binary
+      ansible.builtin.copy:
+        src: /tmp/restorate-api
+        dest: "{{ app_remote_path }}/api"
+        owner: restorate
+        group: restorate
+        mode: "0755"
+      become: true
+      notify: Restart API
+
+    - name: Rsync SvelteKit build
+      ansible.posix.synchronize:
+        src: "{{ app_repo_path }}/apps/web/build/"
+        dest: "{{ app_remote_path }}/web/"
+        delete: true
+        rsync_opts:
+          - "--exclude=node_modules"
+      notify: Restart Web
+
+    - name: Rsync production node_modules
+      ansible.posix.synchronize:
+        src: "{{ app_repo_path }}/node_modules/"
+        dest: "{{ app_remote_path }}/web/node_modules/"
+        delete: true
+
+    - name: Write Valkey config
+      ansible.builtin.template:
+        src: ../templates/valkey.conf.j2
+        dest: /etc/valkey/valkey.conf
+        owner: root
+        mode: "0644"
+      become: true
+      notify: Restart Valkey
+
+    - name: Write Caddyfile
+      ansible.builtin.template:
+        src: ../templates/Caddyfile.j2
+        dest: /etc/caddy/Caddyfile
+        owner: root
+        mode: "0644"
+      become: true
+      notify: Reload Caddy
+
+    - name: Write Promtail config
+      ansible.builtin.template:
+        src: ../templates/promtail-config.yml.j2
+        dest: /etc/promtail/config.yml
+        owner: root
+        mode: "0644"
+      become: true
+      notify: Restart Promtail
+
+    - name: Write API .env
+      ansible.builtin.template:
+        src: ../templates/api.env.j2
+        dest: "{{ app_remote_path }}/api.env"
+        owner: restorate
+        mode: "0600"
+      become: true
+      notify: Restart API
+
+    - name: Write systemd units
+      ansible.builtin.template:
+        src: "../templates/{{ item }}"
+        dest: "/etc/systemd/system/{{ item | regex_replace('\\.j2$', '') }}"
+        owner: root
+        mode: "0644"
+      loop:
+        - restorate-api.service.j2
+        - restorate-web.service.j2
+        - pg_backup.service.j2
+        - pg_backup.timer.j2
+      become: true
+      notify: Daemon reload
+
+    - name: Enable and start services
+      ansible.builtin.systemd:
+        name: "{{ item }}"
+        enabled: true
+        state: started
+        daemon_reload: true
+      loop:
+        - valkey
+        - postgresql
+        - restorate-api
+        - restorate-web
+        - caddy
+        - pg_backup.timer
+      become: true
+
+    # ── Promtail ─────────────────────────────────────────────────────────────
+    - name: Download Promtail binary
+      ansible.builtin.get_url:
+        url: "https://github.com/grafana/loki/releases/download/v3.5.0/promtail-linux-amd64.zip"
+        dest: /tmp/promtail.zip
+      become: true
+
+    - name: Unzip Promtail
+      ansible.builtin.unarchive:
+        src: /tmp/promtail.zip
+        dest: /usr/local/bin/
+        remote_src: true
+        mode: "0755"
+      become: true
+
+    - name: Rename Promtail binary
+      ansible.builtin.command:
+        cmd: mv /usr/local/bin/promtail-linux-amd64 /usr/local/bin/promtail
+        creates: /usr/local/bin/promtail
+      become: true
+
+    - name: Create Promtail directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: "0755"
+      loop:
+        - /etc/promtail
+        - /var/lib/promtail
+      become: true
+
+    - name: Write Promtail systemd unit
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/promtail.service
+        content: |
+          [Unit]
+          Description=Promtail Log Agent
+          After=network.target
+
+          [Service]
+          Type=exec
+          ExecStart=/usr/local/bin/promtail -config.file=/etc/promtail/config.yml
+          Restart=on-failure
+          RestartSec=5
+
+          [Install]
+          WantedBy=multi-user.target
+        mode: "0644"
+      become: true
+      notify: Restart Promtail
+
+    - name: Enable and start Promtail
+      ansible.builtin.systemd:
+        name: promtail
+        enabled: true
+        state: started
+        daemon_reload: true
+      become: true
+
+  handlers:
+    - name: Daemon reload
+      ansible.builtin.systemd:
+        daemon_reload: true
+      become: true
+
+    - name: Restart API
+      ansible.builtin.systemd:
+        name: restorate-api
+        state: restarted
+      become: true
+
+    - name: Restart Web
+      ansible.builtin.systemd:
+        name: restorate-web
+        state: restarted
+      become: true
+
+    - name: Restart Valkey
+      ansible.builtin.systemd:
+        name: valkey
+        state: restarted
+      become: true
+
+    - name: Reload Caddy
+      ansible.builtin.systemd:
+        name: caddy
+        state: reloaded
+      become: true
+
+    - name: Restart Promtail
+      ansible.builtin.systemd:
+        name: promtail
+        state: restarted
+      become: true

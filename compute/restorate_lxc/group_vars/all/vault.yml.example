@@ -1,0 +1,12 @@
+# Copy to vault.yml, fill in values, then encrypt:
+#   ansible-vault encrypt group_vars/all/vault.yml
+vault_proxmox_api_token_id: "root@pam!ansible"
+vault_proxmox_api_token_secret: "<token-secret-from-proxmox>"
+vault_lxc_root_password: "<strong-password>"
+vault_postgres_password: "<strong-password>"
+vault_valkey_password: "<strong-password>"
+vault_google_places_api_key: "<google-places-api-key>"
+vault_google_client_id: "<google-oauth-client-id>"
+vault_session_secret: "<random-32+-char-string>"
+vault_invite_secret_pepper: "<random-32+-char-string>"
+vault_admin_key: "<strong-secret-key>"
