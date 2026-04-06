@@ -1603,8 +1603,8 @@ Description=PostgreSQL daily backup for {{ postgres_db }}
 [Service]
 Type=oneshot
 User=postgres
-ExecStart=/bin/bash -c 'pg_dump -Fc {{ postgres_db }} > {{ app_remote_path }}/backups/{{ postgres_db }}-$(date +%%F).sql.gz'
-ExecStartPost=/usr/bin/find {{ app_remote_path }}/backups -name '*.sql.gz' -mtime +7 -delete
+ExecStart=/bin/bash -c 'pg_dump -Fc {{ postgres_db }} > {{ app_remote_path }}/backups/{{ postgres_db }}-$(date +%%F).dump'
+ExecStartPost=/usr/bin/find {{ app_remote_path }}/backups -name '*.dump' -mtime +7 -delete
 ```
 
 - [ ] **Step 8: Create `compute/restorate_lxc/templates/pg_backup.timer.j2`**
