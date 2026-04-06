@@ -6,11 +6,11 @@ install-deps:
 zfs-arc: install-deps
 	ansible-playbook playbooks/zfs_arc.yml
 
-ollama-balloon:
+ollama-balloon: install-deps
 	ansible-playbook playbooks/ollama_balloon.yml
 
-verify-gpu:
+verify-gpu: install-deps
 	ansible-playbook playbooks/verify_gpu.yml
 
-remove-sonarqube:
+remove-sonarqube: install-deps
 	ansible-playbook playbooks/remove_sonarqube.yml

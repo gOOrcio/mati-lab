@@ -71,7 +71,7 @@
       ansible.builtin.command:
         cmd: >-
           sudo -u postgres createdb -O {{ postgres_user }} {{ postgres_db }}
-      when: db_exists.stdout != "1"
+      when: (db_exists.stdout | trim) != "1"
 
     # ── Valkey ───────────────────────────────────────────────────────────────
     - name: Add Valkey GPG key
