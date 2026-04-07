@@ -16,8 +16,7 @@ lxc_disk_size: "20"
 lxc_storage: "local-lvm"
 
 # Network (static)
-lxc_ip: "192.168.1.211"          # temporary — change to .203 after cutover
-lxc_ip_final: "192.168.1.203"    # documented target
+lxc_ip: "192.168.1.203"
 lxc_gateway: "192.168.1.1"
 lxc_nameserver: "192.168.1.1"
 lxc_cidr: 24

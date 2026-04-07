@@ -3,7 +3,7 @@
 
 # ── SSH config ───────────────────────────────────────────────────────────────
 SSH_KEY  ?= ~/.ssh/id_ed25519
-SSH_HOST ?= root@192.168.1.211
+SSH_HOST ?= root@192.168.1.203
 SSH      := ssh -i $(SSH_KEY) -o StrictHostKeyChecking=accept-new $(SSH_HOST)
 SSH_TTY  := ssh -t -i $(SSH_KEY) -o StrictHostKeyChecking=accept-new $(SSH_HOST)
 
