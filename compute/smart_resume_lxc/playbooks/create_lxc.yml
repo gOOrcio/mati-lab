@@ -7,7 +7,7 @@
   tasks:
     - name: Download Debian 12 LXC template (if missing)
       ansible.builtin.command:
-        cmd: "pveam download local {{ lxc_template | regex_replace('^.*:', '') }}"
+        cmd: "pveam download local {{ lxc_template | regex_replace('^.*:vztmpl/', '') }}"
       delegate_to: proxmox
       register: template_download
       changed_when: "'download' in template_download.stdout"
