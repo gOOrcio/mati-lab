@@ -162,7 +162,7 @@ groups:
         condition: C
         data:
           - refId: A
-            datasourceUid: loki-sentinel
+            datasourceUid: loki
             relativeTimeRange:
               from: 600
               to: 0

@@ -10,7 +10,7 @@
       {
         "name": "container",
         "type": "query",
-        "datasource": "loki-sentinel",
+        "datasource": "loki",
         "query": "label_values(container)",
         "refresh": 2,
         "includeAll": true,
@@ -52,7 +52,7 @@
       "title": "Log Volume",
       "type": "timeseries",
       "gridPos": { "h": 5, "w": 24, "x": 0, "y": 0 },
-      "datasource": "loki-sentinel",
+      "datasource": "loki",
       "targets": [
         {
           "expr": "sum by (container) (count_over_time({container=~\"$container\"} [$__interval]))",
@@ -76,7 +76,7 @@
       "title": "Errors & Warnings",
       "type": "timeseries",
       "gridPos": { "h": 4, "w": 24, "x": 0, "y": 5 },
-      "datasource": "loki-sentinel",
+      "datasource": "loki",
       "targets": [
         {
           "expr": "sum by (container) (count_over_time({container=~\"$container\"} |~ \"(?i)(error|fatal|panic|warn|warning)\" [$__interval]))",
@@ -98,7 +98,7 @@
       "title": "Logs",
       "type": "logs",
       "gridPos": { "h": 18, "w": 24, "x": 0, "y": 9 },
-      "datasource": "loki-sentinel",
+      "datasource": "loki",
       "targets": [
         {
           "expr": "{container=~\"$container\"} |~ \"(?i)$search\" |~ \"(?i)${level:regex}\"",
