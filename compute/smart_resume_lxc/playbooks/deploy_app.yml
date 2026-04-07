@@ -73,6 +73,8 @@
       ansible.builtin.command:
         cmd: uv sync --frozen --no-dev
         chdir: "{{ app_remote_path }}/api"
+      environment:
+        UV_PYTHON_INSTALL_DIR: /opt/uv/python
       changed_when: true
 
     - name: Fix API ownership
