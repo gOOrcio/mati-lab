@@ -87,6 +87,26 @@
         }
     }
 
+    @nas host nas.mati-lab.online
+    handle @nas {
+        @nas_health path /health
+        handle @nas_health {
+            reverse_proxy http://192.168.1.65/api/v2.0/system/ready
+        }
+
+        handle {
+            forward_auth http://authelia:9091 {
+                uri /api/authz/forward-auth
+                copy_headers Remote-User Remote-Groups Remote-Name Remote-Email
+            }
+            reverse_proxy http://192.168.1.65 {
+                header_up Host {host}
+                header_up X-Forwarded-Proto https
+                header_up X-Forwarded-Ssl on
+            }
+        }
+    }
+
     @uptime-kuma host uptime-kuma.mati-lab.online
     handle @uptime-kuma {
         forward_auth http://authelia:9091 {
