@@ -47,20 +47,17 @@
 
     - name: Rsync API source
       ansible.posix.synchronize:
-        src: "{{ app_repo_path }}/apps/api/{{ item }}"
+        src: "{{ app_repo_path }}/apps/api/"
         dest: "{{ app_remote_path }}/api/"
         delete: true
         rsync_opts:
           - "--exclude=__pycache__"
           - "--exclude=.venv"
           - "--exclude=.ruff_cache"
+          - "--exclude=tests"
           - "--no-owner"
           - "--no-group"
           - "--chown=www-data:www-data"
-      loop:
-        - pyproject.toml
-        - uv.lock
-        - src/
 
     - name: Rsync Astro static files
       ansible.posix.synchronize:
