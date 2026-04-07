@@ -6,6 +6,7 @@ Requires=postgresql.service valkey.service
 [Service]
 Type=exec
 User=restorate
+WorkingDirectory={{ app_remote_path }}
 EnvironmentFile={{ app_remote_path }}/api.env
 ExecStart={{ app_remote_path }}/api
 Restart=on-failure

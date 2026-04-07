@@ -86,6 +86,15 @@
         - "{{ app_remote_path }}/web"
       become: true
 
+    - name: Create logs directory
+      ansible.builtin.file:
+        path: "{{ app_remote_path }}/logs"
+        state: directory
+        owner: restorate
+        group: restorate
+        mode: "0755"
+      become: true
+
     - name: Create backups directory (owned by postgres for pg_dump)
       ansible.builtin.file:
         path: "{{ app_remote_path }}/backups"
@@ -131,8 +140,8 @@
       ansible.builtin.template:
         src: ../templates/valkey.conf.j2
         dest: /etc/valkey/valkey.conf
-        owner: root
-        mode: "0644"
+        owner: valkey
+        mode: "0640"
       become: true
       notify: Restart Valkey
 

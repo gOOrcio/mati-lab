@@ -40,6 +40,8 @@ postgres_db: "restorate"
 postgres_user: "restorate"
 
 # Valkey
+valkey_version: "8.1.6"
+valkey_tarball_url: "https://download.valkey.io/releases/valkey-8.1.6-jammy-x86_64.tar.gz"
 valkey_port: 6379
 
 # Invite system
