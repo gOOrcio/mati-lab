@@ -44,9 +44,10 @@
         api_user:         "{{ proxmox_api_user }}"
         api_token_id:     "{{ proxmox_api_token_id }}"
         api_token_secret: "{{ proxmox_api_token_secret }}"
-        node:  "{{ proxmox_node }}"
-        vmid:  "{{ lxc_id }}"
-        state: started
+        node:     "{{ proxmox_node }}"
+        vmid:     "{{ lxc_id }}"
+        hostname: "{{ lxc_name }}"
+        state:    started
 
     - name: Wait for SSH
       ansible.builtin.wait_for:
