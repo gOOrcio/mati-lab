@@ -47,20 +47,17 @@
 
     - name: Rsync API source
       ansible.posix.synchronize:
-        src: "{{ app_repo_path }}/apps/api/{{ item }}"
+        src: "{{ app_repo_path }}/apps/api/"
         dest: "{{ app_remote_path }}/api/"
         delete: true
         rsync_opts:
           - "--exclude=__pycache__"
           - "--exclude=.venv"
           - "--exclude=.ruff_cache"
+          - "--exclude=tests"
           - "--no-owner"
           - "--no-group"
           - "--chown=www-data:www-data"
-      loop:
-        - pyproject.toml
-        - uv.lock
-        - src/
 
     - name: Rsync Astro static files
       ansible.posix.synchronize:
@@ -76,9 +73,16 @@
       ansible.builtin.command:
         cmd: uv sync --frozen --no-dev
         chdir: "{{ app_remote_path }}/api"
-      become: true
-      become_user: www-data
+      environment:
+        UV_PYTHON_INSTALL_DIR: /opt/uv/python
       changed_when: true
+
+    - name: Fix API ownership
+      ansible.builtin.file:
+        path: "{{ app_remote_path }}/api"
+        owner: www-data
+        group: www-data
+        recurse: true
 
     - name: Write API .env
       ansible.builtin.template:

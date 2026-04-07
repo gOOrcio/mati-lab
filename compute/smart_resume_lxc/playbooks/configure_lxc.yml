@@ -33,6 +33,12 @@
       environment:
         UV_INSTALL_DIR: /usr/local/bin
 
+    - name: Create shared uv Python directory
+      ansible.builtin.file:
+        path: /opt/uv/python
+        state: directory
+        mode: "0755"
+
     # ── Caddy ────────────────────────────────────────────────────────────────
     - name: Ensure APT keyrings directory exists
       ansible.builtin.file:

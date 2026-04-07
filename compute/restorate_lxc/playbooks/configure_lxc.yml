@@ -18,9 +18,22 @@
           - gnupg
           - ufw
           - fail2ban
+          - sudo
           - rsync
           - unzip
+          - locales
         state: present
+
+    # ── Locale (required for PostgreSQL UTF8 encoding) ───────────────────
+    - name: Enable en_US.UTF-8 locale
+      ansible.builtin.lineinfile:
+        path: /etc/locale.gen
+        regexp: '^# en_US.UTF-8'
+        line: 'en_US.UTF-8 UTF-8'
+
+    - name: Generate locales
+      ansible.builtin.command: locale-gen
+      changed_when: true
 
     - name: Ensure APT keyrings directory exists
       ansible.builtin.file:
@@ -65,26 +78,59 @@
       community.postgresql.postgresql_db:
         name: "{{ postgres_db }}"
         owner: "{{ postgres_user }}"
+        encoding: UTF-8
+        lc_collate: en_US.UTF-8
+        lc_ctype: en_US.UTF-8
+        template: template0
         state: present
 
-    # ── Valkey ───────────────────────────────────────────────────────────────
-    - name: Add Valkey GPG key
+    # ── Valkey (prebuilt binary — APT repo SSL is broken) ──────────────────
+    - name: Check if Valkey is installed
+      ansible.builtin.command: /usr/local/bin/valkey-server --version
+      register: valkey_installed
+      failed_when: false
+      changed_when: false
+
+    - name: Download Valkey binary tarball
       ansible.builtin.get_url:
-        url: https://packages.valkey.io/gpg
-        dest: /etc/apt/keyrings/valkey.asc
-        mode: "0644"
+        url: "{{ valkey_tarball_url }}"
+        dest: "/tmp/valkey-{{ valkey_version }}.tar.gz"
+      when: valkey_installed.rc != 0
 
-    - name: Add Valkey APT repository
-      ansible.builtin.apt_repository:
-        repo: >
-          deb [signed-by=/etc/apt/keyrings/valkey.asc]
-          https://packages.valkey.io/deb
-          bookworm main
+    - name: Extract and install Valkey binaries
+      ansible.builtin.shell: |
+        cd /tmp
+        tar xzf valkey-{{ valkey_version }}.tar.gz
+        cp valkey-{{ valkey_version }}-jammy-x86_64/bin/valkey-* /usr/local/bin/
+        chmod 755 /usr/local/bin/valkey-*
+      args:
+        creates: /usr/local/bin/valkey-server
+      when: valkey_installed.rc != 0
 
-    - name: Install Valkey
-      ansible.builtin.apt:
+    - name: Create valkey system user
+      ansible.builtin.user:
         name: valkey
-        update_cache: true
+        system: true
+        shell: /bin/false
+        home: /var/lib/valkey
+        create_home: true
+
+    - name: Create Valkey directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        owner: valkey
+        group: valkey
+        mode: "0750"
+      loop:
+        - /var/lib/valkey
+        - /etc/valkey
+
+    - name: Write Valkey systemd unit
+      ansible.builtin.template:
+        src: ../templates/valkey.service.j2
+        dest: /etc/systemd/system/valkey.service
+        mode: "0644"
 
     # ── Node.js 22 LTS (NodeSource) ─────────────────────────────────────────
     - name: Add NodeSource GPG key

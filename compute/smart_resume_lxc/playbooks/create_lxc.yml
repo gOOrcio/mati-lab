@@ -7,7 +7,7 @@
   tasks:
     - name: Download Debian 12 LXC template (if missing)
       ansible.builtin.command:
-        cmd: pveam download local debian-12-standard_12.7-1_amd64.tar.zst
+        cmd: "pveam download local {{ lxc_template | regex_replace('^.*:vztmpl/', '') }}"
       delegate_to: proxmox
       register: template_download
       changed_when: "'download' in template_download.stdout"
@@ -25,8 +25,7 @@
         vmid:         "{{ lxc_id }}"
         hostname:     "{{ lxc_name }}"
         ostemplate:   "{{ lxc_template }}"
-        storage:      "{{ lxc_storage }}"
-        disk:         "{{ lxc_disk_size }}"
+        disk:         "{{ lxc_storage }}:{{ lxc_disk_size }}"
         cores:        "{{ lxc_cores }}"
         memory:       "{{ lxc_memory_mb }}"
         swap:         "{{ lxc_swap_mb }}"
@@ -45,9 +44,10 @@
         api_user:         "{{ proxmox_api_user }}"
         api_token_id:     "{{ proxmox_api_token_id }}"
         api_token_secret: "{{ proxmox_api_token_secret }}"
-        node:  "{{ proxmox_node }}"
-        vmid:  "{{ lxc_id }}"
-        state: started
+        node:     "{{ proxmox_node }}"
+        vmid:     "{{ lxc_id }}"
+        hostname: "{{ lxc_name }}"
+        state:    started
 
     - name: Wait for SSH
       ansible.builtin.wait_for:
