@@ -33,6 +33,17 @@
       environment:
         UV_INSTALL_DIR: /usr/local/bin
 
+    - name: Allow www-data to access uv-managed Python
+      ansible.builtin.file:
+        path: "{{ item }}"
+        mode: "0755"
+      loop:
+        - /root
+        - /root/.local
+        - /root/.local/share
+        - /root/.local/share/uv
+        - /root/.local/share/uv/python
+
     # ── Caddy ────────────────────────────────────────────────────────────────
     - name: Ensure APT keyrings directory exists
       ansible.builtin.file:

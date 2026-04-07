@@ -7,6 +7,7 @@ Type=exec
 User=www-data
 WorkingDirectory={{ app_remote_path }}/api
 EnvironmentFile={{ app_remote_path }}/api/.env
+Environment=PYTHONPATH={{ app_remote_path }}/api/src
 ExecStart={{ app_remote_path }}/api/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port {{ api_port }}
 Restart=on-failure
 RestartSec=5
