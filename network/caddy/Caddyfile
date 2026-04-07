@@ -91,7 +91,8 @@
 	handle @nas {
 		@nas_health path /health
 		handle @nas_health {
-			reverse_proxy http://192.168.1.65/api/v2.0/system/ready
+			rewrite * /api/v2.0/system/ready
+			reverse_proxy http://192.168.1.65
 		}
 
 		handle {
