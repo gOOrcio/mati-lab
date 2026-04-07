@@ -1,235 +1,235 @@
 {
-    email mateusz.goral92@gmail.com
+	email mateusz.goral92@gmail.com
 }
 
 *.mati-lab.online {
-    tls {
-        dns cloudflare {env.CF_API_TOKEN}
-        resolvers 8.8.8.8 1.0.0.1
-        propagation_delay 60s
-        propagation_timeout -1
-    }
+	tls {
+		dns cloudflare {env.CF_API_TOKEN}
+		resolvers 8.8.8.8 1.0.0.1
+		propagation_delay 60s
+		propagation_timeout -1
+	}
 
-    @pihole host pihole.mati-lab.online
-    handle @pihole {
-        @pihole_health path /api/info/version
-        handle @pihole_health {
-            reverse_proxy http://pihole:8080
-        }
+	@pihole host pihole.mati-lab.online
+	handle @pihole {
+		@pihole_health path /api/info/version
+		handle @pihole_health {
+			reverse_proxy http://pihole:8080
+		}
 
-        handle {
-            forward_auth http://authelia:9091 {
-                uri /api/authz/forward-auth
-                copy_headers Remote-User Remote-Groups Remote-Name Remote-Email
-            }
-            @pihole_root path /
-            redir @pihole_root /admin 301
+		handle {
+			forward_auth http://authelia:9091 {
+				uri /api/authz/forward-auth
+				copy_headers Remote-User Remote-Groups Remote-Name Remote-Email
+			}
+			@pihole_root path /
+			redir @pihole_root /admin 301
 
-            reverse_proxy http://pihole:8080 {
-                header_up Host {host}
-                header_up X-Forwarded-Proto https
-                header_up X-Forwarded-Ssl on
-            }
-        }
-    }
+			reverse_proxy http://pihole:8080 {
+				header_up Host {host}
+				header_up X-Forwarded-Proto https
+				header_up X-Forwarded-Ssl on
+			}
+		}
+	}
 
-    @smart-resume host smart-resume.mati-lab.online
-    handle @smart-resume {
-        reverse_proxy 192.168.1.200:80
-    }
+	@smart-resume host smart-resume.mati-lab.online
+	handle @smart-resume {
+		reverse_proxy 192.168.1.200:80
+	}
 
-    @restorate host restorate.mati-lab.online
-    handle @restorate {
-        reverse_proxy 192.168.1.203:80
-    }
+	@restorate host restorate.mati-lab.online
+	handle @restorate {
+		reverse_proxy 192.168.1.203:80
+	}
 
-    @proxmox host proxmox.mati-lab.online
-    handle @proxmox {
-        @proxmox_health path /api2/json/version
-        handle @proxmox_health {
-            reverse_proxy 192.168.1.184:8006 {
-                transport http {
-                    tls_insecure_skip_verify
-                }
-            }
-        }
+	@proxmox host proxmox.mati-lab.online
+	handle @proxmox {
+		@proxmox_health path /api2/json/version
+		handle @proxmox_health {
+			reverse_proxy 192.168.1.184:8006 {
+				transport http {
+					tls_insecure_skip_verify
+				}
+			}
+		}
 
-        handle {
-            forward_auth http://authelia:9091 {
-                uri /api/authz/forward-auth
-                copy_headers Remote-User Remote-Groups Remote-Name Remote-Email
-            }
-            reverse_proxy 192.168.1.184:8006 {
-                transport http {
-                    tls_insecure_skip_verify
-                }
-            }
-        }
-    }
+		handle {
+			forward_auth http://authelia:9091 {
+				uri /api/authz/forward-auth
+				copy_headers Remote-User Remote-Groups Remote-Name Remote-Email
+			}
+			reverse_proxy 192.168.1.184:8006 {
+				transport http {
+					tls_insecure_skip_verify
+				}
+			}
+		}
+	}
 
-    @homebridge host homebridge.mati-lab.online
-    handle @homebridge {
-        @homebridge_health path /health
-        handle @homebridge_health {
-            reverse_proxy http://192.168.1.155:8581
-        }
+	@homebridge host homebridge.mati-lab.online
+	handle @homebridge {
+		@homebridge_health path /health
+		handle @homebridge_health {
+			reverse_proxy http://192.168.1.155:8581
+		}
 
-        handle {
-            forward_auth http://authelia:9091 {
-                uri /api/authz/forward-auth
-                copy_headers Remote-User Remote-Groups Remote-Name Remote-Email
-            }
-            reverse_proxy http://192.168.1.155:8581 {
-                header_up Host {host}
-                header_up X-Forwarded-Proto https
-                header_up X-Forwarded-Ssl on
-            }
-        }
-    }
+		handle {
+			forward_auth http://authelia:9091 {
+				uri /api/authz/forward-auth
+				copy_headers Remote-User Remote-Groups Remote-Name Remote-Email
+			}
+			reverse_proxy http://192.168.1.155:8581 {
+				header_up Host {host}
+				header_up X-Forwarded-Proto https
+				header_up X-Forwarded-Ssl on
+			}
+		}
+	}
 
-    @nas host nas.mati-lab.online
-    handle @nas {
-        @nas_health path /health
-        handle @nas_health {
-            reverse_proxy http://192.168.1.65/api/v2.0/system/ready
-        }
+	@nas host nas.mati-lab.online
+	handle @nas {
+		@nas_health path /health
+		handle @nas_health {
+			reverse_proxy http://192.168.1.65/api/v2.0/system/ready
+		}
 
-        handle {
-            forward_auth http://authelia:9091 {
-                uri /api/authz/forward-auth
-                copy_headers Remote-User Remote-Groups Remote-Name Remote-Email
-            }
-            reverse_proxy http://192.168.1.65 {
-                header_up Host {host}
-                header_up X-Forwarded-Proto https
-                header_up X-Forwarded-Ssl on
-            }
-        }
-    }
+		handle {
+			forward_auth http://authelia:9091 {
+				uri /api/authz/forward-auth
+				copy_headers Remote-User Remote-Groups Remote-Name Remote-Email
+			}
+			reverse_proxy http://192.168.1.65 {
+				header_up Host {host}
+				header_up X-Forwarded-Proto https
+				header_up X-Forwarded-Ssl on
+			}
+		}
+	}
 
-    @uptime-kuma host uptime-kuma.mati-lab.online
-    handle @uptime-kuma {
-        forward_auth http://authelia:9091 {
-            uri /api/authz/forward-auth
-            copy_headers Remote-User Remote-Groups Remote-Name Remote-Email
-        }
-        reverse_proxy http://uptime-kuma:3001 {
-            header_up Host {host}
-            header_up X-Forwarded-Proto https
-            header_up X-Forwarded-Ssl on
-            header_up Upgrade {>Upgrade}
-            header_up Connection {>Connection}
-        }
-    }
+	@uptime-kuma host uptime-kuma.mati-lab.online
+	handle @uptime-kuma {
+		forward_auth http://authelia:9091 {
+			uri /api/authz/forward-auth
+			copy_headers Remote-User Remote-Groups Remote-Name Remote-Email
+		}
+		reverse_proxy http://uptime-kuma:3001 {
+			header_up Host {host}
+			header_up X-Forwarded-Proto https
+			header_up X-Forwarded-Ssl on
+			header_up Upgrade {>Upgrade}
+			header_up Connection {>Connection}
+		}
+	}
 
-    @homarr host homarr.mati-lab.online
-    handle @homarr {
-        @homarr_health path /favicon.ico
-        handle @homarr_health {
-            reverse_proxy http://homarr:7575
-        }
+	@homarr host homarr.mati-lab.online
+	handle @homarr {
+		@homarr_health path /favicon.ico
+		handle @homarr_health {
+			reverse_proxy http://homarr:7575
+		}
 
-        handle {
-            forward_auth http://authelia:9091 {
-                uri /api/authz/forward-auth
-                copy_headers Remote-User Remote-Groups Remote-Name Remote-Email
-            }
-            reverse_proxy http://homarr:7575 {
-                header_up Host {host}
-                header_up X-Forwarded-Proto https
-                header_up X-Forwarded-Ssl on
-            }
-        }
-    }
+		handle {
+			forward_auth http://authelia:9091 {
+				uri /api/authz/forward-auth
+				copy_headers Remote-User Remote-Groups Remote-Name Remote-Email
+			}
+			reverse_proxy http://homarr:7575 {
+				header_up Host {host}
+				header_up X-Forwarded-Proto https
+				header_up X-Forwarded-Ssl on
+			}
+		}
+	}
 
-    @prometheus host prometheus.mati-lab.online
-    handle @prometheus {
-        @prometheus_health path /-/healthy
-        handle @prometheus_health {
-            reverse_proxy http://prometheus:9090
-        }
+	@prometheus host prometheus.mati-lab.online
+	handle @prometheus {
+		@prometheus_health path /-/healthy
+		handle @prometheus_health {
+			reverse_proxy http://prometheus:9090
+		}
 
-        handle {
-            forward_auth http://authelia:9091 {
-                uri /api/authz/forward-auth
-                copy_headers Remote-User Remote-Groups Remote-Name Remote-Email
-            }
-            reverse_proxy http://prometheus:9090 {
-                header_up Host {host}
-                header_up X-Forwarded-Proto https
-                header_up X-Forwarded-Ssl on
-            }
-        }
-    }
+		handle {
+			forward_auth http://authelia:9091 {
+				uri /api/authz/forward-auth
+				copy_headers Remote-User Remote-Groups Remote-Name Remote-Email
+			}
+			reverse_proxy http://prometheus:9090 {
+				header_up Host {host}
+				header_up X-Forwarded-Proto https
+				header_up X-Forwarded-Ssl on
+			}
+		}
+	}
 
-    @grafana host grafana.mati-lab.online
-    handle @grafana {
-        @grafana_health path /api/health
-        handle @grafana_health {
-            reverse_proxy http://grafana:3000
-        }
+	@grafana host grafana.mati-lab.online
+	handle @grafana {
+		@grafana_health path /api/health
+		handle @grafana_health {
+			reverse_proxy http://grafana:3000
+		}
 
-        handle {
-            forward_auth http://authelia:9091 {
-                uri /api/authz/forward-auth
-                copy_headers Remote-User Remote-Groups Remote-Name Remote-Email
-            }
-            reverse_proxy http://grafana:3000 {
-                header_up Host {host}
-                header_up X-Forwarded-Proto https
-                header_up X-Forwarded-Ssl on
-            }
-        }
-    }
+		handle {
+			forward_auth http://authelia:9091 {
+				uri /api/authz/forward-auth
+				copy_headers Remote-User Remote-Groups Remote-Name Remote-Email
+			}
+			reverse_proxy http://grafana:3000 {
+				header_up Host {host}
+				header_up X-Forwarded-Proto https
+				header_up X-Forwarded-Ssl on
+			}
+		}
+	}
 
-    @ntfy host ntfy.mati-lab.online
-    handle @ntfy {
-        reverse_proxy http://ntfy:80 {
-            header_up Host {host}
-            header_up X-Forwarded-Proto https
-            header_up X-Forwarded-Ssl on
-        }
-    }
+	@ntfy host ntfy.mati-lab.online
+	handle @ntfy {
+		reverse_proxy http://ntfy:80 {
+			header_up Host {host}
+			header_up X-Forwarded-Proto https
+			header_up X-Forwarded-Ssl on
+		}
+	}
 
-    @authelia host authelia.mati-lab.online
-    handle @authelia {
-        reverse_proxy http://authelia:9091 {
-            header_up Host {host}
-            header_up X-Forwarded-Proto https
-            header_up X-Forwarded-Ssl on
-        }
-    }
+	@authelia host authelia.mati-lab.online
+	handle @authelia {
+		reverse_proxy http://authelia:9091 {
+			header_up Host {host}
+			header_up X-Forwarded-Proto https
+			header_up X-Forwarded-Ssl on
+		}
+	}
 
-    @registry host registry.mati-lab.online
-    handle @registry {
-        reverse_proxy http://registry-private:5000 {
-            header_up Host {host}
-            header_up X-Forwarded-Proto https
-            header_up X-Forwarded-Ssl on
-        }
-    }
+	@registry host registry.mati-lab.online
+	handle @registry {
+		reverse_proxy http://registry-private:5000 {
+			header_up Host {host}
+			header_up X-Forwarded-Proto https
+			header_up X-Forwarded-Ssl on
+		}
+	}
 
-    @loki host loki.mati-lab.online
-    handle @loki {
-        @loki_health path /ready
-        handle @loki_health {
-            reverse_proxy http://loki:3100
-        }
+	@loki host loki.mati-lab.online
+	handle @loki {
+		@loki_health path /ready
+		handle @loki_health {
+			reverse_proxy http://loki:3100
+		}
 
-        handle {
-            forward_auth http://authelia:9091 {
-                uri /api/authz/forward-auth
-                copy_headers Remote-User Remote-Groups Remote-Name Remote-Email
-            }
-            reverse_proxy http://loki:3100 {
-                header_up Host {host}
-                header_up X-Forwarded-Proto https
-                header_up X-Forwarded-Ssl on
-            }
-        }
-    }
+		handle {
+			forward_auth http://authelia:9091 {
+				uri /api/authz/forward-auth
+				copy_headers Remote-User Remote-Groups Remote-Name Remote-Email
+			}
+			reverse_proxy http://loki:3100 {
+				header_up Host {host}
+				header_up X-Forwarded-Proto https
+				header_up X-Forwarded-Ssl on
+			}
+		}
+	}
 
-    handle {
-        respond "unknown host" 404
-    }
+	handle {
+		respond "unknown host" 404
+	}
 }
