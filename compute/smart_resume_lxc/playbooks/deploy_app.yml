@@ -76,9 +76,14 @@
       ansible.builtin.command:
         cmd: uv sync --frozen --no-dev
         chdir: "{{ app_remote_path }}/api"
-      become: true
-      become_user: www-data
       changed_when: true
+
+    - name: Fix API ownership
+      ansible.builtin.file:
+        path: "{{ app_remote_path }}/api"
+        owner: www-data
+        group: www-data
+        recurse: true
 
     - name: Write API .env
       ansible.builtin.template:
