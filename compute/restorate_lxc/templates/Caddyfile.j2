@@ -1,0 +1,42 @@
+{
+    log default {
+        output stdout
+        format json
+        level INFO
+    }
+}
+
+:80 {
+    header -Server
+    encode zstd gzip
+
+    # Block Prometheus metrics from public access
+    handle /metrics {
+        respond 404
+    }
+
+    # Connect-RPC service routes
+    @connect_rpc path_regexp ^/[a-z][a-z0-9_]*\.[a-z][a-z0-9_]*\.[A-Z]
+    handle @connect_rpc {
+        reverse_proxy 127.0.0.1:{{ api_port }}
+    }
+
+    # REST API routes
+    handle /place-photo {
+        reverse_proxy 127.0.0.1:{{ api_port }}
+    }
+    handle /health {
+        reverse_proxy 127.0.0.1:{{ api_port }}
+    }
+    handle /export/reviews {
+        reverse_proxy 127.0.0.1:{{ api_port }}
+    }
+    handle /admin/invite-secret {
+        reverse_proxy 127.0.0.1:{{ api_port }}
+    }
+
+    # SvelteKit frontend
+    handle {
+        reverse_proxy 127.0.0.1:{{ web_port }}
+    }
+}

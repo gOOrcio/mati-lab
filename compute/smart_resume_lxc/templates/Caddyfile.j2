@@ -1,0 +1,8 @@
+:80 {
+    handle /api/* {
+        reverse_proxy 127.0.0.1:{{ api_port }}
+    }
+
+    root * {{ app_remote_path }}/web
+    file_server
+}

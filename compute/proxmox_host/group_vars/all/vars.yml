@@ -1,0 +1,22 @@
+# Proxmox API connection
+proxmox_host: "192.168.1.184"
+proxmox_node: "proxmox"
+proxmox_api_user: "root@pam"
+proxmox_api_token_id:     "{{ vault_proxmox_api_token_id }}"
+proxmox_api_token_secret: "{{ vault_proxmox_api_token_secret }}"
+
+# ZFS ARC limits
+zfs_arc_max: 3221225472    # 3 GB
+zfs_arc_min: 2147483648    # 2 GB
+
+# Ollama VM
+ollama_vm_id: 101
+ollama_balloon_min_mb: 4096
+ollama_memory_max_mb: 12288
+
+# SonarQube VM
+sonarqube_vm_id: 103
+
+# GPU passthrough
+gpu_pcie_address: "0000:26:00"
+ollama_host_port: "0.0.0.0:11434"

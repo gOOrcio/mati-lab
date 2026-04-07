@@ -1,0 +1,56 @@
+- name: Create Smart Resume LXC container
+  hosts: localhost
+  gather_facts: false
+  vars_files:
+    - ../group_vars/all/vars.yml
+    - ../group_vars/all/vault.yml
+  tasks:
+    - name: Download Debian 12 LXC template (if missing)
+      ansible.builtin.command:
+        cmd: pveam download local debian-12-standard_12.7-1_amd64.tar.zst
+      delegate_to: proxmox
+      register: template_download
+      changed_when: "'download' in template_download.stdout"
+      failed_when:
+        - template_download.rc != 0
+        - "'already exists' not in template_download.stderr"
+
+    - name: Create LXC container
+      community.general.proxmox:
+        api_host:         "{{ proxmox_host }}"
+        api_user:         "{{ proxmox_api_user }}"
+        api_token_id:     "{{ proxmox_api_token_id }}"
+        api_token_secret: "{{ proxmox_api_token_secret }}"
+        node:         "{{ proxmox_node }}"
+        vmid:         "{{ lxc_id }}"
+        hostname:     "{{ lxc_name }}"
+        ostemplate:   "{{ lxc_template }}"
+        storage:      "{{ lxc_storage }}"
+        disk:         "{{ lxc_disk_size }}"
+        cores:        "{{ lxc_cores }}"
+        memory:       "{{ lxc_memory_mb }}"
+        swap:         "{{ lxc_swap_mb }}"
+        unprivileged: true
+        netif:
+          net0: "name=eth0,bridge=vmbr0,ip={{ lxc_ip }}/{{ lxc_cidr }},gw={{ lxc_gateway }}"
+        nameserver:   "{{ lxc_nameserver }}"
+        pubkey:       "{{ lookup('file', lxc_ssh_key_path) }}"
+        password:     "{{ vault_lxc_root_password }}"
+        onboot:       true
+        state:        present
+
+    - name: Start LXC container
+      community.general.proxmox:
+        api_host:         "{{ proxmox_host }}"
+        api_user:         "{{ proxmox_api_user }}"
+        api_token_id:     "{{ proxmox_api_token_id }}"
+        api_token_secret: "{{ proxmox_api_token_secret }}"
+        node:  "{{ proxmox_node }}"
+        vmid:  "{{ lxc_id }}"
+        state: started
+
+    - name: Wait for SSH
+      ansible.builtin.wait_for:
+        host:    "{{ lxc_ip }}"
+        port:    22
+        timeout: 60

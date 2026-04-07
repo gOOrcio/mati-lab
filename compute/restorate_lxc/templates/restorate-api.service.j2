@@ -1,0 +1,15 @@
+[Unit]
+Description=Restorate API
+After=network.target postgresql.service valkey.service
+Requires=postgresql.service valkey.service
+
+[Service]
+Type=exec
+User=restorate
+EnvironmentFile={{ app_remote_path }}/api.env
+ExecStart={{ app_remote_path }}/api
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,8 @@
+bind 127.0.0.1
+port {{ valkey_port }}
+protected-mode yes
+
+save 60 1
+dir /var/lib/valkey
+
+requirepass {{ vault_valkey_password }}

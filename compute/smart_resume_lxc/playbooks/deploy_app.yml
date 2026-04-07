@@ -1,0 +1,136 @@
+- name: Deploy Smart Resume
+  hosts: smart-resume
+  gather_facts: false
+  vars_files:
+    - ../group_vars/all/vars.yml
+    - ../group_vars/all/vault.yml
+
+  pre_tasks:
+    - name: Lint API code (ruff)
+      ansible.builtin.command:
+        cmd: uv run ruff check src/ tests/
+        chdir: "{{ app_repo_path }}/apps/api"
+      delegate_to: localhost
+      run_once: true
+      changed_when: false
+
+    - name: Run API tests (pytest)
+      ansible.builtin.command:
+        cmd: uv run pytest tests/ -q --tb=short
+        chdir: "{{ app_repo_path }}/apps/api"
+      delegate_to: localhost
+      run_once: true
+      changed_when: false
+
+    - name: Build Astro static site
+      ansible.builtin.command:
+        cmd: yarn build
+        chdir: "{{ app_repo_path }}/apps/web"
+      delegate_to: localhost
+      run_once: true
+      changed_when: true
+      environment:
+        PUBLIC_TURNSTILE_SITE_KEY: "{{ vault_turnstile_site_key }}"
+
+  tasks:
+    - name: Create app directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        owner: www-data
+        group: www-data
+        mode: "0755"
+      loop:
+        - "{{ app_remote_path }}/api"
+        - "{{ app_remote_path }}/web"
+      become: true
+
+    - name: Rsync API source
+      ansible.posix.synchronize:
+        src: "{{ app_repo_path }}/apps/api/{{ item }}"
+        dest: "{{ app_remote_path }}/api/"
+        delete: true
+        rsync_opts:
+          - "--exclude=__pycache__"
+          - "--exclude=.venv"
+          - "--exclude=.ruff_cache"
+          - "--no-owner"
+          - "--no-group"
+          - "--chown=www-data:www-data"
+      loop:
+        - pyproject.toml
+        - uv.lock
+        - src/
+
+    - name: Rsync Astro static files
+      ansible.posix.synchronize:
+        src: "{{ app_repo_path }}/apps/web/dist/"
+        dest: "{{ app_remote_path }}/web/"
+        delete: true
+        rsync_opts:
+          - "--no-owner"
+          - "--no-group"
+          - "--chown=www-data:www-data"
+
+    - name: Install Python dependencies
+      ansible.builtin.command:
+        cmd: uv sync --frozen --no-dev
+        chdir: "{{ app_remote_path }}/api"
+      become: true
+      become_user: www-data
+      changed_when: true
+
+    - name: Write API .env
+      ansible.builtin.template:
+        src: ../templates/env.j2
+        dest: "{{ app_remote_path }}/api/.env"
+        owner: www-data
+        mode: "0600"
+      become: true
+
+    - name: Write Caddyfile
+      ansible.builtin.template:
+        src: ../templates/Caddyfile.j2
+        dest: /etc/caddy/Caddyfile
+        owner: root
+        mode: "0644"
+      become: true
+      notify: Reload Caddy
+
+    - name: Write systemd unit
+      ansible.builtin.template:
+        src: ../templates/smart-resume-api.service.j2
+        dest: /etc/systemd/system/smart-resume-api.service
+        owner: root
+        mode: "0644"
+      become: true
+      notify: Restart API
+
+    - name: Enable and start API service
+      ansible.builtin.systemd:
+        name: smart-resume-api
+        enabled: true
+        state: started
+        daemon_reload: true
+      become: true
+
+    - name: Enable and start Caddy
+      ansible.builtin.systemd:
+        name: caddy
+        enabled: true
+        state: started
+      become: true
+
+  handlers:
+    - name: Reload Caddy
+      ansible.builtin.systemd:
+        name: caddy
+        state: reloaded
+      become: true
+
+    - name: Restart API
+      ansible.builtin.systemd:
+        name: smart-resume-api
+        state: restarted
+        daemon_reload: true
+      become: true

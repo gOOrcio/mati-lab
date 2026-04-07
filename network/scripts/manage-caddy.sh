@@ -38,11 +38,18 @@ rebuild() {
   compose_cmd up -d --pull always
 }
 
+reload_caddy() {
+  log "Reloading Caddy config"
+  compose_cmd exec caddy caddy reload --config /etc/caddy/Caddyfile
+  log_success "Caddy config reloaded"
+}
+
 update() {
   log "Updating $SERVICE_NAME (pull only, no rebuild)"
   sync_from_github
   copy_env_file "../$SERVICE_NAME"
   compose_cmd up -d --pull always
+  reload_caddy
 }
 
 save() { push; }

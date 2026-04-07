@@ -594,7 +594,7 @@
         {
           "refId": "A",
           "datasource": { "type": "loki", "uid": "loki" },
-          "expr": "{compose_project=\"restorate\"}"
+          "expr": "{job=\"restorate\"}"
         }
       ],
       "options": {
@@ -616,7 +616,7 @@
         {
           "refId": "A",
           "datasource": { "type": "loki", "uid": "loki" },
-          "expr": "sum(rate({compose_project=\"restorate\"} |= \"error\" [5m]))",
+          "expr": "sum(rate({job=\"restorate\"} |= \"error\" [5m]))",
           "legendFormat": "errors/s"
         }
       ],
@@ -636,7 +636,7 @@
         {
           "refId": "A",
           "datasource": { "type": "loki", "uid": "loki" },
-          "expr": "sum by (level) (rate({compose_project=\"restorate\"}[5m]))",
+          "expr": "sum by (level) (rate({job=\"restorate\"}[5m]))",
           "legendFormat": "{{level}}"
         }
       ],

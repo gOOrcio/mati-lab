@@ -1,0 +1,27 @@
+- name: Cap ZFS ARC memory
+  hosts: proxmox
+  become: true
+  vars_files:
+    - ../group_vars/all/vars.yml
+  tasks:
+    - name: Write ZFS modprobe config
+      ansible.builtin.copy:
+        dest: /etc/modprobe.d/zfs.conf
+        content: |
+          options zfs zfs_arc_max={{ zfs_arc_max }}
+          options zfs zfs_arc_min={{ zfs_arc_min }}
+        owner: root
+        group: root
+        mode: "0644"
+      register: zfs_conf
+
+    - name: Rebuild initramfs
+      ansible.builtin.command: update-initramfs -u -k all
+      when: zfs_conf.changed
+
+    - name: Remind about reboot
+      ansible.builtin.debug:
+        msg: >
+          ZFS ARC config written. REBOOT REQUIRED to apply.
+          Run: ssh root@{{ proxmox_host }} reboot
+      when: zfs_conf.changed

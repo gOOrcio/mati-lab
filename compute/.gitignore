@@ -1,2 +1,5 @@
 smart_resume_vm/group_vars/all/vault.yml
 sonarqube_vm/group_vars/all/vault.yml
+smart_resume_lxc/group_vars/all/vault.yml
+restorate_lxc/group_vars/all/vault.yml
+proxmox_host/group_vars/all/vault.yml

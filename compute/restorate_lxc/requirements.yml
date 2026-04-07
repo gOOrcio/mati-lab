@@ -1,0 +1,4 @@
+collections:
+  - name: community.general      # proxmox (LXC), ufw
+  - name: community.postgresql   # postgresql_user, postgresql_db
+  - name: ansible.posix          # synchronize

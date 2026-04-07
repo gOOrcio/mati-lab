@@ -1,0 +1,88 @@
+- name: Verify GPU passthrough configuration
+  hosts: proxmox
+  become: true
+  vars_files:
+    - ../group_vars/all/vars.yml
+  tasks:
+    - name: Check IOMMU in kernel cmdline
+      ansible.builtin.command: cat /proc/cmdline
+      register: cmdline
+      changed_when: false
+
+    - name: Validate IOMMU flags
+      ansible.builtin.assert:
+        that:
+          - "'amd_iommu=on' in cmdline.stdout or 'intel_iommu=on' in cmdline.stdout"
+          - "'iommu=pt' in cmdline.stdout"
+        fail_msg: "IOMMU not enabled in kernel cmdline: {{ cmdline.stdout }}"
+        success_msg: "IOMMU enabled"
+
+    - name: Check nouveau is blacklisted
+      ansible.builtin.command: grep -r nouveau /etc/modprobe.d/
+      register: nouveau_check
+      changed_when: false
+      failed_when: false
+
+    - name: Report nouveau status
+      ansible.builtin.debug:
+        msg: >
+          {% if 'blacklist nouveau' in nouveau_check.stdout %}
+          nouveau is blacklisted
+          {% else %}
+          WARNING: nouveau may not be blacklisted. Check /etc/modprobe.d/ manually.
+          Output: {{ nouveau_check.stdout }}
+          {% endif %}
+
+    - name: Check IOMMU group for GPU
+      ansible.builtin.shell: |
+        for d in /sys/kernel/iommu_groups/*/devices/*; do
+          if echo "$d" | grep -q "{{ gpu_pcie_address }}"; then
+            group=$(echo "$d" | cut -d/ -f5)
+            echo "GPU {{ gpu_pcie_address }} is in IOMMU group $group"
+            ls /sys/kernel/iommu_groups/$group/devices/
+          fi
+        done
+      register: iommu_group
+      changed_when: false
+
+    - name: Report IOMMU group
+      ansible.builtin.debug:
+        msg: "{{ iommu_group.stdout }}"
+
+- name: Verify Ollama VM GPU and config
+  hosts: ollama-gpu
+  become: false
+  vars_files:
+    - ../group_vars/all/vars.yml
+  tasks:
+    - name: Run nvidia-smi
+      ansible.builtin.command: nvidia-smi
+      register: nvidia_smi
+      changed_when: false
+
+    - name: Report GPU status
+      ansible.builtin.debug:
+        msg: "{{ nvidia_smi.stdout }}"
+
+    - name: Check OLLAMA_HOST
+      ansible.builtin.command: systemctl show ollama --property=Environment
+      register: ollama_env
+      changed_when: false
+
+    - name: Validate OLLAMA_HOST
+      ansible.builtin.assert:
+        that:
+          - "'OLLAMA_HOST={{ ollama_host_port }}' in ollama_env.stdout"
+        fail_msg: "OLLAMA_HOST not set to {{ ollama_host_port }}: {{ ollama_env.stdout }}"
+        success_msg: "OLLAMA_HOST={{ ollama_host_port }} confirmed"
+
+    - name: Test Ollama API
+      ansible.builtin.uri:
+        url: "http://127.0.0.1:11434/api/tags"
+        method: GET
+        return_content: true
+      register: ollama_api
+
+    - name: Report loaded models
+      ansible.builtin.debug:
+        msg: "Ollama API responding. Models: {{ ollama_api.json.models | map(attribute='name') | list }}"

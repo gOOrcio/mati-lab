@@ -1,0 +1,25 @@
+- name: Enable memory ballooning on Ollama VM
+  hosts: localhost
+  gather_facts: false
+  vars_files:
+    - ../group_vars/all/vars.yml
+    - ../group_vars/all/vault.yml
+  tasks:
+    - name: Set balloon memory on Ollama VM
+      community.general.proxmox_kvm:
+        api_host:         "{{ proxmox_host }}"
+        api_user:         "{{ proxmox_api_user }}"
+        api_token_id:     "{{ proxmox_api_token_id }}"
+        api_token_secret: "{{ proxmox_api_token_secret }}"
+        node:    "{{ proxmox_node }}"
+        vmid:    "{{ ollama_vm_id }}"
+        memory:  "{{ ollama_memory_max_mb }}"
+        balloon: "{{ ollama_balloon_min_mb }}"
+        update:  true
+
+    - name: Remind about VM restart
+      ansible.builtin.debug:
+        msg: >
+          Ballooning set: min={{ ollama_balloon_min_mb }}MB, max={{ ollama_memory_max_mb }}MB.
+          VM RESTART REQUIRED to apply. Stop and start VM {{ ollama_vm_id }} from Proxmox UI
+          or run: qm shutdown {{ ollama_vm_id }} && sleep 10 && qm start {{ ollama_vm_id }}
