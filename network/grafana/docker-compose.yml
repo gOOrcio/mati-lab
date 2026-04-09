@@ -7,7 +7,7 @@ volumes:
 
 services:
   grafana:
-    image: grafana/grafana:12.3.0-17718666199
+    image: grafana/grafana:12.2.5
     container_name: grafana
     restart: always
     security_opt: [no-new-privileges:true]
