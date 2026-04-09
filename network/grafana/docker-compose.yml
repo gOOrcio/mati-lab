@@ -11,6 +11,8 @@ services:
     container_name: grafana
     restart: always
     security_opt: [no-new-privileges:true]
+    environment:
+      - GF_PLUGINS_PREINSTALL=grafana-clock-panel,grafana-lokiexplore-app
     env_file:
       - .env
     volumes:
