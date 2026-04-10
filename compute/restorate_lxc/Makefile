@@ -1,5 +1,5 @@
 .PHONY: provision configure deploy install-deps \
-        db-backup db-restore db-clean db-shell
+        db-backup db-restore db-clean db-shell annotate-deploy
 
 # ── SSH config ───────────────────────────────────────────────────────────────
 SSH_KEY  ?= ~/.ssh/id_ed25519
@@ -24,8 +24,21 @@ provision: install-deps
 configure:
 	ansible-playbook playbooks/configure_lxc.yml
 
+GRAFANA_URL ?= https://grafana.mati-lab.online
+GRAFANA_AUTH ?= goorcio:$(GF_GRAFANA_PASSWORD)
+
 deploy:
 	ansible-playbook playbooks/deploy_app.yml
+	@$(MAKE) annotate-deploy 2>/dev/null || echo "[WARN] Deploy annotation failed (non-fatal)"
+
+annotate-deploy:
+	@COMMIT=$$(cd ~/Projects/resto-rate && git log -1 --format='%h %s' 2>/dev/null || echo "unknown"); \
+	curl -sf -X POST "$(GRAFANA_URL)/api/annotations" \
+	  -u "$(GRAFANA_AUTH)" \
+	  -H "Content-Type: application/json" \
+	  -d "{\"tags\":[\"deploy\",\"restorate\"],\"text\":\"Restorate deploy: $$COMMIT\"}" \
+	  && echo "[OK] Deploy annotation created" \
+	  || echo "[WARN] Could not create annotation"
 
 # ── Database operations ──────────────────────────────────────────────────────
 # Commands run directly on the LXC (no Docker container).

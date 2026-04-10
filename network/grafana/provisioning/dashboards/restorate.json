@@ -9,6 +9,18 @@
   "tags": ["restorate"],
   "editable": true,
   "graphTooltip": 1,
+  "annotations": {
+    "list": [
+      {
+        "name": "Deploys",
+        "datasource": { "type": "grafana", "uid": "-- Grafana --" },
+        "enable": true,
+        "iconColor": "blue",
+        "tags": ["deploy", "restorate"],
+        "type": "tags"
+      }
+    ]
+  },
   "panels": [
     {
       "id": 1,
