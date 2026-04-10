@@ -165,10 +165,8 @@
 
 	@grafana host grafana.mati-lab.online
 	handle @grafana {
-		@grafana_internal {
-			path /api/health /api/annotations
-		}
-		handle @grafana_internal {
+		@grafana_health path /api/health
+		handle @grafana_health {
 			reverse_proxy http://grafana:3000
 		}
 

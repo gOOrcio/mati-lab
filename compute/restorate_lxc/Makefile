@@ -24,8 +24,8 @@ provision: install-deps
 configure:
 	ansible-playbook playbooks/configure_lxc.yml
 
-GRAFANA_URL ?= https://grafana.mati-lab.online
-GRAFANA_AUTH ?= goorcio:$(GF_GRAFANA_PASSWORD)
+GRAFANA_HOST ?= gooral@192.168.1.252
+SSH_GRAFANA  := ssh -o BatchMode=yes -o StrictHostKeyChecking=accept-new $(GRAFANA_HOST)
 
 deploy:
 	ansible-playbook playbooks/deploy_app.yml
@@ -33,10 +33,10 @@ deploy:
 
 annotate-deploy:
 	@COMMIT=$$(cd ~/Projects/resto-rate && git log -1 --format='%h %s' 2>/dev/null || echo "unknown"); \
-	curl -sf -X POST "$(GRAFANA_URL)/api/annotations" \
-	  -u "$(GRAFANA_AUTH)" \
-	  -H "Content-Type: application/json" \
-	  -d "{\"tags\":[\"deploy\",\"restorate\"],\"text\":\"Restorate deploy: $$COMMIT\"}" \
+	$(SSH_GRAFANA) "docker exec grafana curl -sf -X POST http://localhost:3000/api/annotations \
+	  -u 'goorcio:gOOral3714!@#' \
+	  -H 'Content-Type: application/json' \
+	  -d '{\"tags\":[\"deploy\",\"restorate\"],\"text\":\"Restorate deploy: '$$COMMIT'\"}'" \
 	  && echo "[OK] Deploy annotation created" \
 	  || echo "[WARN] Could not create annotation"
 
