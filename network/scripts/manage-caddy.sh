@@ -49,7 +49,7 @@ update() {
   sync_from_github
   copy_env_file "../$SERVICE_NAME"
   compose_cmd up -d --pull always
-  reload_caddy
+  compose_cmd restart caddy
 }
 
 save() { push; }

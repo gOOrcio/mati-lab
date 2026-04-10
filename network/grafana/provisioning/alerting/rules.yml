@@ -223,7 +223,7 @@ groups:
               to: 0
             model:
               expr: |
-                sum(rate(rpc_requests_total{job="restorate",status!="OK"}[5m]))
+                sum(rate(rpc_requests_total{job="restorate",status=~"internal|unavailable|data_loss|unknown|deadline_exceeded|resource_exhausted"}[5m]))
                 /
                 sum(rate(rpc_requests_total{job="restorate"}[5m]))
                 and on() sum(rate(rpc_requests_total{job="restorate"}[5m])) > 0
