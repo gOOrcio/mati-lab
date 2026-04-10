@@ -32,11 +32,11 @@ deploy:
 	@$(MAKE) annotate-deploy 2>/dev/null || echo "[WARN] Deploy annotation failed (non-fatal)"
 
 annotate-deploy:
-	@COMMIT=$$(cd ~/Projects/resto-rate && git log -1 --format='%h %s' 2>/dev/null || echo "unknown"); \
+	@COMMIT=$$(cd ~/Projects/resto-rate && git log -1 --format='%h' 2>/dev/null || echo "unknown"); \
 	$(SSH_GRAFANA) "docker exec grafana curl -sf -X POST http://localhost:3000/api/annotations \
 	  -u 'goorcio:gOOral3714!@#' \
 	  -H 'Content-Type: application/json' \
-	  -d '{\"tags\":[\"deploy\",\"restorate\"],\"text\":\"Restorate deploy: '$$COMMIT'\"}'" \
+	  -d '{\"tags\":[\"deploy\",\"restorate\"],\"text\":\"Restorate deploy: $$COMMIT\"}'" \
 	  && echo "[OK] Deploy annotation created" \
 	  || echo "[WARN] Could not create annotation"
 
