@@ -44,7 +44,7 @@ valkey_tarball_url: "https://download.valkey.io/releases/valkey-8.1.6-jammy-x86_
 valkey_port: 6379
 
 # Invite system
-invite_required: true
+invite_required: false
 
 # Monitoring
 loki_push_url: "http://192.168.1.252:3100/loki/api/v1/push"

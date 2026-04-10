@@ -210,6 +210,16 @@
 		}
 	}
 
+	@jellyfin host jellyfin.mati-lab.online
+	handle @jellyfin {
+		reverse_proxy 192.168.1.X:30013 {
+			header_up Host {host}
+			header_up X-Forwarded-Proto https
+			header_up X-Forwarded-Ssl on
+		}
+	}
+
+
 	@loki host loki.mati-lab.online
 	handle @loki {
 		@loki_health path /ready

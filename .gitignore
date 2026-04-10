@@ -41,4 +41,7 @@ uptime-kuma/data
 # Claude Code — not committed to git
 .claude/
 docs/superpowers/
+docs/design
 CLAUDE.md
+
+compute/restorate_lxc/backups
