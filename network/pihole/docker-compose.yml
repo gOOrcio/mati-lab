@@ -1,7 +1,6 @@
 networks:
   pihole-net:
-    name: pihole-net
-    driver: bridge
+    external: true
 
 services:
   pihole:

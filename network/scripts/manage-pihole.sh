@@ -8,7 +8,7 @@ source "$SCRIPT_DIR/common.sh"
 
 # Pi-hole-specific functions
 ensure_network() {
-  ssh "${SSH_OPTS[@]}" "$REMOTE" "docker network inspect pihole-net >/dev/null 2>&1 || docker network create pihole-net"
+  ssh "${SSH_OPTS[@]}" "$REMOTE" "docker network inspect pihole-net >/dev/null 2>&1 || docker network create --opt com.docker.network.bridge.enable_ip_masquerade=true pihole-net"
 }
 
 check() { 
