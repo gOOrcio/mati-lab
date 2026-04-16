@@ -8,13 +8,13 @@ source "$SCRIPT_DIR/common.sh"
 
 run_backup() {
   log "Running backup of all services to NAS"
-  ssh "${SSH_OPTS[@]}" "$REMOTE" "/opt/mati-lab/network/backup/backup-services.sh"
+  ssh "${SSH_OPTS[@]}" "$REMOTE" "sudo /opt/mati-lab/network/backup/backup-services.sh"
 }
 
 timer_status() {
-  ssh "${SSH_OPTS[@]}" "$REMOTE" "systemctl status backup-services.timer --no-pager 2>/dev/null || echo 'Timer not installed'"
+  ssh "${SSH_OPTS[@]}" "$REMOTE" "sudo systemctl status backup-services.timer --no-pager 2>/dev/null || echo 'Timer not installed'"
   echo ""
-  ssh "${SSH_OPTS[@]}" "$REMOTE" "journalctl -u backup-services.service --no-pager -n 20 2>/dev/null || echo 'No backup logs yet'"
+  ssh "${SSH_OPTS[@]}" "$REMOTE" "sudo journalctl -u backup-services.service --no-pager -n 20 2>/dev/null || echo 'No backup logs yet'"
 }
 
 check_mount() {
