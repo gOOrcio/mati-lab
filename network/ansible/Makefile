@@ -17,7 +17,7 @@ check:
 	ansible-playbook playbooks/configure.yml --check --diff
 
 backup:
-	ansible-playbook -i inventory/hosts playbooks/backup.yml --tags backup,nfs
+	ansible-playbook playbooks/backup.yml --tags backup,nfs
 
 backup-check:
-	ansible-playbook -i inventory/hosts playbooks/backup.yml --tags backup,nfs --check --diff
+	ansible-playbook playbooks/backup.yml --tags backup,nfs --check --diff
