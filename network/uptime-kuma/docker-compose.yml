@@ -15,7 +15,8 @@ services:
     networks:
       - pihole-net
     dns:
-      - 192.168.1.252
+      - 1.1.1.1
+      - 1.0.0.1
     labels:
       - "com.docker.compose.project=uptime-kuma"
       - "com.docker.compose.service=uptime-kuma"
