@@ -55,6 +55,35 @@
         state: mounted
       tags: [base, nvme]
 
+    # ── GitHub SSH key (for git sync) ─────────────────────────────────────
+    - name: Generate SSH key for GitHub if absent
+      ansible.builtin.user:
+        name: "{{ pi_user }}"
+        generate_ssh_key: true
+        ssh_key_type: ed25519
+        ssh_key_comment: "{{ pi_user }}@{{ pi_hostname }}"
+      tags: [base, git]
+
+    - name: Read public key
+      ansible.builtin.slurp:
+        src: "/home/{{ pi_user }}/.ssh/id_ed25519.pub"
+      register: github_pubkey
+      tags: [base, git]
+
+    - name: Add GitHub to known_hosts
+      ansible.builtin.known_hosts:
+        name: github.com
+        key: "github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl"
+        path: "/home/{{ pi_user }}/.ssh/known_hosts"
+        state: present
+      become: false
+      tags: [base, git]
+
+    - name: Display public key (add to GitHub deploy keys if new)
+      ansible.builtin.debug:
+        msg: "GitHub deploy key: {{ github_pubkey.content | b64decode | trim }}"
+      tags: [base, git]
+
     # ── Docker ──────────────────────────────────────────────────────────────
     - name: Add Docker GPG key
       ansible.builtin.get_url:
