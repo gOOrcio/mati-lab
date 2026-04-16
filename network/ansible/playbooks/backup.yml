@@ -1,0 +1,77 @@
+- name: Configure NAS backup for network services
+  hosts: network-pi
+  become: true
+  vars_files:
+    - ../group_vars/all/vars.yml
+
+  tasks:
+    # ── NFS client ─────────────────────────────────────────────────────────
+    - name: Install NFS client
+      ansible.builtin.apt:
+        name: nfs-common
+        state: present
+      tags: [nfs]
+
+    - name: Create NAS mount point
+      ansible.builtin.file:
+        path: "{{ nas_mount_point }}"
+        state: directory
+        mode: "0755"
+      tags: [nfs]
+
+    - name: Mount NAS backup share via fstab
+      ansible.posix.mount:
+        src: "{{ nas_ip }}:{{ nas_backup_share }}"
+        path: "{{ nas_mount_point }}"
+        fstype: nfs
+        opts: "defaults,soft,timeo=150,retrans=3,_netdev,x-systemd.automount,x-systemd.idle-timeout=600"
+        state: mounted
+      tags: [nfs]
+
+    # ── UFW: allow NFS to NAS ──────────────────────────────────────────────
+    - name: Allow NFS traffic to NAS
+      community.general.ufw:
+        rule: allow
+        direction: out
+        port: "2049"
+        proto: tcp
+        to_ip: "{{ nas_ip }}"
+        comment: "NFS to NAS"
+      tags: [nfs, ufw]
+
+    # ── Backup script ──────────────────────────────────────────────────────
+    - name: Ensure backup script is executable
+      ansible.builtin.file:
+        path: /opt/mati-lab/network/backup/backup-services.sh
+        mode: "0755"
+      tags: [backup]
+
+    # ── Systemd units ──────────────────────────────────────────────────────
+    - name: Deploy backup service unit
+      ansible.builtin.template:
+        src: ../templates/backup-services.service.j2
+        dest: /etc/systemd/system/backup-services.service
+        mode: "0644"
+      notify: Reload systemd
+      tags: [backup]
+
+    - name: Deploy backup timer unit
+      ansible.builtin.template:
+        src: ../templates/backup-services.timer.j2
+        dest: /etc/systemd/system/backup-services.timer
+        mode: "0644"
+      notify: Reload systemd
+      tags: [backup]
+
+    - name: Enable and start backup timer
+      ansible.builtin.systemd:
+        name: backup-services.timer
+        enabled: true
+        state: started
+        daemon_reload: true
+      tags: [backup]
+
+  handlers:
+    - name: Reload systemd
+      ansible.builtin.systemd:
+        daemon_reload: true

@@ -34,3 +34,12 @@ ssh_permit_root_login: "prohibit-password"
 ssh_password_authentication: "no"
 ssh_pubkey_authentication: "yes"
 ssh_max_auth_tries: 3
+
+# NAS (TrueNAS Scale)
+nas_ip: "192.168.1.65"
+nas_backup_share: "/mnt/bulk/backups"
+nas_mount_point: "/mnt/nas/backups"
+
+# Backup schedule
+backup_time: "02:00:00"
+backup_keep_days: 30

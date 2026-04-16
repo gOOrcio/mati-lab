@@ -1,0 +1,10 @@
+[Unit]
+Description=Nightly backup of network services to NAS
+
+[Timer]
+OnCalendar=*-*-* {{ backup_time }}
+Persistent=true
+RandomizedDelaySec=300
+
+[Install]
+WantedBy=timers.target

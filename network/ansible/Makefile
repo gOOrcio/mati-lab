@@ -1,4 +1,4 @@
-.PHONY: configure deploy security docker check
+.PHONY: configure deploy security docker check backup backup-check
 
 # Full setup: security + docker + all config
 configure:
@@ -15,3 +15,9 @@ docker:
 # Dry run: show what would change
 check:
 	ansible-playbook playbooks/configure.yml --check --diff
+
+backup:
+	ansible-playbook -i inventory/hosts playbooks/backup.yml --tags backup,nfs
+
+backup-check:
+	ansible-playbook -i inventory/hosts playbooks/backup.yml --tags backup,nfs --check --diff

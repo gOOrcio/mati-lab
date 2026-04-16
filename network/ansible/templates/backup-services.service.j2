@@ -1,0 +1,13 @@
+[Unit]
+Description=Backup network services to NAS
+Requires=mnt-nas-backups.mount
+After=mnt-nas-backups.mount docker.service
+Wants=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/opt/mati-lab/network/backup/backup-services.sh
+Environment=KEEP_DAYS={{ backup_keep_days }}
+StandardOutput=journal
+StandardError=journal
+TimeoutStartSec=1800
