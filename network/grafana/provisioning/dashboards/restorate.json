@@ -2,7 +2,7 @@
   "uid": "restorate",
   "title": "Restorate",
   "schemaVersion": 38,
-  "version": 1,
+  "version": 2,
   "refresh": "30s",
   "time": { "from": "now-1h", "to": "now" },
   "timepicker": {},
@@ -98,7 +98,7 @@
         {
           "refId": "A",
           "datasource": { "type": "prometheus", "uid": "prometheus-mati-lab" },
-          "expr": "restorate_active_sessions{job=\"restorate\"}",
+          "expr": "restorate_auth_sessions_active{job=\"restorate\"}",
           "legendFormat": ""
         }
       ],
@@ -163,7 +163,7 @@
         {
           "refId": "A",
           "datasource": { "type": "prometheus", "uid": "prometheus-mati-lab" },
-          "expr": "sum by (provider) (increase(restorate_logins_total{job=\"restorate\"}[1h]))",
+          "expr": "sum by (provider) (increase(restorate_auth_logins_total{job=\"restorate\"}[1h]))",
           "legendFormat": "{{provider}}"
         }
       ],
@@ -183,7 +183,7 @@
         {
           "refId": "A",
           "datasource": { "type": "prometheus", "uid": "prometheus-mati-lab" },
-          "expr": "increase(restorate_registrations_total{job=\"restorate\"}[1h])",
+          "expr": "increase(restorate_auth_registrations_total{job=\"restorate\"}[1h])",
           "legendFormat": "registrations/h"
         }
       ],
@@ -203,7 +203,7 @@
         {
           "refId": "A",
           "datasource": { "type": "prometheus", "uid": "prometheus-mati-lab" },
-          "expr": "sum by (reason) (rate(restorate_login_failures_total{job=\"restorate\"}[5m]))",
+          "expr": "sum by (reason) (rate(restorate_auth_login_failures_total{job=\"restorate\"}[5m]))",
           "legendFormat": "{{reason}}"
         }
       ],
@@ -223,7 +223,7 @@
         {
           "refId": "A",
           "datasource": { "type": "prometheus", "uid": "prometheus-mati-lab" },
-          "expr": "increase(restorate_account_deletions_total{job=\"restorate\"}[1h])",
+          "expr": "increase(restorate_auth_account_deletions_total{job=\"restorate\"}[1h])",
           "legendFormat": "deletions/h"
         }
       ],
@@ -270,13 +270,13 @@
         {
           "refId": "A",
           "datasource": { "type": "prometheus", "uid": "prometheus-mati-lab" },
-          "expr": "increase(restorate_wishlist_adds_total{job=\"restorate\"}[1h])",
+          "expr": "increase(restorate_wishlist_added_total{job=\"restorate\"}[1h])",
           "legendFormat": "adds/h"
         },
         {
           "refId": "B",
           "datasource": { "type": "prometheus", "uid": "prometheus-mati-lab" },
-          "expr": "increase(restorate_wishlist_removes_total{job=\"restorate\"}[1h])",
+          "expr": "increase(restorate_wishlist_removed_total{job=\"restorate\"}[1h])",
           "legendFormat": "removes/h"
         }
       ],
@@ -296,19 +296,19 @@
         {
           "refId": "A",
           "datasource": { "type": "prometheus", "uid": "prometheus-mati-lab" },
-          "expr": "increase(restorate_friend_requests_sent_total{job=\"restorate\"}[1h])",
+          "expr": "increase(restorate_friends_requests_sent_total{job=\"restorate\"}[1h])",
           "legendFormat": "sent/h"
         },
         {
           "refId": "B",
           "datasource": { "type": "prometheus", "uid": "prometheus-mati-lab" },
-          "expr": "increase(restorate_friend_requests_accepted_total{job=\"restorate\"}[1h])",
+          "expr": "increase(restorate_friends_requests_accepted_total{job=\"restorate\"}[1h])",
           "legendFormat": "accepted/h"
         },
         {
           "refId": "C",
           "datasource": { "type": "prometheus", "uid": "prometheus-mati-lab" },
-          "expr": "increase(restorate_friend_requests_declined_total{job=\"restorate\"}[1h])",
+          "expr": "increase(restorate_friends_requests_declined_total{job=\"restorate\"}[1h])",
           "legendFormat": "declined/h"
         }
       ],
@@ -328,7 +328,7 @@
         {
           "refId": "A",
           "datasource": { "type": "prometheus", "uid": "prometheus-mati-lab" },
-          "expr": "increase(restorate_csv_exports_total{job=\"restorate\"}[1h])",
+          "expr": "increase(restorate_export_csv_total{job=\"restorate\"}[1h])",
           "legendFormat": ""
         }
       ],
@@ -343,42 +343,24 @@
     },
     {
       "id": 16,
-      "type": "timeseries",
-      "title": "Google Places API — Requests & Errors",
-      "gridPos": { "x": 4, "y": 35, "w": 20, "h": 8 },
-      "datasource": { "type": "prometheus", "uid": "prometheus-mati-lab" },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": { "type": "prometheus", "uid": "prometheus-mati-lab" },
-          "expr": "sum by (operation) (rate(restorate_google_places_requests_total{job=\"restorate\"}[5m]))",
-          "legendFormat": "req/s {{operation}}"
-        },
-        {
-          "refId": "B",
-          "datasource": { "type": "prometheus", "uid": "prometheus-mati-lab" },
-          "expr": "sum by (operation) (rate(restorate_google_places_errors_total{job=\"restorate\"}[5m]))",
-          "legendFormat": "err/s {{operation}}"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": { "unit": "reqps", "custom": { "lineInterpolation": "smooth" } },
-        "overrides": []
-      },
-      "options": {}
+      "type": "row",
+      "title": "Google Places",
+      "collapsed": true,
+      "gridPos": { "x": 0, "y": 39, "w": 24, "h": 1 },
+      "panels": []
     },
     {
       "id": 17,
       "type": "row",
       "title": "Per-Endpoint Performance",
       "collapsed": false,
-      "gridPos": { "x": 0, "y": 43, "w": 24, "h": 1 }
+      "gridPos": { "x": 0, "y": 40, "w": 24, "h": 1 }
     },
     {
       "id": 18,
       "type": "heatmap",
       "title": "Latency Heatmap (All Methods)",
-      "gridPos": { "x": 0, "y": 44, "w": 24, "h": 8 },
+      "gridPos": { "x": 0, "y": 41, "w": 24, "h": 8 },
       "datasource": { "type": "prometheus", "uid": "prometheus-mati-lab" },
       "targets": [
         {
@@ -404,7 +386,7 @@
       "id": 19,
       "type": "table",
       "title": "Top 10 Slowest Endpoints (P95)",
-      "gridPos": { "x": 0, "y": 52, "w": 12, "h": 8 },
+      "gridPos": { "x": 0, "y": 49, "w": 12, "h": 8 },
       "datasource": { "type": "prometheus", "uid": "prometheus-mati-lab" },
       "targets": [
         {
@@ -428,7 +410,7 @@
       "id": 20,
       "type": "timeseries",
       "title": "Requests/sec by Method",
-      "gridPos": { "x": 12, "y": 52, "w": 12, "h": 8 },
+      "gridPos": { "x": 12, "y": 49, "w": 12, "h": 8 },
       "datasource": { "type": "prometheus", "uid": "prometheus-mati-lab" },
       "targets": [
         {
@@ -454,7 +436,7 @@
       "id": 21,
       "type": "timeseries",
       "title": "Error Count by Method & Status",
-      "gridPos": { "x": 0, "y": 60, "w": 24, "h": 8 },
+      "gridPos": { "x": 0, "y": 57, "w": 24, "h": 8 },
       "datasource": { "type": "prometheus", "uid": "prometheus-mati-lab" },
       "targets": [
         {
@@ -475,13 +457,13 @@
       "type": "row",
       "title": "Infrastructure",
       "collapsed": false,
-      "gridPos": { "x": 0, "y": 68, "w": 24, "h": 1 }
+      "gridPos": { "x": 0, "y": 65, "w": 24, "h": 1 }
     },
     {
       "id": 23,
       "type": "timeseries",
       "title": "Memory",
-      "gridPos": { "x": 0, "y": 69, "w": 12, "h": 8 },
+      "gridPos": { "x": 0, "y": 66, "w": 12, "h": 8 },
       "datasource": { "type": "prometheus", "uid": "prometheus-mati-lab" },
       "targets": [
         {
@@ -513,7 +495,7 @@
       "id": 24,
       "type": "timeseries",
       "title": "Goroutines",
-      "gridPos": { "x": 12, "y": 69, "w": 6, "h": 8 },
+      "gridPos": { "x": 12, "y": 66, "w": 6, "h": 8 },
       "datasource": { "type": "prometheus", "uid": "prometheus-mati-lab" },
       "targets": [
         {
@@ -533,7 +515,7 @@
       "id": 25,
       "type": "timeseries",
       "title": "GC Pause Duration",
-      "gridPos": { "x": 18, "y": 69, "w": 6, "h": 8 },
+      "gridPos": { "x": 18, "y": 66, "w": 6, "h": 8 },
       "datasource": { "type": "prometheus", "uid": "prometheus-mati-lab" },
       "targets": [
         {
@@ -553,7 +535,7 @@
       "id": 26,
       "type": "timeseries",
       "title": "DB Query Latency (P95 by operation)",
-      "gridPos": { "x": 0, "y": 77, "w": 12, "h": 8 },
+      "gridPos": { "x": 0, "y": 74, "w": 12, "h": 8 },
       "datasource": { "type": "prometheus", "uid": "prometheus-mati-lab" },
       "targets": [
         {
@@ -573,7 +555,7 @@
       "id": 27,
       "type": "timeseries",
       "title": "Process CPU Usage",
-      "gridPos": { "x": 12, "y": 77, "w": 12, "h": 8 },
+      "gridPos": { "x": 12, "y": 74, "w": 12, "h": 8 },
       "datasource": { "type": "prometheus", "uid": "prometheus-mati-lab" },
       "targets": [
         {
@@ -594,13 +576,13 @@
       "type": "row",
       "title": "Logs",
       "collapsed": false,
-      "gridPos": { "x": 0, "y": 85, "w": 24, "h": 1 }
+      "gridPos": { "x": 0, "y": 82, "w": 24, "h": 1 }
     },
     {
       "id": 29,
       "type": "logs",
       "title": "Log Stream",
-      "gridPos": { "x": 0, "y": 86, "w": 24, "h": 12 },
+      "gridPos": { "x": 0, "y": 83, "w": 24, "h": 12 },
       "datasource": { "type": "loki", "uid": "loki" },
       "targets": [
         {
@@ -622,7 +604,7 @@
       "id": 30,
       "type": "timeseries",
       "title": "Error Log Count over Time",
-      "gridPos": { "x": 0, "y": 98, "w": 12, "h": 8 },
+      "gridPos": { "x": 0, "y": 95, "w": 12, "h": 8 },
       "datasource": { "type": "loki", "uid": "loki" },
       "targets": [
         {
@@ -642,7 +624,7 @@
       "id": 31,
       "type": "barchart",
       "title": "Log Volume by Level",
-      "gridPos": { "x": 12, "y": 98, "w": 12, "h": 8 },
+      "gridPos": { "x": 12, "y": 95, "w": 12, "h": 8 },
       "datasource": { "type": "loki", "uid": "loki" },
       "targets": [
         {
