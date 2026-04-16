@@ -44,3 +44,7 @@ nas_mount_point: "/mnt/nas/backups"
 # Backup schedule
 backup_time: "02:00:00"
 backup_keep_days: 30
+
+# NVMe data drive
+nvme_uuid: "00d76170-7940-4e9e-8ebb-382eb461e3ff"
+nvme_mount_point: "/mnt/nvme"

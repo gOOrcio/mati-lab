@@ -38,6 +38,23 @@
         state: present
       tags: [base]
 
+    # ── NVMe data drive ────────────────────────────────────────────────────
+    - name: Create NVMe mount point
+      ansible.builtin.file:
+        path: "{{ nvme_mount_point }}"
+        state: directory
+        mode: "0755"
+      tags: [base, nvme]
+
+    - name: Mount NVMe data drive via fstab
+      ansible.posix.mount:
+        src: "UUID={{ nvme_uuid }}"
+        path: "{{ nvme_mount_point }}"
+        fstype: ext4
+        opts: "defaults,noatime"
+        state: mounted
+      tags: [base, nvme]
+
     # ── Docker ──────────────────────────────────────────────────────────────
     - name: Add Docker GPG key
       ansible.builtin.get_url:
