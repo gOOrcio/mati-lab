@@ -1,5 +1,9 @@
 {
 	email mateusz.goral92@gmail.com
+	servers {
+		metrics
+	}
+	admin 0.0.0.0:2019
 }
 
 *.mati-lab.online {
