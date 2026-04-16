@@ -12,3 +12,6 @@ grafana-storage/
 
 # Provisioning files (keep in git - dashboards, datasources)
 !provisioning/
+
+# Archived provisioned dashboards (reference only)
+dashboards-archive/

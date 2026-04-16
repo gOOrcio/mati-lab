@@ -1,12 +1,6 @@
+# Dashboard provisioning disabled — dashboards live in Grafana's DB.
+# Edit dashboards freely in the UI. Nightly export backs them up to git + NAS.
+# To push a dashboard programmatically, use the Grafana HTTP API:
+#   POST /api/dashboards/db  (see manage-grafana.sh import)
 apiVersion: 1
-
-providers:
-  - name: 'default'
-    orgId: 1
-    folder: ''
-    type: file
-    disableDeletion: false
-    updateIntervalSeconds: 30
-    allowUiUpdates: true
-    options:
-      path: /etc/grafana/provisioning/dashboards
+providers: []
