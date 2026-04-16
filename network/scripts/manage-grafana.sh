@@ -29,20 +29,31 @@ import_dashboard() {
   [[ -z "$json_file" ]] && { log_error "Usage: $0 import <dashboard.json>"; exit 1; }
   [[ ! -f "$json_file" ]] && { log_error "File not found: $json_file"; exit 1; }
 
-  local grafana_pass
+  local grafana_user grafana_pass
+  grafana_user=$(grep -E '^GF_SECURITY_ADMIN_USER=' "../grafana/.env" 2>/dev/null | cut -d= -f2- | tr -d '"' | head -1)
   grafana_pass=$(grep -E '^GF_(SECURITY_)?ADMIN_PASSWORD=' "../grafana/.env" 2>/dev/null | cut -d= -f2- | tr -d '"' | head -1)
   [[ -z "$grafana_pass" ]] && { log_error "Could not read Grafana admin password from .env"; exit 1; }
+  grafana_user="${grafana_user:-admin}"
 
-  # Wrap the dashboard JSON in the API envelope
-  local payload
-  payload=$(jq -n --argjson dash "$(jq '.id = null' "$json_file")" '{dashboard: $dash, overwrite: true}')
+  # Build API payload as a temp file (handles large dashboards)
+  local payload_file
+  payload_file=$(mktemp)
+  jq '{dashboard: (. | .id = null), overwrite: true}' "$json_file" > "$payload_file"
+
+  # SCP payload to Pi, then import via docker on pihole-net
+  local remote_payload="/tmp/grafana-import-$(basename "$json_file")"
+  scp "${SSH_OPTS[@]}" "$payload_file" "$REMOTE:$remote_payload"
+  rm -f "$payload_file"
 
   local response
-  response=$(ssh "${SSH_OPTS[@]}" "$REMOTE" "curl -sS -X POST \
+  response=$(ssh "${SSH_OPTS[@]}" "$REMOTE" "docker run --rm --network pihole-net \
+    -v '$remote_payload:/payload.json' \
+    curlimages/curl:latest \
+    -sS -X POST \
     -H 'Content-Type: application/json' \
-    -u 'admin:${grafana_pass}' \
-    -d '${payload}' \
-    http://grafana:3000/api/dashboards/db")
+    -u '${grafana_user}:${grafana_pass}' \
+    -d @/payload.json \
+    http://grafana:3000/api/dashboards/db && rm -f '$remote_payload'")
 
   local status
   status=$(echo "$response" | jq -r '.status // "error"')

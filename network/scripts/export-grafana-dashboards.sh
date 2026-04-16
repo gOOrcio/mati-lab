@@ -9,11 +9,14 @@ GRAFANA_DIR="$(cd "$SCRIPT_DIR/../grafana" && pwd)"
 DASHBOARDS_DIR="$GRAFANA_DIR/provisioning/dashboards"
 GRAFANA_URL="http://grafana:3000"
 
-# Get admin password from .env or container
+# Get admin credentials from .env or container
+GRAFANA_USER=""
 GRAFANA_PASS=""
 if [[ -f "$GRAFANA_DIR/.env" ]]; then
+  GRAFANA_USER=$(grep -E '^GF_SECURITY_ADMIN_USER=' "$GRAFANA_DIR/.env" 2>/dev/null | cut -d= -f2- | tr -d '"' | head -1)
   GRAFANA_PASS=$(grep -E '^GF_(SECURITY_)?ADMIN_PASSWORD=' "$GRAFANA_DIR/.env" 2>/dev/null | cut -d= -f2- | tr -d '"' | head -1)
 fi
+GRAFANA_USER="${GRAFANA_USER:-admin}"
 [[ -z "$GRAFANA_PASS" ]] && GRAFANA_PASS=$(docker exec grafana printenv GF_SECURITY_ADMIN_PASSWORD 2>/dev/null || docker exec grafana printenv GF_ADMIN_PASSWORD 2>/dev/null || true)
 
 if [[ -z "$GRAFANA_PASS" ]]; then
@@ -22,7 +25,7 @@ if [[ -z "$GRAFANA_PASS" ]]; then
 fi
 
 fetch() {
-  docker run --rm --network pihole-net curlimages/curl:latest -sS -u "admin:$GRAFANA_PASS" -H "Accept: application/json" "$GRAFANA_URL$1"
+  docker run --rm --network pihole-net curlimages/curl:latest -sS -u "$GRAFANA_USER:$GRAFANA_PASS" -H "Accept: application/json" "$GRAFANA_URL$1"
 }
 
 LIST=$(fetch "/api/search?type=dash-db")
