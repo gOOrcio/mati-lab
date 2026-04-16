@@ -43,4 +43,12 @@ for uid in "${UIDS[@]}"; do
   echo "Exported: ${SLUG}.json"
 done
 
+# Copy exports to NAS backup if mount is available
+NAS_BACKUP_DIR="/mnt/nas/backups/network-pi/grafana/dashboards"
+if mountpoint -q /mnt/nas/backups 2>/dev/null; then
+  mkdir -p "$NAS_BACKUP_DIR"
+  cp "$DASHBOARDS_DIR"/*.json "$NAS_BACKUP_DIR/" 2>/dev/null || true
+  echo "Copied dashboards to NAS: $NAS_BACKUP_DIR"
+fi
+
 echo "Exported ${#UIDS[@]} dashboard(s)"
