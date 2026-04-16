@@ -1,7 +1,7 @@
 # Network Services Makefile
 # Provides convenient shortcuts for common operations
 
-.PHONY: help deploy update restart status logs stop start clean setup env rebuild-caddy
+.PHONY: help deploy update restart status logs stop start clean setup env rebuild-caddy backup backup-status backup-check
 
 # Service definitions
 SERVICES := pihole authelia caddy uptime-kuma homarr prometheus grafana ntfy diun cloudflared loki network-pi-metrics registry-mirror pve-exporter promtail grafana-ntfy-bridge
@@ -26,6 +26,10 @@ help:
 	@echo "  clean     - Clean up old files"
 	@echo "  setup     - Setup scripts permissions"
 	@echo "  env       - Create .env from template"
+	@echo ""
+	@echo "  backup             - Run backup of all services to NAS"
+	@echo "  backup-status      - Show backup timer status and recent logs"
+	@echo "  backup-check       - Check NAS mount and timer status"
 	@echo ""
 	@echo "Service-specific targets:"
 	@echo "  {operation}-{service}  - e.g., deploy-caddy, update-grafana"
@@ -66,6 +70,19 @@ rebuild-caddy:
 rebuild-grafana-ntfy-bridge:
 	@echo "Rebuilding Grafana-Ntfy-Bridge..."
 	@cd scripts && BRANCH=$(BRANCH) ./manage-grafana-ntfy-bridge.sh rebuild
+
+# Backup targets
+backup:
+	@echo "Running service backup to NAS..."
+	@cd scripts && ./manage-backup.sh run
+
+backup-status:
+	@echo "Checking backup status..."
+	@cd scripts && ./manage-backup.sh status
+
+backup-check:
+	@echo "Checking backup prerequisites..."
+	@cd scripts && ./manage-backup.sh check
 
 # Utility targets
 clean:
