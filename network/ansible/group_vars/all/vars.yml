@@ -7,6 +7,7 @@ pi_timezone: Europe/Warsaw
 docker_registry_mirror: "http://192.168.1.252:5000"
 docker_log_max_size: "10m"
 docker_log_max_file: "3"
+docker_data_root: "/mnt/nvme/docker"
 
 # UFW firewall rules
 ufw_default_incoming: deny
