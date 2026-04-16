@@ -38,10 +38,12 @@ uptime-kuma/data
 
 .ai
 
-# Claude Code — not committed to git
+# AI outputs — not committed to git
 .claude/
 docs/superpowers/
-docs/design
+docs/design/
+docs/specs/
 CLAUDE.md
+**/PLAN.md
 
 compute/restorate_lxc/backups
