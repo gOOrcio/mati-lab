@@ -1,4 +1,0 @@
-collections:
-  - name: community.general    # proxmox_kvm, ufw
-  - name: community.docker     # docker_compose_v2
-  - name: ansible.posix        # sysctl, synchronize
