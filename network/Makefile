@@ -3,8 +3,9 @@
 
 .PHONY: help deploy update restart status logs stop start clean setup env rebuild-caddy backup backup-status backup-check
 
-# Service definitions
-SERVICES := pihole authelia caddy uptime-kuma homarr prometheus grafana ntfy diun cloudflared loki network-pi-metrics registry-mirror pve-exporter promtail grafana-ntfy-bridge
+# Service definitions — ordered for dependency-safe deploys
+# pihole (DNS) → registry-mirror (Docker registry) → caddy (TLS reverse proxy) → rest
+SERVICES := pihole registry-mirror caddy authelia cloudflared uptime-kuma homarr prometheus grafana ntfy diun loki network-pi-metrics pve-exporter promtail grafana-ntfy-bridge
 OPERATIONS := deploy update restart status logs stop start push save
 BRANCH ?= main
 

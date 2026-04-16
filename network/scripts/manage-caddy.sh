@@ -24,10 +24,14 @@ build_and_push() {
 
 deploy() {
   log "Deploying $SERVICE_NAME"
-  build_and_push
+  ensure_network
   sync_from_github
   copy_env_file "../$SERVICE_NAME"
-  compose_cmd up -d --pull always
+  compose_cmd up -d
+}
+
+ensure_network() {
+  ssh "${SSH_OPTS[@]}" "$REMOTE" "docker network inspect pihole-net >/dev/null 2>&1 || docker network create --opt com.docker.network.bridge.enable_ip_masquerade=true pihole-net"
 }
 
 rebuild() {

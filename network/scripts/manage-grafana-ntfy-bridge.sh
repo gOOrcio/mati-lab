@@ -21,10 +21,9 @@ build_and_push() {
 
 deploy() {
   log "Deploying $SERVICE_NAME"
-  build_and_push
   sync_from_github
   copy_env_file "../$SERVICE_NAME"
-  compose_cmd up -d --pull always
+  compose_cmd up -d
 }
 
 rebuild() {

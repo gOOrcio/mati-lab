@@ -6,8 +6,12 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=network/scripts/common.sh
 source "$SCRIPT_DIR/common.sh"
 
-# Available services
-SERVICES=(pihole authelia caddy uptime-kuma homarr prometheus grafana ntfy diun cloudflared loki network-pi-metrics registry-mirror pve-exporter promtail grafana-ntfy-bridge)
+# Available services — ordered for dependency-safe deploys:
+# 1. pihole (DNS for everything)
+# 2. registry-mirror (Docker registry, needed before caddy pushes images)
+# 3. caddy (reverse proxy + TLS, needed for registry HTTPS)
+# 4. everything else
+SERVICES=(pihole registry-mirror caddy authelia cloudflared uptime-kuma homarr prometheus grafana ntfy diun loki network-pi-metrics pve-exporter promtail grafana-ntfy-bridge)
 
 log_success(){ printf "\033[0;32m[SUCCESS]\033[0m %s\n" "$*"; }
 log_warning(){ printf "\033[1;33m[WARNING]\033[0m %s\n" "$*"; }
