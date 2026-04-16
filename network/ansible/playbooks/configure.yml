@@ -38,6 +38,33 @@
         state: present
       tags: [base]
 
+    # ── Sudoers (NOPASSWD for Ansible) ────────────────────────────────────
+    - name: Allow passwordless sudo for pi user
+      ansible.builtin.copy:
+        content: "{{ pi_user }} ALL=(ALL) NOPASSWD:ALL\n"
+        dest: "/etc/sudoers.d/{{ pi_user }}"
+        mode: "0440"
+        validate: "visudo -cf %s"
+      tags: [base]
+
+    # ── Disable systemd-resolved stub (conflicts with Pi-hole) ─────────
+    - name: Ensure resolved.conf.d directory exists
+      ansible.builtin.file:
+        path: /etc/systemd/resolved.conf.d
+        state: directory
+        mode: "0755"
+      tags: [base, dns]
+
+    - name: Disable systemd-resolved DNS stub listener
+      ansible.builtin.copy:
+        content: |
+          [Resolve]
+          DNSStubListener=no
+        dest: /etc/systemd/resolved.conf.d/no-stub.conf
+        mode: "0644"
+      notify: Restart systemd-resolved
+      tags: [base, dns]
+
     # ── NVMe data drive ────────────────────────────────────────────────────
     - name: Create NVMe mount point
       ansible.builtin.file:
@@ -190,6 +217,13 @@
       loop: "{{ ufw_rules }}"
       tags: [security, ufw]
 
+    - name: Set UFW forward policy to ACCEPT (required for Docker bridge NAT)
+      ansible.builtin.lineinfile:
+        path: /etc/default/ufw
+        regexp: '^DEFAULT_FORWARD_POLICY='
+        line: 'DEFAULT_FORWARD_POLICY="ACCEPT"'
+      tags: [security, ufw]
+
     - name: Enable UFW
       community.general.ufw:
         state: enabled
@@ -246,4 +280,9 @@
     - name: Restart fail2ban
       ansible.builtin.systemd:
         name: fail2ban
+        state: restarted
+
+    - name: Restart systemd-resolved
+      ansible.builtin.systemd:
+        name: systemd-resolved
         state: restarted
