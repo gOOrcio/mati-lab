@@ -11,6 +11,11 @@ scrape_configs:
       - targets: ['192.168.1.203:3001']
     metrics_path: /metrics
 
+  - job_name: restorate-dev
+    static_configs:
+      - targets: [ '192.168.1.173:3001' ]
+    metrics_path: /metrics
+
   - job_name: node-exporter
     static_configs:
       - targets: [ 'node-exporter:9100' ]
