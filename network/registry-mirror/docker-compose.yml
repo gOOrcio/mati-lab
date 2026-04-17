@@ -9,6 +9,11 @@ services:
     restart: always
     security_opt: [no-new-privileges:true]
     networks: [pihole-net]
+    # Bypass Pi-hole for upstream registry DNS — same pattern as uptime-kuma.
+    # See docs/design/docker-networking-pihole-postmortem.md
+    dns:
+      - 1.1.1.1
+      - 1.0.0.1
     ports:
       - "5000:5000"
     environment:
