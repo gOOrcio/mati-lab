@@ -65,6 +65,30 @@
       notify: Restart systemd-resolved
       tags: [base, dns]
 
+    # ── Network: ethernet only, no wifi ────────────────────────────────────
+    # Why: the Pi's eth0 and wlan0 were both grabbing DHCP leases on the same
+    # LAN, triggering router "duplicate IP" alerts (one hostname, two leases).
+    # We enforce an ethernet-only netplan and disable cloud-init network
+    # regeneration so the config survives reboots and re-images.
+    - name: Write ethernet-only netplan
+      ansible.builtin.template:
+        src: ../templates/netplan-ethernet.yaml.j2
+        dest: /etc/netplan/50-cloud-init.yaml
+        mode: "0600"
+        owner: root
+        group: root
+      notify: Apply netplan
+      tags: [base, network]
+
+    - name: Disable cloud-init network regeneration
+      ansible.builtin.template:
+        src: ../templates/cloud-init-disable-network.cfg.j2
+        dest: /etc/cloud/cloud.cfg.d/99-disable-network-config.cfg
+        mode: "0644"
+        owner: root
+        group: root
+      tags: [base, network]
+
     # ── NVMe data drive ────────────────────────────────────────────────────
     - name: Create NVMe mount point
       ansible.builtin.file:
@@ -286,3 +310,7 @@
       ansible.builtin.systemd:
         name: systemd-resolved
         state: restarted
+
+    - name: Apply netplan
+      ansible.builtin.command: netplan apply
+      changed_when: true
