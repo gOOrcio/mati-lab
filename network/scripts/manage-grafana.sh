@@ -46,8 +46,9 @@ import_dashboard() {
   scp "${SSH_OPTS[@]}" "$payload_file" "$REMOTE:$remote_payload"
   rm -f "$payload_file"
 
-  # shellcheck disable=SC2029  # $remote_payload must expand client-side here
   local response
+  # $remote_payload must expand client-side here; ssh arg is already a single string.
+  # shellcheck disable=SC2029
   response=$(ssh "${SSH_OPTS[@]}" "$REMOTE" "docker run --rm --network pihole-net \
     -v '$remote_payload:/payload.json' \
     curlimages/curl:latest \

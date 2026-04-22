@@ -68,15 +68,25 @@
     # ── Network: ethernet only, no wifi ────────────────────────────────────
     # Why: the Pi's eth0 and wlan0 were both grabbing DHCP leases on the same
     # LAN, triggering router "duplicate IP" alerts (one hostname, two leases).
-    # We enforce an ethernet-only netplan and disable cloud-init network
-    # regeneration so the config survives reboots and re-images.
+    # We enforce an ethernet-only netplan in a dedicated file (so cloud-init's
+    # 50-cloud-init.yaml is removed rather than repurposed) and disable
+    # cloud-init network regeneration so the config survives reboots/re-images.
     - name: Write ethernet-only netplan
       ansible.builtin.template:
         src: ../templates/netplan-ethernet.yaml.j2
-        dest: /etc/netplan/50-cloud-init.yaml
+        dest: /etc/netplan/01-ethernet.yaml
+        # 0600 is netplan-enforced — 0106+ warns on anything group/world readable
+        # ("too open") even if the file contains no secrets. Keep it strict.
         mode: "0600"
         owner: root
         group: root
+      notify: Apply netplan
+      tags: [base, network]
+
+    - name: Remove cloud-init netplan file (our 01-ethernet.yaml is authoritative)
+      ansible.builtin.file:
+        path: /etc/netplan/50-cloud-init.yaml
+        state: absent
       notify: Apply netplan
       tags: [base, network]
 
@@ -311,6 +321,16 @@
         name: systemd-resolved
         state: restarted
 
+    # `netplan apply` can momentarily drop the SSH session when links flap.
+    # Fire-and-forget, then wait for the connection to come back so the play
+    # doesn't fail on a transient disconnect.
     - name: Apply netplan
       ansible.builtin.command: netplan apply
+      async: 120
+      poll: 0
       changed_when: true
+
+    - name: Wait for connection after netplan apply
+      ansible.builtin.wait_for_connection:
+        timeout: 120
+        delay: 2
