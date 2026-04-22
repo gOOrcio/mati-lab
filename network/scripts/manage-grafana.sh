@@ -41,10 +41,12 @@ import_dashboard() {
   jq '{dashboard: (. | .id = null), overwrite: true}' "$json_file" > "$payload_file"
 
   # SCP payload to Pi, then import via docker on pihole-net
-  local remote_payload="/tmp/grafana-import-$(basename "$json_file")"
+  local remote_payload
+  remote_payload="/tmp/grafana-import-$(basename "$json_file")"
   scp "${SSH_OPTS[@]}" "$payload_file" "$REMOTE:$remote_payload"
   rm -f "$payload_file"
 
+  # shellcheck disable=SC2029  # $remote_payload must expand client-side here
   local response
   response=$(ssh "${SSH_OPTS[@]}" "$REMOTE" "docker run --rm --network pihole-net \
     -v '$remote_payload:/payload.json' \
