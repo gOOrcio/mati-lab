@@ -1,5 +1,6 @@
 .PHONY: provision configure deploy install-deps \
-        db-backup db-restore db-clean db-shell annotate-deploy
+        db-backup db-restore db-clean db-shell annotate-deploy \
+        maintenance-on maintenance-off
 
 # ── SSH config ───────────────────────────────────────────────────────────────
 SSH_KEY  ?= ~/.ssh/id_ed25519
@@ -72,3 +73,27 @@ db-clean:
 
 db-shell:
 	$(SSH_TTY) "sudo -u postgres psql $(DB_NAME)"
+
+# ── Maintenance worker (Cloudflare) ──────────────────────────────────────────
+# Worker source lives at ~/Projects/resto-rate/infra/maintenance/worker/
+# Requires (one-time): bun install + bunx wrangler login
+#
+# The worker auto-serves the maintenance page when the origin is unreachable
+# (5xx / tunnel down). `maintenance-on` additionally pins a scheduled window
+# until UNTIL, even if the origin is up.
+#
+## maintenance-on UNTIL="2026-04-23T10:00:00+02:00" [MESSAGE="..."]
+##   Enable scheduled maintenance. UNTIL is required (ISO datetime + timezone).
+maintenance-on:
+	@test -n "$(UNTIL)" || { echo "Usage: make maintenance-on UNTIL=\"2026-04-23T10:00:00+02:00\" [MESSAGE=\"...\"]"; exit 1; }
+	cd ~/Projects/resto-rate/infra/maintenance/worker && \
+	  bunx wrangler deploy \
+	    --var MAINTENANCE_UNTIL:"$(UNTIL)" \
+	    --var MAINTENANCE_MESSAGE:"$(MESSAGE)"
+	@echo "Maintenance ON until $(UNTIL)"
+
+## maintenance-off: Disable scheduled maintenance; worker reverts to transparent
+##   proxy (still auto-serves the maintenance page on origin 5xx / tunnel down).
+maintenance-off:
+	cd ~/Projects/resto-rate/infra/maintenance/worker && bunx wrangler deploy
+	@echo "Maintenance OFF — worker back to transparent-proxy mode"
