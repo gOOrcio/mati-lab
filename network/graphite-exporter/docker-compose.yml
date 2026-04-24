@@ -4,7 +4,7 @@ networks:
 
 services:
   graphite-exporter:
-    image: prom/graphite-exporter:v0.17.0
+    image: prom/graphite-exporter:v0.16.0
     container_name: graphite-exporter
     restart: always
     security_opt: [no-new-privileges:true]
