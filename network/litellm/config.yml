@@ -90,3 +90,8 @@ general_settings:
   background_health_checks: true
   health_check_interval: 30
   enable_health_check_routing: true
+
+# Enable Prometheus metrics at /metrics for the scrape job in
+# network/prometheus/prometheus.yml. Without this the endpoint 404s.
+litellm_settings:
+  callbacks: ["prometheus"]
