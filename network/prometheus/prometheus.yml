@@ -42,3 +42,10 @@ scrape_configs:
       node: ['1']
     static_configs:
       - targets: [ 'pve-exporter:9221' ]   # PVE exporter on Pi
+
+  # TrueNAS pushes Netdata-format metrics to graphite-exporter via Carbon
+  # (tcp/2003). We scrape the translated output here.
+  - job_name: graphite-exporter
+    scrape_interval: 30s
+    static_configs:
+      - targets: [ 'graphite-exporter:9108' ]

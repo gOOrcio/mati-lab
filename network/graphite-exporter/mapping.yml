@@ -1,0 +1,32 @@
+# Mapping rules for converting TrueNAS's Netdata-emitted Carbon metric
+# names into Prometheus metrics.
+#
+# Netdata's Graphite output format (with "Send Names Instead Of IDs" on) is:
+#   <prefix>.<namespace>.<chart_family>.<chart>.<dimension>  value  ts
+# which in our case means:
+#   netdata.truenas.<family>.<chart>.<dimension>
+#
+# The TrueNAS form uses prefix="netdata" and namespace="truenas".
+# If you change those, update the "match:" lines below.
+
+mappings:
+  # 4-segment names (most metrics): family.chart.dimension -> labels.
+  - match: 'netdata.*.*.*.*'
+    match_type: glob
+    name: 'netdata_${2}_${3}_${4}'
+    labels:
+      host: '$1'
+
+  # 3-segment names (uncommon but some charts): family.chart.
+  - match: 'netdata.*.*.*'
+    match_type: glob
+    name: 'netdata_${2}_${3}'
+    labels:
+      host: '$1'
+
+  # 2-segment fallback (rare).
+  - match: 'netdata.*.*'
+    match_type: glob
+    name: 'netdata_${2}'
+    labels:
+      host: '$1'

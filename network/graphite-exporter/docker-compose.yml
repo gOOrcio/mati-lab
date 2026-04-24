@@ -1,0 +1,26 @@
+networks:
+  pihole-net:
+    external: true
+
+services:
+  graphite-exporter:
+    image: prom/graphite-exporter:v0.17.0
+    container_name: graphite-exporter
+    restart: always
+    security_opt: [no-new-privileges:true]
+    networks: [pihole-net]
+    command:
+      - --graphite.mapping-config=/etc/graphite-exporter/mapping.yml
+      # Listen on all addrs inside container for Carbon plaintext protocol.
+      - --graphite.listen-address=:2003
+      # Prometheus scrapes /metrics here.
+      - --web.listen-address=:9108
+    ports:
+      # TrueNAS's Netdata-Graphite exporter pushes over TCP on the Carbon
+      # port. UDP not used — Netdata's Graphite backend is TCP-only.
+      - "2003:2003/tcp"
+    volumes:
+      - ./mapping.yml:/etc/graphite-exporter/mapping.yml:ro
+    labels:
+      - "com.docker.compose.project=graphite-exporter"
+      - "com.docker.compose.service=graphite-exporter"
