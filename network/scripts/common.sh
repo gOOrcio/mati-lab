@@ -80,7 +80,12 @@ compose_cmd() {
 }
 
 # Standard service operations
-deploy()  { log "Deploying $SERVICE_NAME"; sync_from_github; copy_env_file "../$SERVICE_NAME"; compose_cmd up -d --pull always; }
+# --force-recreate on `deploy` is required for services that bind-mount a
+# single config file (caddy, authelia, loki, prometheus, promtail, …). The
+# Caddyfile inode the container holds doesn't change when `git pull`
+# replaces the file, so the container keeps serving the pre-pull config
+# until recreated. Cheap on small services; always-safe.
+deploy()  { log "Deploying $SERVICE_NAME"; sync_from_github; copy_env_file "../$SERVICE_NAME"; compose_cmd up -d --pull always --force-recreate; }
 update()  { log "Updating $SERVICE_NAME"; sync_from_github; copy_env_file "../$SERVICE_NAME"; compose_cmd down; compose_cmd up -d --pull always; }
 restart() { log "Restarting $SERVICE_NAME"; compose_cmd restart; }
 start()   { log "Starting $SERVICE_NAME"; compose_cmd up -d; }

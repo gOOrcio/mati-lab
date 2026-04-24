@@ -27,7 +27,8 @@ deploy() {
   ensure_network
   sync_from_github
   copy_env_file "../$SERVICE_NAME"
-  compose_cmd up -d
+  # See common.sh::deploy for why --force-recreate is needed.
+  compose_cmd up -d --force-recreate
 }
 
 ensure_network() {
@@ -52,8 +53,7 @@ update() {
   log "Updating $SERVICE_NAME (pull only, no rebuild)"
   sync_from_github
   copy_env_file "../$SERVICE_NAME"
-  compose_cmd up -d --pull always
-  compose_cmd restart caddy
+  compose_cmd up -d --pull always --force-recreate
 }
 
 save() { push; }
