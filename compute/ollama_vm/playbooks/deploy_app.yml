@@ -88,12 +88,15 @@
       ansible.builtin.command:
         cmd: "ollama pull {{ item }}"
       loop: "{{ ollama_models }}"
-      become: true
-      become_user: ollama
+      # ollama pull is a plain HTTP call to the local server — no root,
+      # no become_user needed. Override the play-level `become: true`.
+      become: false
       environment:
-        OLLAMA_HOST: "http://{{ vm_ip }}:11434"
+        OLLAMA_HOST: "http://127.0.0.1:11434"
       changed_when: true
-      delegate_to: localhost
+      # Previously `delegate_to: localhost` + `become_user: ollama`: tried
+      # to run `ollama pull` on the Ansible control host as a local user
+      # that doesn't exist. Runs on the VM directly now, as the SSH user.
       # Note: large models (qwen3.5:9b = 6.6GB) can take several minutes each
 
   handlers:
