@@ -28,7 +28,7 @@ model_list:
 
   - model_name: agent-default           # fallback 2: local dense 14B (dev PC)
     litellm_params:
-      model: ollama_chat/qwen3.5:14b
+      model: ollama_chat/qwen2.5:14b-instruct
       api_base: http://192.168.1.173:11434
     model_info:
       order: 3

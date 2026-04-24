@@ -51,8 +51,7 @@ ss -tlnp | grep 11434
 If UFW is enabled:
 
 ```bash
-sudo ufw allow from 192.168.1.252 to any port 11434 proto tcp \
-  comment "Pi LiteLLM -> Ollama"
+sudo ufw allow from 192.168.1.252 to any port 11434 proto tcp comment "Pi LiteLLM -> Ollama"
 ```
 
 ## Pull the Phase 3 models
@@ -64,16 +63,15 @@ sudo ufw allow from 192.168.1.252 to any port 11434 proto tcp \
 # qwen3-coder tag lands (or move to a non-Ollama runtime).
 ollama pull qwen2.5-coder:14b
 
-# Local assistant slot — Q8_0 preferred for near-lossless quality.
-# If qwen3.5:14b Q8_0 isn't in the Ollama library by default, pull the
-# Unsloth GGUF instead:
-#   ollama pull hf.co/unsloth/Qwen3.5-14B-GGUF:Q8_0
-ollama pull qwen3.5:14b
+# Local assistant slot — last-resort fallback for Hermes if DeepSeek +
+# Claude are both down. qwen3.5:14b doesn't exist in Ollama's library;
+# qwen2.5:14b-instruct is the equivalent size-class dense model that does.
+ollama pull qwen2.5:14b-instruct
 ```
 
-Do **NOT** pull `qwen3.5:35b-a3b` — its 35B total weights exceed 16 GB
-VRAM. Ollama falls back to CPU spill with a hard latency hit (~5 tok/s).
-Skip unless you're deliberately experimenting with MoE on constrained VRAM.
+Do **NOT** pull `qwen3.5:35b-a3b` or other 20GB+ variants — they exceed
+16 GB VRAM. Ollama falls back to CPU spill with a hard latency hit
+(~5 tok/s). Skip unless you're deliberately experimenting.
 
 ## Smoke test from the Pi
 
@@ -82,7 +80,7 @@ ssh gooral@192.168.1.252 \
   'curl -sS http://192.168.1.173:11434/api/tags | head'
 ```
 
-Expected: JSON listing `qwen2.5-coder:14b` and `qwen3.5:14b`.
+Expected: JSON listing `qwen2.5-coder:14b` and `qwen2.5:14b-instruct`.
 
 ## When booted to Windows
 
@@ -96,7 +94,7 @@ LiteLLM's health check re-enables the endpoint within ~30 s.
 ```bash
 # Pull latest tags
 ollama pull qwen2.5-coder:14b
-ollama pull qwen3.5:14b
+ollama pull qwen2.5:14b-instruct
 
 # Ollama itself
 curl -fsSL https://ollama.com/install.sh | sh
