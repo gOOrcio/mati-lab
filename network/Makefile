@@ -5,7 +5,7 @@
 
 # Service definitions — ordered for dependency-safe deploys
 # pihole (DNS) → registry-mirror (Docker registry) → caddy (TLS reverse proxy) → rest
-SERVICES := pihole registry-mirror caddy authelia cloudflared uptime-kuma homarr prometheus grafana ntfy diun loki network-pi-metrics pve-exporter promtail grafana-ntfy-bridge graphite-exporter litellm
+SERVICES := pihole registry-mirror caddy authelia cloudflared uptime-kuma homarr prometheus grafana ntfy diun loki network-pi-metrics pve-exporter promtail grafana-ntfy-bridge graphite-exporter
 OPERATIONS := deploy update restart status logs stop start push save
 BRANCH ?= main
 

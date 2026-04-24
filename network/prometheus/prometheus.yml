@@ -50,8 +50,18 @@ scrape_configs:
     static_configs:
       - targets: [ 'graphite-exporter:9108' ]
 
-  # LiteLLM exposes request count / spend / latency at /metrics by default.
+  # LiteLLM exposes request count / spend / latency at /metrics.
+  # Runs on NAS (TrueNAS Custom App), not pihole-net.
   - job_name: litellm
     static_configs:
-      - targets: [ 'litellm:4000' ]
+      - targets: [ '192.168.1.65:4000' ]
+    metrics_path: /metrics
+
+  # Hermes gateway — NAS Custom App. Scrape path TBD; verify once
+  # Hermes's /metrics endpoint is confirmed. Leaving the job in place
+  # for structure — if Hermes doesn't expose Prometheus metrics natively,
+  # delete this block.
+  - job_name: hermes
+    static_configs:
+      - targets: [ '192.168.1.65:8642' ]
     metrics_path: /metrics

@@ -238,14 +238,32 @@
 
 	@litellm host litellm.mati-lab.online
 	handle @litellm {
-		# Admin API / dashboard — Authelia 2FA required. Clients on
-		# pihole-net (Hermes, future OpenCode) talk to litellm via the
-		# Docker network at http://litellm:4000 and don't hit this vhost.
+		# LiteLLM runs on the NAS (TrueNAS Custom App), not on pihole-net.
+		# Admin API / dashboard — Authelia 2FA required. Clients co-hosted
+		# on the NAS (Hermes, future OpenCode) talk to LiteLLM directly
+		# via http://localhost:4000 or the NAS docker bridge and don't
+		# hit this vhost.
 		forward_auth http://authelia:9091 {
 			uri /api/authz/forward-auth
 			copy_headers Remote-User Remote-Groups Remote-Name Remote-Email
 		}
-		reverse_proxy http://litellm:4000 {
+		reverse_proxy http://192.168.1.65:4000 {
+			header_up Host {host}
+			header_up X-Forwarded-Proto https
+			header_up X-Forwarded-Ssl on
+		}
+	}
+
+	@hermes host hermes.mati-lab.online
+	handle @hermes {
+		# Hermes gateway (8642) — NAS Custom App. Authelia 2FA required
+		# for the web UI; messaging bots (Telegram etc.) reach Hermes via
+		# their own webhooks, not this vhost.
+		forward_auth http://authelia:9091 {
+			uri /api/authz/forward-auth
+			copy_headers Remote-User Remote-Groups Remote-Name Remote-Email
+		}
+		reverse_proxy http://192.168.1.65:8642 {
 			header_up Host {host}
 			header_up X-Forwarded-Proto https
 			header_up X-Forwarded-Ssl on
