@@ -49,3 +49,9 @@ scrape_configs:
     scrape_interval: 30s
     static_configs:
       - targets: [ 'graphite-exporter:9108' ]
+
+  # LiteLLM exposes request count / spend / latency at /metrics by default.
+  - job_name: litellm
+    static_configs:
+      - targets: [ 'litellm:4000' ]
+    metrics_path: /metrics

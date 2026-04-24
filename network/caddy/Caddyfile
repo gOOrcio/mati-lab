@@ -236,6 +236,22 @@
 		}
 	}
 
+	@litellm host litellm.mati-lab.online
+	handle @litellm {
+		# Admin API / dashboard — Authelia 2FA required. Clients on
+		# pihole-net (Hermes, future OpenCode) talk to litellm via the
+		# Docker network at http://litellm:4000 and don't hit this vhost.
+		forward_auth http://authelia:9091 {
+			uri /api/authz/forward-auth
+			copy_headers Remote-User Remote-Groups Remote-Name Remote-Email
+		}
+		reverse_proxy http://litellm:4000 {
+			header_up Host {host}
+			header_up X-Forwarded-Proto https
+			header_up X-Forwarded-Ssl on
+		}
+	}
+
 	@loki host loki.mati-lab.online
 	handle @loki {
 		@loki_health path /ready

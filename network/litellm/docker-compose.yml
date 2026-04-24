@@ -1,0 +1,25 @@
+networks:
+  pihole-net:
+    external: true
+
+services:
+  litellm:
+    # `main-latest` tracks the LiteLLM project's main branch. Pin to a
+    # dated tag once the stack settles; revisit after Phase 3 smoke-pass.
+    image: ghcr.io/berriai/litellm:main-latest
+    container_name: litellm
+    restart: always
+    security_opt: [no-new-privileges:true]
+    command: ["--config", "/etc/litellm/config.yml", "--port", "4000"]
+    env_file: .env
+    volumes:
+      - ./config.yml:/etc/litellm/config.yml:ro
+    networks: [pihole-net]
+    # LAN-only: bind only to loopback so the admin API isn't accessible
+    # without Caddy + Authelia in front. Other services on pihole-net
+    # still reach litellm at http://litellm:4000 via the Docker network.
+    ports:
+      - "127.0.0.1:4000:4000"
+    labels:
+      - "com.docker.compose.project=litellm"
+      - "com.docker.compose.service=litellm"
