@@ -9,6 +9,19 @@
       ansible.builtin.command: cloud-init status --wait
       changed_when: false
 
+    # Passwordless sudo for the Ansible user so future `make deploy` /
+    # `make configure` runs are fire-and-forget. First-time provision still
+    # needs `-K` (prompt for sudo password) until this file is written; once
+    # it exists, Ansible `become` works without a password.
+    - name: Allow passwordless sudo for Ansible user
+      ansible.builtin.copy:
+        content: "{{ vm_ssh_user }} ALL=(ALL) NOPASSWD:ALL\n"
+        dest: "/etc/sudoers.d/{{ vm_ssh_user }}"
+        mode: "0440"
+        owner: root
+        group: root
+        validate: "visudo -cf %s"
+
     - name: Upgrade all packages
       ansible.builtin.apt:
         upgrade: dist
