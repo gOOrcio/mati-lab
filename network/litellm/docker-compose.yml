@@ -4,9 +4,10 @@ networks:
 
 services:
   litellm:
-    # `main-latest` tracks the LiteLLM project's main branch. Pin to a
-    # dated tag once the stack settles; revisit after Phase 3 smoke-pass.
-    image: ghcr.io/berriai/litellm:main-latest
+    # Pinned to a dated stable tag. `main-latest` was retired by the
+    # project; current floating alternatives are `main-stable` or dated
+    # tags like `v1.83.7-stable`. Bump deliberately; don't use floating.
+    image: ghcr.io/berriai/litellm:v1.83.7-stable
     container_name: litellm
     restart: always
     security_opt: [no-new-privileges:true]
