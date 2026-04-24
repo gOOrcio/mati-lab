@@ -1,7 +1,21 @@
+# Static IPv4 config. Why: on 2026-04-24 a ~3s eth0 carrier flap caused
+# systemd-networkd's DHCPv4 client to drop the lease and never re-acquire,
+# leaving the Pi unreachable for ~2h until a physical power cycle. Pi-hole
+# going dark takes the whole LAN's DNS with it — static IP removes DHCP as
+# a failure class. The router-side reservation for .252 stays as a safety net.
 network:
   version: 2
   ethernets:
     eth0:
-      optional: true
-      dhcp4: true
-      dhcp6: true
+      dhcp4: false
+      dhcp6: false
+      accept-ra: false
+      addresses:
+        - {{ pi_ip }}/{{ pi_netmask_bits }}
+      routes:
+        - to: default
+          via: {{ pi_gateway }}
+      nameservers:
+        addresses: {{ pi_nameservers | to_json }}
+        search:
+          - {{ pi_dns_search }}

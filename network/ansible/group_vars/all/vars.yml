@@ -3,6 +3,15 @@ pi_hostname: network
 pi_user: gooral
 pi_timezone: Europe/Warsaw
 
+# Static network (see templates/netplan-ethernet.yaml.j2 for rationale)
+pi_ip: "192.168.1.252"
+pi_netmask_bits: 24
+pi_gateway: "192.168.1.1"
+# Self first (Pi-hole on this host), then a public fallback so the Pi can
+# still resolve if Pi-hole's container is down during boot/maintenance.
+pi_nameservers: ["192.168.1.252", "1.1.1.3"]
+pi_dns_search: "mati-lab.online"
+
 # Docker
 docker_registry_mirror: "http://192.168.1.252:5000"
 docker_log_max_size: "10m"
