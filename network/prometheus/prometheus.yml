@@ -57,8 +57,6 @@ scrape_configs:
       - targets: [ '192.168.1.65:4000' ]
     metrics_path: /metrics
 
-  # OpenClaw — NAS catalog app. Exposes Prometheus /metrics natively.
-  - job_name: openclaw
-    static_configs:
-      - targets: [ '192.168.1.65:30262' ]
-    metrics_path: /metrics
+  # OpenClaw deliberately NOT scraped — its /metrics path is served by
+  # the SPA router, not Prometheus. Use Uptime Kuma on `:30262/health`
+  # for liveness instead (see network/uptime-kuma/monitors.md).
