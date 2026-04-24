@@ -57,11 +57,8 @@ scrape_configs:
       - targets: [ '192.168.1.65:4000' ]
     metrics_path: /metrics
 
-  # Hermes gateway — NAS Custom App. Scrape path TBD; verify once
-  # Hermes's /metrics endpoint is confirmed. Leaving the job in place
-  # for structure — if Hermes doesn't expose Prometheus metrics natively,
-  # delete this block.
-  - job_name: hermes
+  # OpenClaw — NAS catalog app. Exposes Prometheus /metrics natively.
+  - job_name: openclaw
     static_configs:
-      - targets: [ '192.168.1.65:8642' ]
+      - targets: [ '192.168.1.65:30262' ]
     metrics_path: /metrics

@@ -254,16 +254,17 @@
 		}
 	}
 
-	@hermes host hermes.mati-lab.online
-	handle @hermes {
-		# Hermes gateway (8642) — NAS Custom App. Authelia 2FA required
-		# for the web UI; messaging bots (Telegram etc.) reach Hermes via
-		# their own webhooks, not this vhost.
+	@openclaw host openclaw.mati-lab.online
+	handle @openclaw {
+		# OpenClaw dashboard (:30262) — NAS catalog app. Authelia 2FA
+		# required for the web UI. Direct LAN access to 192.168.1.65:30262
+		# bypasses Authelia; OpenClaw's own Gateway Token is the only
+		# layer there.
 		forward_auth http://authelia:9091 {
 			uri /api/authz/forward-auth
 			copy_headers Remote-User Remote-Groups Remote-Name Remote-Email
 		}
-		reverse_proxy http://192.168.1.65:8642 {
+		reverse_proxy http://192.168.1.65:30262 {
 			header_up Host {host}
 			header_up X-Forwarded-Proto https
 			header_up X-Forwarded-Ssl on
