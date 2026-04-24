@@ -1,0 +1,25 @@
+# Secrets
+.env
+.env.local
+.env.production
+*.pem
+*.key
+secrets.json
+nas-secrets.yml
+*vault*.yml
+
+# Python (Ansible)
+__pycache__/
+*.pyc
+.venv/
+
+# Logs
+*.log
+logs/
+
+# Bind-mount / container data that shouldn't be read as code
+**/data/
+**/storage/
+*.sqlite
+*.db
+dump.sql
