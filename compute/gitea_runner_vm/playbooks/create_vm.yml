@@ -1,0 +1,65 @@
+---
+- name: Provision gitea-runner VM on Proxmox
+  hosts: localhost
+  gather_facts: false
+  vars_files:
+    - ../group_vars/all/vars.yml
+    - ../group_vars/all/vault.yml
+
+  tasks:
+    - name: Clone template VM
+      community.general.proxmox_kvm:
+        api_host: "{{ proxmox_host }}"
+        api_user: "{{ proxmox_api_user }}"
+        api_token_id: "{{ proxmox_api_token_id }}"
+        api_token_secret: "{{ proxmox_api_token_secret }}"
+        node: "{{ proxmox_node }}"
+        clone: "template-ubuntu-2404"
+        vmid: "{{ vm_template_id }}"
+        newid: "{{ vm_id }}"
+        name: "{{ vm_name }}"
+        full: true
+        storage: "{{ vm_storage }}"
+        timeout: 600
+        state: present
+
+    - name: Set VM resources
+      community.general.proxmox_kvm:
+        api_host: "{{ proxmox_host }}"
+        api_user: "{{ proxmox_api_user }}"
+        api_token_id: "{{ proxmox_api_token_id }}"
+        api_token_secret: "{{ proxmox_api_token_secret }}"
+        node: "{{ proxmox_node }}"
+        vmid: "{{ vm_id }}"
+        cores: "{{ vm_cores }}"
+        memory: "{{ vm_memory_mb }}"
+        balloon: 0
+        cipassword: "{{ vault_vm_initial_password | default(omit) }}"
+        ciuser: "{{ vm_ssh_user }}"
+        sshkeys: "{{ lookup('file', vm_ssh_key_path) }}"
+        ipconfig:
+          ipconfig0: "ip={{ vm_ip }}/{{ vm_cidr }},gw={{ vm_gateway }}"
+        nameservers: "{{ vm_nameserver }}"
+        update: true
+
+    - name: Resize disk to {{ vm_disk_size }}
+      ansible.builtin.command:
+        cmd: "ssh root@{{ proxmox_host }} qm resize {{ vm_id }} scsi0 {{ vm_disk_size }}"
+      changed_when: true
+
+    - name: Start VM
+      community.general.proxmox_kvm:
+        api_host: "{{ proxmox_host }}"
+        api_user: "{{ proxmox_api_user }}"
+        api_token_id: "{{ proxmox_api_token_id }}"
+        api_token_secret: "{{ proxmox_api_token_secret }}"
+        node: "{{ proxmox_node }}"
+        vmid: "{{ vm_id }}"
+        state: started
+
+    - name: Wait for SSH
+      ansible.builtin.wait_for:
+        host: "{{ vm_ip }}"
+        port: 22
+        timeout: 300
+        delay: 10

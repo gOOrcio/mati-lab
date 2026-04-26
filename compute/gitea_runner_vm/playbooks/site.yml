@@ -1,0 +1,4 @@
+---
+- import_playbook: create_vm.yml
+- import_playbook: configure_vm.yml
+- import_playbook: deploy_app.yml
