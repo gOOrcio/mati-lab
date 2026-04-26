@@ -1,0 +1,48 @@
+---
+- name: Deploy act_runner on gitea-runner VM
+  hosts: gitea_runner
+  become: true
+  vars_files:
+    - ../group_vars/all/vars.yml
+
+  tasks:
+    - name: Create runner state dirs
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+      loop:
+        - /var/lib/gitea-runner
+        - /var/lib/gitea-runner/data
+        - /var/lib/gitea-runner/secrets
+
+    - name: Render compose.yml
+      ansible.builtin.template:
+        src: ../templates/compose.yml.j2
+        dest: /var/lib/gitea-runner/compose.yml
+        mode: "0644"
+
+    - name: Render runner config.yaml
+      ansible.builtin.template:
+        src: ../templates/runner-config.yaml.j2
+        dest: /var/lib/gitea-runner/config.yaml
+        mode: "0644"
+
+    - name: Render systemd unit
+      ansible.builtin.template:
+        src: ../templates/gitea-runner.service.j2
+        dest: /etc/systemd/system/gitea-runner.service
+        mode: "0644"
+      notify: reload systemd
+
+    - name: Pull act_runner image
+      community.docker.docker_image:
+        name: "gitea/act_runner:{{ act_runner_version }}-dind-rootless"
+        source: pull
+
+  handlers:
+    - name: reload systemd
+      ansible.builtin.systemd:
+        daemon_reload: true

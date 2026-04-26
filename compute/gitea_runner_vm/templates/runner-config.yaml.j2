@@ -1,0 +1,17 @@
+log:
+  level: info
+runner:
+  capacity: 1
+  labels:
+    - ubuntu-latest:docker://node:20-bookworm
+    - debian-stable:docker://debian:bookworm
+    - linux-arm64:docker://node:20-bookworm
+cache:
+  enabled: true
+  dir: /data/cache
+container:
+  network: bridge
+  privileged: false
+  workdir_parent: /data/workspace
+host:
+  workdir_parent: ""

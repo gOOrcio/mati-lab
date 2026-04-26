@@ -1,0 +1,15 @@
+[Unit]
+Description=Gitea Act Runner (DinD-rootless)
+Requires=docker.service
+After=docker.service network-online.target qemu-binfmt.service
+
+[Service]
+Type=simple
+WorkingDirectory=/var/lib/gitea-runner
+ExecStart=/usr/bin/docker compose up
+ExecStop=/usr/bin/docker compose down
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

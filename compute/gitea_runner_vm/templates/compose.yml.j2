@@ -1,0 +1,17 @@
+services:
+  runner:
+    image: gitea/act_runner:{{ act_runner_version }}-dind-rootless
+    restart: unless-stopped
+    privileged: true
+    environment:
+      GITEA_INSTANCE_URL: "{{ gitea_instance_url }}"
+      CONFIG_FILE: /config/config.yaml
+    volumes:
+      - /var/lib/gitea-runner/data:/data
+      - /var/lib/gitea-runner/config.yaml:/config/config.yaml:ro
+      - /var/lib/gitea-runner/secrets/runner-token:/secrets/runner-token:ro
+    deploy:
+      resources:
+        limits:
+          memory: 2560M
+          cpus: '1.8'
