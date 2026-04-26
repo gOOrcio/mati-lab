@@ -1,24 +1,29 @@
+# Proxmox connection (reuse Ollama VM's vault — same Proxmox)
 proxmox_host: "192.168.1.184"
 proxmox_node: "proxmox"
 proxmox_api_user: "root@pam"
 proxmox_api_token_id:     "{{ vault_proxmox_api_token_id }}"
 proxmox_api_token_secret: "{{ vault_proxmox_api_token_secret }}"
 
+# VM spec
 vm_id: 102
 vm_name: "gitea-runner"
-vm_template_id: 100
+vm_template_id: 100   # same Ubuntu 24.04 cloud-init template as ollama_vm
 vm_cores: 2
-vm_memory_mb: 3072
+vm_memory_mb: 3072    # no balloon — DinD hates memory squeeze mid-build
 vm_disk_size: "64G"
 vm_storage: "local-lvm"
 
+# Network (static)
 vm_ip: "192.168.1.49"
 vm_gateway: "192.168.1.1"
 vm_nameserver: "192.168.1.1"
 vm_cidr: 24
 
+# SSH
 vm_ssh_user: "gitea-runner"
 vm_ssh_key_path: "~/.ssh/id_ed25519.pub"
 
-act_runner_version: "0.2.13"
+# act_runner
+act_runner_version: "0.2.13"   # pin; bump intentionally
 gitea_instance_url: "https://gitea.mati-lab.online"

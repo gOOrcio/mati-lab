@@ -38,9 +38,9 @@
       notify: reload systemd
 
     - name: Pull act_runner image
-      community.docker.docker_image:
-        name: "gitea/act_runner:{{ act_runner_version }}-dind-rootless"
-        source: pull
+      ansible.builtin.command:
+        cmd: "docker pull gitea/act_runner:{{ act_runner_version }}-dind-rootless"
+      changed_when: true
 
   handlers:
     - name: reload systemd
