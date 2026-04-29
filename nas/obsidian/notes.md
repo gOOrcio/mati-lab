@@ -234,6 +234,16 @@ ssh truenas_admin@192.168.1.65 'midclt call cronjob.run 1'
    forward_auth would 302-redirect to a 2FA browser flow and break
    sync. Same trap as Gitea's `git push`.
 6. **Phase 1 snapshot policy gap.** Hourly+daily snapshot tasks exist
-   only for `bulk/photos` and `bulk/media` — `bulk/obsidian-*` is
+   only for `bulk/photos` and `bulk/media` — `bulk/obsidian-*` was
    uncovered. Periodic snapshot tasks for both obsidian datasets are
-   pending (TrueNAS UI → Data Protection → Periodic Snapshot Tasks).
+   in place now (ids 6/8 hourly, 7/9 daily).
+7. **Secret leak via SETUP.md (rotated 2026-04-29).** First draft of
+   `SETUP.md` had the generated CouchDB admin + livesync passwords
+   inline; committed to Gitea + mirrored to GitHub. Both passwords
+   rotated immediately: livesync via `_users` doc PUT, admin via
+   `/_node/_local/_config/admins/admin` PUT, app env var via
+   `app.update`, cron job command via `cronjob.update 1`. History was
+   left intact (no force push) — old commits are still reachable by
+   SHA but the credentials they contain are dead. **Going forward:
+   placeholders only in any committed markdown — never inline values
+   for passwords/tokens/setup URIs.**

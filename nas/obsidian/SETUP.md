@@ -9,13 +9,19 @@ this file is the linear "do these in order" checklist.
 
 ---
 
-## Credentials you should already have in your password manager
+## Credentials in your password manager
 
-If you don't, recover them from this conversation **now** (they aren't
-written anywhere on disk):
+You will need (look these up in your password manager — they are
+deliberately not in this file):
 
-- CouchDB **admin** password: `XsVwFd0k9PhXNTrsNVmhfIyHJojhBNq2`
-- CouchDB **livesync** user password: `3PudZ0GmaiiDDZN5mnRrwV60liEKrNAs`
+- CouchDB **admin** password — used rarely, only for config changes.
+- CouchDB **livesync** user password — pasted into the obsidian-livesync
+  plugin on every device.
+
+> **Why placeholders here:** an earlier draft of this guide had the
+> generated values inline; that committed them to git history. The
+> values were rotated 2026-04-29; treat any password you might still
+> see in `git log -p` as burned. See `notes.md` "Lessons" #7.
 
 ---
 
@@ -70,7 +76,7 @@ Settings → Self-hosted LiveSync → **Setup wizard**.
 | Server Type | `CouchDB` |
 | URI | `https://obsidian.mati-lab.online` |
 | Username | `livesync` |
-| Password | `3PudZ0GmaiiDDZN5mnRrwV60liEKrNAs` |
+| Password | (livesync password from password manager) |
 | Database name | `obsidian-vault` |
 
 Click **Test connection** — should report success. The wizard offers
