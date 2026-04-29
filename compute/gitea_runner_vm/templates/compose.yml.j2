@@ -5,6 +5,7 @@ services:
     privileged: true
     environment:
       GITEA_INSTANCE_URL: "{{ gitea_instance_url }}"
+      GITEA_RUNNER_REGISTRATION_TOKEN_FILE: /secrets/runner-token
       CONFIG_FILE: /config/config.yaml
     volumes:
       - /var/lib/gitea-runner/data:/data

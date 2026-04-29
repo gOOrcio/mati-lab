@@ -3,9 +3,7 @@ log:
 runner:
   capacity: 1
   labels:
-    - ubuntu-latest:docker://node:20-bookworm
-    - debian-stable:docker://debian:bookworm
-    - linux-arm64:docker://node:20-bookworm
+    - ubuntu-latest:docker://catthehacker/ubuntu:act-latest
 cache:
   enabled: true
   dir: /data/cache

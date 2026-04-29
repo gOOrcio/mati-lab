@@ -6,15 +6,25 @@
     - ../group_vars/all/vars.yml
 
   tasks:
-    - name: Create runner state dirs
+    # Container runs DinD-rootless as uid 1000. /data and /secrets are bind-mounted
+    # without user-namespace remapping, so dirs must be owned by 1000:1000 on the
+    # host or the runner can't read its registration token or persist its identity.
+    - name: Create runner state root
       ansible.builtin.file:
-        path: "{{ item }}"
+        path: /var/lib/gitea-runner
         state: directory
         owner: root
         group: root
         mode: "0755"
+
+    - name: Create runner state dirs (uid 1000 for rootless container)
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        owner: "1000"
+        group: "1000"
+        mode: "0700"
       loop:
-        - /var/lib/gitea-runner
         - /var/lib/gitea-runner/data
         - /var/lib/gitea-runner/secrets
 

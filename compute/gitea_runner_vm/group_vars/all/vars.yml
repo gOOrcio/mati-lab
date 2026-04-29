@@ -8,7 +8,8 @@ proxmox_api_token_secret: "{{ vault_proxmox_api_token_secret }}"
 # VM spec
 vm_id: 102
 vm_name: "gitea-runner"
-vm_template_id: 100   # same Ubuntu 24.04 cloud-init template as ollama_vm
+vm_template_id: 9000   # debian12-cloud (only generic cloud-init template available;
+                       # ollama_vm cloned from a GPU-passthrough variant we don't want here)
 vm_cores: 2
 vm_memory_mb: 3072    # no balloon — DinD hates memory squeeze mid-build
 vm_disk_size: "64G"

@@ -14,7 +14,7 @@
         api_token_id: "{{ proxmox_api_token_id }}"
         api_token_secret: "{{ proxmox_api_token_secret }}"
         node: "{{ proxmox_node }}"
-        clone: "template-ubuntu-2404"
+        clone: "debian12-cloud"
         vmid: "{{ vm_template_id }}"
         newid: "{{ vm_id }}"
         name: "{{ vm_name }}"
@@ -34,7 +34,7 @@
         cores: "{{ vm_cores }}"
         memory: "{{ vm_memory_mb }}"
         balloon: 0
-        cipassword: "{{ vault_vm_initial_password | default(omit) }}"
+        cipassword: "{{ vault_vm_root_password | default(omit) }}"
         ciuser: "{{ vm_ssh_user }}"
         sshkeys: "{{ lookup('file', vm_ssh_key_path) }}"
         ipconfig:
