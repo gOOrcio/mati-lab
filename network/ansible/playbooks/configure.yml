@@ -116,8 +116,12 @@
         state: mounted
       tags: [base, nvme]
 
-    # ── GitHub SSH key (for git sync) ─────────────────────────────────────
-    - name: Generate SSH key for GitHub if absent
+    # ── Gitea SSH key (for git sync from NAS-hosted repo) ─────────────────
+    # Source of truth for /opt/mati-lab on the Pi is self-hosted Gitea on
+    # the NAS. Phase 4D migrated the org repo off GitHub; Phase 5 migrated
+    # the Pi to pull from Gitea directly (network/scripts/common.sh
+    # references GITEA_REPO).
+    - name: Generate SSH key for Gitea if absent
       ansible.builtin.user:
         name: "{{ pi_user }}"
         generate_ssh_key: true
@@ -128,21 +132,47 @@
     - name: Read public key
       ansible.builtin.slurp:
         src: "/home/{{ pi_user }}/.ssh/id_ed25519.pub"
-      register: github_pubkey
+      register: gitea_pubkey
       tags: [base, git]
 
-    - name: Add GitHub to known_hosts
+    - name: Add Gitea (NAS:30009) to known_hosts
       ansible.builtin.known_hosts:
-        name: github.com
-        key: "github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl"
+        name: "[nas.mati-lab.online]:30009"
+        # Gitea's SSH host key. If Gitea is reinstalled and this key
+        # rotates, ssh-keyscan -p 30009 -t rsa nas.mati-lab.online and
+        # paste the new value.
+        key: "[nas.mati-lab.online]:30009 ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQC2hTbAdfmdk5IZQtV//exZWFM3/uIsqJixyAqX3u/Q0s8Vm9khgqpU3mCivQis0DkK4RqEN/j817yE0HZnMiSd6p70RFDJI7Zt+tiBACpB2vKs57oQjq/XHfwjPYLZSi0z+PZyn76AbossJ6ScQNLTbT67TaNZ+zvXcEbImSXP7wsOeQt3D6S2KVjL0rHMrwHwhgZugDe/IeJno+e729TGS63uI7mWfj0/bYtqnrtW/AVi6cbzwldpnlzUDkrBAGv9lGe154S5uTUxG9lyG5p1HNIt7w3KSdp5V9mNSl5uA/QNGua9p3+n58bcK3hgA+tftqbF0Nlh6lHJWXRH4M+B2Ww+xXrp9wr/M7ntnMluey13w2zDGXbtTfD5vqIiGpipfiraVFhMD2b8g/wxK/bxVBPOdG3e3jHAF+VkECZscqRPrqiugvHk9OdgvTqJ8WkwYVlmWfAp40s62BMvdgXWty7prvjALVC8s3md/SaCFHl8c6tAlriXfQMW6o+l6InQtnBf4kCGfNF3nPv/CQNbnC+sNmgVHZoeY/Oiaq+AWN4Ifu+CYGuRnxvwvnEYHHz9lt4HWJijz9hunNezpQlBUu/6rehPIsss6NXd7Hhq8uUPIrD2KslEEZ8V73XC+GEBpYqVa0+qZApeVqrriWLmjn9yEpNXx+DoJ/t2YUyhpQ=="
         path: "/home/{{ pi_user }}/.ssh/known_hosts"
         state: present
       become: false
       tags: [base, git]
 
-    - name: Display public key (add to GitHub deploy keys if new)
+    - name: SSH client config — port + user for Gitea host
+      ansible.builtin.blockinfile:
+        path: "/home/{{ pi_user }}/.ssh/config"
+        owner: "{{ pi_user }}"
+        group: "{{ pi_user }}"
+        mode: "0600"
+        create: true
+        marker: "# {mark} ANSIBLE MANAGED — Gitea on NAS"
+        block: |
+          Host nas.mati-lab.online
+              Port 30009
+              User git
+              IdentityFile ~/.ssh/id_ed25519
+              StrictHostKeyChecking accept-new
+      become: false
+      tags: [base, git]
+
+    - name: Display public key (add to Gitea SSH keys if new)
       ansible.builtin.debug:
-        msg: "GitHub deploy key: {{ github_pubkey.content | b64decode | trim }}"
+        msg: |
+          Gitea SSH key — register at
+          https://gitea.mati-lab.online/user/settings/keys
+          (UI → Settings → SSH/GPG Keys → Add Key).
+          Title suggestion: "{{ pi_hostname }} (deploy puller)"
+
+          {{ gitea_pubkey.content | b64decode | trim }}
       tags: [base, git]
 
     # ── Docker ──────────────────────────────────────────────────────────────
