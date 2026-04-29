@@ -6,6 +6,10 @@ Obsidian Sync subscription. Sync transport is the `obsidian-livesync`
 community plugin talking to a local CouchDB; plain-markdown vault is
 mirrored to NAS via Syncthing for Phase 6 (RAG) consumption.
 
+> **First-time setup steps for the user (Mac/iOS/iPad/Syncthing GUI)
+> live in [`SETUP.md`](SETUP.md).** This file is the
+> install / operations reference.
+
 Deployed via `midclt call app.create` (not the TrueNAS UI) — the JSON
 payload in `Install trace` below is the canonical record.
 
