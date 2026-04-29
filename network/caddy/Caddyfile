@@ -271,6 +271,20 @@
 		}
 	}
 
+	@gitea host gitea.mati-lab.online
+	handle @gitea {
+		# NO forward_auth here. Authelia handles web SSO via Gitea's
+		# OIDC client (Task 7), and git CLI uses PATs over HTTPS.
+		# forward_auth would 302-redirect every `git push` to a 2FA
+		# browser flow and break git completely. SSH (NAS:30009)
+		# bypasses Caddy entirely (raw TCP).
+		reverse_proxy http://192.168.1.65:30008 {
+			header_up Host {host}
+			header_up X-Forwarded-Proto https
+			header_up X-Forwarded-Ssl on
+		}
+	}
+
 	@loki host loki.mati-lab.online
 	handle @loki {
 		@loki_health path /ready
