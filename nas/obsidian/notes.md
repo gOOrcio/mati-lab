@@ -1,10 +1,13 @@
 # Obsidian self-hosted sync (NAS)
 
 TrueNAS Scale Apps, **Custom App** (no official catalog entry for
-CouchDB). Installed as part of Phase 5 to replace the paid Obsidian Sync
-subscription. Sync transport is the `obsidian-livesync` community plugin
-talking to a local CouchDB; plain-markdown vault is mirrored to NAS via
-Syncthing for Phase 6 (RAG) consumption.
+CouchDB). Installed 2026-04-29 as part of Phase 5 to replace the paid
+Obsidian Sync subscription. Sync transport is the `obsidian-livesync`
+community plugin talking to a local CouchDB; plain-markdown vault is
+mirrored to NAS via Syncthing for Phase 6 (RAG) consumption.
+
+Deployed via `midclt call app.create` (not the TrueNAS UI) — the JSON
+payload in `Install trace` below is the canonical record.
 
 ## Endpoints
 
@@ -42,11 +45,59 @@ Syncthing for Phase 6 (RAG) consumption.
 The `bulk/obsidian-couchdb` dataset (Phase 1) is mounted at
 `/mnt/bulk/obsidian-couchdb`; chowned `apps:apps` on Phase 5 Task 1.
 
+## Install trace (Task 2 — `app.create` payload)
+
+CouchDB host path was pre-created and chowned `apps:apps` (uid 568)
+before deploy:
+
+```bash
+ssh truenas_admin@192.168.1.65 \
+  'mkdir -p /mnt/bulk/obsidian-couchdb/etc && \
+   midclt call -j filesystem.chown \
+     "{\"path\":\"/mnt/bulk/obsidian-couchdb\",\"uid\":568,\"gid\":568,\"options\":{\"recursive\":true}}"'
+```
+
+Custom app created with this `app.create` payload:
+
+```json
+{
+  "app_name": "obsidian-couchdb",
+  "custom_app": true,
+  "values": {"ix_context": {}},
+  "custom_compose_config": {
+    "services": {
+      "couchdb": {
+        "image": "couchdb:3.5",
+        "restart": "unless-stopped",
+        "environment": {
+          "COUCHDB_USER": "admin",
+          "COUCHDB_PASSWORD": "<admin-password-from-password-manager>"
+        },
+        "ports": [
+          {"mode": "host", "protocol": "tcp", "published": 30015, "target": 5984}
+        ],
+        "volumes": [
+          {"type": "bind", "source": "/mnt/bulk/obsidian-couchdb",     "target": "/opt/couchdb/data"},
+          {"type": "bind", "source": "/mnt/bulk/obsidian-couchdb/etc", "target": "/opt/couchdb/etc/local.d"}
+        ]
+      }
+    }
+  }
+}
+```
+
+Resolved image: `couchdb:3.5.1` (welcome endpoint reports
+`{"version":"3.5.1","git_sha":"44f6a43d8"}`). Container ran healthy
+on first boot; `/_up` returns `{"status":"ok"}`.
+
 ## CouchDB config applied (Task 3)
 
 The obsidian-livesync **wizard inside Obsidian** (Settings → Self-hosted
-LiveSync → Setup wizard) configures these automatically. If you ever
-need to set them by hand:
+LiveSync → Setup wizard) configures these automatically. They were
+**already applied** at install time via the API calls below — values
+land in `/opt/couchdb/etc/local.d/docker.ini` (host:
+`/mnt/bulk/obsidian-couchdb/etc/docker.ini`) and survive container
+restarts. If you ever need to set them by hand:
 
 ```bash
 ADMIN=admin; PASS='<password>'; URL=http://192.168.1.65:30015
@@ -131,6 +182,25 @@ the JSON dump into a fresh CouchDB.
 
 ## Lessons from the install
 
-(Filled in as install proceeds. Expected hits:
-chunk-size tuning if vault has large attachments, periodic full-sync
-behavior on iOS, conflict-marker patterns when devices edit offline.)
+1. **Custom App via `midclt`, not UI.** TrueNAS Scale 25 (Goldeye)
+   `app.create` accepts `custom_app: true` + `custom_compose_config`
+   inline JSON. The host path layout (chowned `apps:apps` upfront,
+   `etc/` subdir for `local.d`) had to be in place before deploy or the
+   container would write to a root-owned dir.
+2. **CORS / config writes use the single-node path.** TrueNAS catalog
+   only runs CouchDB as a single node; URL prefix is `_node/_local`
+   (NOT `_node/nonode@nohost`, which is what some older docs show).
+3. **PUTs to `_config/<key>` return the prior value, not the new one.**
+   Empty string return on first set is normal — read back with GET to
+   verify.
+4. **`_users` and `_replicator` aren't auto-created on a fresh CouchDB.**
+   Plain `couchdb:3.5` image ships without them; create both before
+   adding the LiveSync user, otherwise user PUT fails.
+5. **NO `forward_auth` on the Caddy vhost.** The `obsidian-livesync`
+   plugin sends HTTP basic auth on every request; Authelia's
+   forward_auth would 302-redirect to a 2FA browser flow and break
+   sync. Same trap as Gitea's `git push`.
+6. **Phase 1 snapshot policy gap.** Hourly+daily snapshot tasks exist
+   only for `bulk/photos` and `bulk/media` — `bulk/obsidian-*` is
+   uncovered. Periodic snapshot tasks for both obsidian datasets are
+   pending (TrueNAS UI → Data Protection → Periodic Snapshot Tasks).
