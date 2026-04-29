@@ -289,6 +289,27 @@
 		}
 	}
 
+	@syncthing host syncthing.mati-lab.online
+	handle @syncthing {
+		# Syncthing's HTTP GUI / REST API only — peer-to-peer sync
+		# itself runs on port 22000 directly between Mac and NAS, not
+		# through Caddy. forward_auth here is fine (no API client to
+		# break, unlike gitea/obsidian). Syncthing's own GUI password
+		# stays enabled as defense-in-depth for naked LAN access on
+		# 192.168.1.65:30016. WebSocket headers for /rest/events.
+		forward_auth http://authelia:9091 {
+			uri /api/authz/forward-auth
+			copy_headers Remote-User Remote-Groups Remote-Name Remote-Email
+		}
+		reverse_proxy http://192.168.1.65:30016 {
+			header_up Host {host}
+			header_up X-Forwarded-Proto https
+			header_up X-Forwarded-Ssl on
+			header_up Upgrade {>Upgrade}
+			header_up Connection {>Connection}
+		}
+	}
+
 	@loki host loki.mati-lab.online
 	handle @loki {
 		@loki_health path /ready

@@ -169,8 +169,9 @@ Phase 6 file watcher should index `*.md` only; ignore `.obsidian/`
 |---|---|
 | App name | `syncthing` (TrueNAS Custom App, deployed via `midclt`) |
 | Image | `syncthing/syncthing:1.30` |
-| GUI (LAN) | `http://192.168.1.65:30016` |
-| Sync port | `22000/tcp+udp` |
+| GUI (Caddy + Authelia 2FA) | `https://syncthing.mati-lab.online` |
+| GUI (direct LAN backstop) | `http://192.168.1.65:30016` (set Syncthing's own GUI auth) |
+| Sync port | `22000/tcp+udp` (peer-to-peer Syncthing protocol; not through Caddy) |
 | Discovery | `21027/udp` |
 | State dir | `/mnt/bulk/syncthing-config` (host) → `/var/syncthing` (container) |
 | Folder mount | `/mnt/bulk/obsidian-vault` (host) → `/var/syncthing/Sync/obsidian-vault` (container) |

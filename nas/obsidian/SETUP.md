@@ -27,10 +27,13 @@ deliberately not in this file):
 
 ## 1. Syncthing GUI auth on NAS (~2 min)
 
-The NAS Syncthing GUI is currently unauthenticated. Lock it down before
-you do anything else.
+The Syncthing GUI is exposed at `https://syncthing.mati-lab.online`
+behind Authelia 2FA. The raw LAN port `192.168.1.65:30016` is also
+listening (Caddy reaches it that way, so we can't bind it to localhost
+only without breaking the proxy) — set Syncthing's own GUI password as
+defense-in-depth so anyone on LAN can't bypass Authelia.
 
-1. Open `http://192.168.1.65:30016` in a browser.
+1. Open `https://syncthing.mati-lab.online` → log in via Authelia.
 2. Actions menu (top right) → Settings → GUI tab.
 3. Set **GUI Authentication User** + **Password**, save.
 4. (Optional) Settings → General → set a friendly **Device Name**,
@@ -187,7 +190,8 @@ I'll then:
 ## Cheat-sheet (no fluff)
 
 ```text
-NAS Syncthing GUI:   http://192.168.1.65:30016
+NAS Syncthing GUI:   https://syncthing.mati-lab.online   (Authelia 2FA)
+                     http://192.168.1.65:30016           (LAN backstop, set Syncthing GUI auth)
 NAS device ID:       FU3YUUS-HAMFNJJ-HJTMPYW-RHFE2PK-ZDYWRUR-ARNJ3OY-SLZJEXK-C2SXTAP
 CouchDB URL:         https://obsidian.mati-lab.online   (LAN/VPN)
 CouchDB DB:          obsidian-vault
