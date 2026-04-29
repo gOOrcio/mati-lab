@@ -33,11 +33,11 @@ copy_data() {
 
 # Override deploy/update to also push data files
 # --force-recreate on deploy: configuration.yml is bind-mounted; see common.sh::deploy.
-deploy() { log "Deploying $SERVICE_NAME"; sync_from_github; copy_env_file "$SERVICE_DIR"; copy_data; compose_cmd up -d --pull always --force-recreate; }
-update() { log "Updating $SERVICE_NAME"; sync_from_github; copy_env_file "$SERVICE_DIR"; copy_data; compose_cmd down; compose_cmd up -d --pull always; }
+deploy() { log "Deploying $SERVICE_NAME"; sync_from_gitea; copy_env_file "$SERVICE_DIR"; copy_data; compose_cmd up -d --pull always --force-recreate; }
+update() { log "Updating $SERVICE_NAME"; sync_from_gitea; copy_env_file "$SERVICE_DIR"; copy_data; compose_cmd down; compose_cmd up -d --pull always; }
 
 # save = push (config is on host)
-save() { log "Pushing authelia config to GitHub"; push; }
+save() { log "Pushing authelia config to Gitea"; push; }
 
 # Handle command line arguments
 case "${1:-help}" in

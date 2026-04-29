@@ -13,14 +13,14 @@ ensure_network() {
 
 # export dashboards from Grafana API to provisioning/dashboards, then push
 save() {
-  log "Exporting Grafana dashboards and pushing to GitHub"
-  sync_from_github
+  log "Exporting Grafana dashboards and pushing to Gitea"
+  sync_from_gitea
   ssh "${SSH_OPTS[@]}" "$REMOTE" "cd /opt/mati-lab/network/scripts && chmod +x export-grafana-dashboards.sh && ./export-grafana-dashboards.sh"
   push
 }
 
 # Override deploy to include network setup
-deploy()  { log "Deploying $SERVICE_NAME"; ensure_network; sync_from_github; copy_env_file "../$SERVICE_NAME"; compose_cmd up -d; }
+deploy()  { log "Deploying $SERVICE_NAME"; ensure_network; sync_from_gitea; copy_env_file "../$SERVICE_NAME"; compose_cmd up -d; }
 
 # Import a dashboard JSON file via the Grafana API
 # Usage: ./manage-grafana.sh import path/to/dashboard.json

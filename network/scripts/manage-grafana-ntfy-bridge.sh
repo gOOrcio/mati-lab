@@ -21,7 +21,7 @@ build_and_push() {
 
 deploy() {
   log "Deploying $SERVICE_NAME"
-  sync_from_github
+  sync_from_gitea
   copy_env_file "../$SERVICE_NAME"
   compose_cmd up -d
 }
@@ -29,14 +29,14 @@ deploy() {
 rebuild() {
   log "Rebuilding $SERVICE_NAME"
   build_and_push
-  sync_from_github
+  sync_from_gitea
   copy_env_file "../$SERVICE_NAME"
   compose_cmd up -d --pull always
 }
 
 update() {
   log "Updating $SERVICE_NAME (pull only, no rebuild)"
-  sync_from_github
+  sync_from_gitea
   copy_env_file "../$SERVICE_NAME"
   compose_cmd up -d --pull always
 }

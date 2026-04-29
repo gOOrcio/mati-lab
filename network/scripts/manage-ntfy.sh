@@ -8,7 +8,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/common.sh"
 
 # save = push (monitors are in app/data, already on host)
-save() { log "Pushing ntfy config to GitHub"; push; }
+save() { log "Pushing ntfy config to Gitea"; push; }
 
 # Handle command line arguments
 case "${1:-help}" in

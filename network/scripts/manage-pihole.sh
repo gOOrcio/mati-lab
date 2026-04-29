@@ -16,8 +16,8 @@ check() {
 }
 
 # Override deploy to include network setup
-deploy()  { log "Deploying $SERVICE_NAME"; ensure_network; sync_from_github; copy_env_file "../$SERVICE_NAME"; compose_cmd up -d --pull always; }
-update()  { log "Updating $SERVICE_NAME"; sync_from_github; copy_env_file "../$SERVICE_NAME"; compose_cmd down; compose_cmd up -d --pull always; }
+deploy()  { log "Deploying $SERVICE_NAME"; ensure_network; sync_from_gitea; copy_env_file "../$SERVICE_NAME"; compose_cmd up -d --pull always; }
+update()  { log "Updating $SERVICE_NAME"; sync_from_gitea; copy_env_file "../$SERVICE_NAME"; compose_cmd down; compose_cmd up -d --pull always; }
 
 # Handle command line arguments
 save() { push; }

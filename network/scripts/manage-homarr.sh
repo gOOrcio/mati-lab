@@ -8,7 +8,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/common.sh"
 
 # save = push (conf.yml is bind-mounted, already on host)
-save() { log "Pushing Homarr config to GitHub"; push; }
+save() { log "Pushing Homarr config to Gitea"; push; }
 
 # Handle command line arguments
 case "${1:-help}" in

@@ -25,7 +25,7 @@ build_and_push() {
 deploy() {
   log "Deploying $SERVICE_NAME"
   ensure_network
-  sync_from_github
+  sync_from_gitea
   copy_env_file "../$SERVICE_NAME"
   # See common.sh::deploy for why --force-recreate is needed.
   compose_cmd up -d --force-recreate
@@ -38,7 +38,7 @@ ensure_network() {
 rebuild() {
   log "Rebuilding $SERVICE_NAME"
   build_and_push
-  sync_from_github
+  sync_from_gitea
   copy_env_file "../$SERVICE_NAME"
   compose_cmd up -d --pull always
 }
@@ -51,7 +51,7 @@ reload_caddy() {
 
 update() {
   log "Updating $SERVICE_NAME (pull only, no rebuild)"
-  sync_from_github
+  sync_from_gitea
   copy_env_file "../$SERVICE_NAME"
   compose_cmd up -d --pull always --force-recreate
 }

@@ -8,7 +8,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/common.sh"
 
 # save = push (no extra config to save)
-save() { log "Pushing diun config to GitHub"; push; }
+save() { log "Pushing diun config to Gitea"; push; }
 
 # Handle command line arguments
 case "${1:-help}" in
