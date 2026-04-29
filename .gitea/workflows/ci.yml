@@ -1,0 +1,7 @@
+name: ci
+on: [push, pull_request]
+jobs:
+  yaml:    { uses: gooral/ci-workflows/.gitea/workflows/yaml-quality.yml@main }
+  shell:   { uses: gooral/ci-workflows/.gitea/workflows/shell-quality.yml@main }
+  dock:    { uses: gooral/ci-workflows/.gitea/workflows/dockerfile-quality.yml@main }
+  secrets: { uses: gooral/ci-workflows/.gitea/workflows/secrets-scan.yml@main }
