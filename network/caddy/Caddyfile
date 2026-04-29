@@ -205,15 +205,6 @@
 		}
 	}
 
-	@registry host registry.mati-lab.online
-	handle @registry {
-		reverse_proxy http://registry-private:5000 {
-			header_up Host {host}
-			header_up X-Forwarded-Proto https
-			header_up X-Forwarded-Ssl on
-		}
-	}
-
 	@jellyfin host jellyfin.mati-lab.online
 	handle @jellyfin {
 		reverse_proxy 192.168.1.65:30013 {

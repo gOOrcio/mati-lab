@@ -23,19 +23,5 @@ services:
     volumes:
       - registry-mirror-data:/var/lib/registry
 
-  registry-private:
-    image: registry:2
-    container_name: registry-private
-    restart: always
-    security_opt: [no-new-privileges:true]
-    networks: [pihole-net]
-    ports:
-      - "5001:5000"
-    environment:
-      REGISTRY_STORAGE_DELETE_ENABLED: "true"
-    volumes:
-      - registry-private-data:/var/lib/registry
-
 volumes:
   registry-mirror-data: {}
-  registry-private-data: {}

@@ -6,7 +6,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=network/scripts/common.sh
 source "$SCRIPT_DIR/common.sh"
 
-IMAGE="registry.mati-lab.online/grafana-ntfy-bridge:latest"
+IMAGE="gitea.mati-lab.online/gooral/grafana-ntfy-bridge:latest"
 BRIDGE_REPO="$HOME/Projects/grafana-ntfy-bridge"
 
 build_and_push() {

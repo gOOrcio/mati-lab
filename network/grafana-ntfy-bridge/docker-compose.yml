@@ -4,7 +4,7 @@ networks:
 
 services:
   grafana-ntfy-bridge:
-    image: registry.mati-lab.online/grafana-ntfy-bridge:latest
+    image: gitea.mati-lab.online/gooral/grafana-ntfy-bridge:latest
     container_name: grafana-ntfy-bridge
     restart: unless-stopped
     security_opt: [no-new-privileges:true]
