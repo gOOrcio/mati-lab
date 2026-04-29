@@ -10,6 +10,28 @@ mirrored to NAS via Syncthing for Phase 6 (RAG) consumption.
 > live in [`SETUP.md`](SETUP.md).** This file is the
 > install / operations reference.
 
+## Topology
+
+```
+Mac ⇄ Linux ⇄ iPhone ⇄ iPad     ←  LiveSync (chunked, encrypted)  →  CouchDB on NAS
+                                                                     (obsidian-vault DB)
+Mac ───────► NAS                ←  Syncthing (plain .md files)     →  bulk/obsidian-vault
+(canonical, send-only)             (NAS receive-only)                (consumed by Phase 6 RAG)
+```
+
+**Two transports, two jobs.** LiveSync handles device-to-device sync
+(via CouchDB) for every Obsidian client. Syncthing handles **only**
+the Mac → NAS plain-file mirror that Phase 6 RAG will index. They
+share no state and don't talk to each other.
+
+**Why Mac is the only Syncthing peer:**
+- Adding Linux→NAS Syncthing risks write-races on the receive-only
+  NAS folder when LiveSync hasn't yet propagated an edit between Mac
+  and Linux — produces `*.sync-conflict-*` files in the RAG corpus.
+- Mac↔Linux Syncthing would duplicate LiveSync, two processes
+  writing the same vault folder; same race-condition class.
+- iOS/iPad don't run Syncthing reliably anyway.
+
 Deployed via `midclt call app.create` (not the TrueNAS UI) — the JSON
 payload in `Install trace` below is the canonical record.
 
@@ -256,7 +278,45 @@ ssh truenas_admin@192.168.1.65 'midclt call cronjob.run 1'
    out: (a) chown the parent recursively to `568:568` (done), and
    (b) delete the Default Folder entry in the Syncthing GUI — you
    only want `obsidian-vault`.
-8. **Secret leak via SETUP.md (rotated 2026-04-29).** First draft of
+8. **macOS TCC blocks Syncthing on `~/Documents/`.** First Mac
+   Syncthing scan failed with `open ~/Documents/Obsidian/notes:
+   operation not permitted`. macOS Catalina+ requires explicit
+   user grant for protected dirs (Documents, Desktop, Downloads,
+   iCloud). Fix: System Settings → Privacy & Security → Full Disk
+   Access → add the Syncthing app/binary, toggle on, **fully quit
+   and relaunch Syncthing** (TCC only takes effect on next process
+   start). No equivalent gate on Linux or NAS/container.
+9. **E2EE passphrase mismatch produces "Decryption with HKDF
+   failed" spam.** LiveSync E2EE is a per-passphrase chunk-encrypt
+   layer; if you wipe the CouchDB DB and rebuild, but the local
+   plugin IndexedDB on a device still has chunks encrypted under
+   the OLD passphrase, the plugin tries to decrypt them with the
+   current passphrase and floods the log. Recovery: plugin →
+   Hatch → "Discard local database to reset or uninstall" → quit
+   Obsidian fully → reopen → re-run setup wizard with the SAME
+   E2EE setting on every device (all-off OR all-same-passphrase).
+   For a homelab with HTTPS + Authelia + per-DB livesync user, the
+   recommendation is to **disable E2EE entirely** — it adds the
+   passphrase-mismatch failure mode for marginal incremental
+   security.
+10. **`Default Folder` template on first Syncthing run.** Both Mac
+    and NAS Syncthing first-run create a `Default Folder` pointing
+    at `<home>/Sync` and try to drop `.stfolder` there. On NAS the
+    parent dir was Docker-created root-owned and 568 couldn't
+    write into it (chowned recursively now). Either way: **delete
+    the Default Folder entry on every Syncthing instance** before
+    adding the real `obsidian-vault` folder.
+11. **Mac↔NAS direct LAN may fall back to Relay WAN** depending on
+    the home network. Symptoms: `tcp://192.168.1.65:22000 — no
+    route to host` despite both being on `192.168.1.0/24`. Cause
+    is usually UniFi VLAN segregation, client isolation, or a
+    Tailscale-style routed-subset VPN that doesn't carry LAN
+    traffic. Pinning `tcp://192.168.1.65:22000, dynamic` in the
+    Mac's "Edit device → Advanced → Addresses" works when the LAN
+    path exists. When it doesn't, Relay WAN is fine for note-sized
+    edits — bandwidth is negligible, just adds latency + uses a
+    public relay. Debug LAN path separately if it matters.
+12. **Secret leak via SETUP.md (rotated 2026-04-29).** First draft of
    `SETUP.md` had the generated CouchDB admin + livesync passwords
    inline; committed to Gitea + mirrored to GitHub. Both passwords
    rotated immediately: livesync via `_users` doc PUT, admin via
