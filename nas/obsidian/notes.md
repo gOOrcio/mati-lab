@@ -140,11 +140,12 @@ target device.
 
 - **Canonical store:** Mac at `~/Documents/Obsidian/<vault-name>`.
 - **NAS mirror:** `/mnt/bulk/obsidian-vault/<vault-name>` (dataset
-  `bulk/obsidian-vault`, mounted same path).
+  `bulk/obsidian-vault`, mounted same path; chowned `apps:apps` /
+  `568:568`).
 - **Transport:** Syncthing — Mac is **send-only**, NAS is
   **receive-only** (prevents NAS-side accidental edits creating
   conflicts).
-- **Versioning:** disabled on NAS folder (no `.stversions/` polluting
+- **Versioning:** disable on NAS folder (no `.stversions/` polluting
   the RAG corpus).
 - **Mac `.stignore`:**
 
@@ -158,17 +159,45 @@ target device.
 Phase 6 file watcher should index `*.md` only; ignore `.obsidian/`
 (plugin state, not content).
 
+### Syncthing on NAS (deployed)
+
+| Field | Value |
+|---|---|
+| App name | `syncthing` (TrueNAS Custom App, deployed via `midclt`) |
+| Image | `syncthing/syncthing:1.30` |
+| GUI (LAN) | `http://192.168.1.65:30016` |
+| Sync port | `22000/tcp+udp` |
+| Discovery | `21027/udp` |
+| State dir | `/mnt/bulk/syncthing-config` (host) → `/var/syncthing` (container) |
+| Folder mount | `/mnt/bulk/obsidian-vault` (host) → `/var/syncthing/Sync/obsidian-vault` (container) |
+| Run as | `568:568` (PUID/PGID env) |
+| **NAS device ID** | `FU3YUUS-HAMFNJJ-HJTMPYW-RHFE2PK-ZDYWRUR-ARNJ3OY-SLZJEXK-C2SXTAP` |
+
+**Manual steps remaining (user, in NAS Syncthing GUI):**
+1. Settings → GUI → set username + password (currently no auth).
+2. Folder list → "Add Folder" → Folder ID `obsidian-vault`, path
+   `/var/syncthing/Sync/obsidian-vault`, **Folder Type: Receive Only**,
+   versioning **No file versioning**.
+3. Once Mac Syncthing is up, add Mac's device ID under Remote Devices,
+   share the folder with it; accept share on Mac side.
+
 ## Backup
 
 | Surface | Backup |
 |---|---|
-| `bulk/obsidian-couchdb` | ZFS snapshot — **needs explicit task** (Phase 1's `bulk` recursive policy was never created; existing tasks cover only `bulk/photos` + `bulk/media`) |
-| `bulk/obsidian-vault` | ZFS snapshot — same caveat as above |
-| CouchDB logical dump | nightly `curl /_all_docs?include_docs=true` to `/mnt/bulk/backups/obsidian/obsidian-vault-<date>.json`, scheduled via TrueNAS UI → Cron Jobs |
+| `bulk/obsidian-couchdb` | ZFS snapshot — hourly retain 2w (id 6), daily 02:30 retain 90d (id 7). |
+| `bulk/obsidian-vault` | ZFS snapshot — hourly retain 2w (id 8), daily 02:30 retain 90d (id 9). |
+| CouchDB logical dump | TrueNAS cron id 1, daily 03:15: `curl -fsS -u admin:<pwd> http://127.0.0.1:30015/obsidian-vault/_all_docs?include_docs=true -o /mnt/bulk/backups/obsidian/obsidian-vault-$(date +%F).json`; deletes dumps older than 30 days. |
 
 CouchDB logical dump is the consistent layer (snapshots can capture
 mid-write state). Restore = either ZFS rollback the dataset OR re-import
 the JSON dump into a fresh CouchDB.
+
+Inspect or re-run via:
+```bash
+ssh truenas_admin@192.168.1.65 'midclt call cronjob.query "[[\"id\",\"=\",1]]" | python3 -m json.tool'
+ssh truenas_admin@192.168.1.65 'midclt call cronjob.run 1'
+```
 
 ## Update / restart / remove
 
