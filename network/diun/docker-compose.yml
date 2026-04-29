@@ -22,6 +22,10 @@ services:
       - "DIUN_NOTIF_NTFY_TOPIC=diun"
       - "DIUN_NOTIF_NTFY_PRIORITY=3"
       - "DIUN_NOTIF_NTFY_TAGS=package"
+      # Gitea container registry — auth needed to read tags on private images.
+      - "DIUN_REGOPTS_GITEA_NAME=gitea.mati-lab.online"
+      - "DIUN_REGOPTS_GITEA_USERNAME=gooral"
+      - "DIUN_REGOPTS_GITEA_PASSWORD=${DIUN_GITEA_REGISTRY_PAT}"
     restart: unless-stopped
     security_opt: [no-new-privileges:true]
 
