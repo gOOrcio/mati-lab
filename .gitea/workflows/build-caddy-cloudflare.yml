@@ -1,0 +1,18 @@
+name: build-caddy-cloudflare
+on:
+  push:
+    branches: [main]
+    paths:
+      - "network/caddy/Dockerfile"
+      - ".gitea/workflows/build-caddy-cloudflare.yml"
+  workflow_dispatch:
+
+jobs:
+  build:
+    uses: gooral/ci-workflows/.gitea/workflows/image-build-arm64.yml@main
+    with:
+      image-name: caddy-cloudflare
+      context: network/caddy
+      dockerfile: Dockerfile
+      tag: latest
+    secrets: inherit
