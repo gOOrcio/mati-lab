@@ -276,6 +276,19 @@
 		}
 	}
 
+	@obsidian host obsidian.mati-lab.online
+	handle @obsidian {
+		# NO forward_auth. obsidian-livesync plugin authenticates
+		# directly against CouchDB with the `livesync` user; Authelia
+		# in front would intercept the API auth flow (same trap as
+		# Gitea). LAN/VPN-only — no Cloudflared route added.
+		reverse_proxy http://192.168.1.65:30015 {
+			header_up Host {host}
+			header_up X-Forwarded-Proto https
+			header_up X-Forwarded-Ssl on
+		}
+	}
+
 	@loki host loki.mati-lab.online
 	handle @loki {
 		@loki_health path /ready
