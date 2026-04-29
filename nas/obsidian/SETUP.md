@@ -25,6 +25,16 @@ deliberately not in this file):
 
 ---
 
+## 0. First-time Syncthing housekeeping (~30 sec)
+
+On first load Syncthing pre-creates a "Default Folder" pointing at
+`/var/syncthing/Sync` and a "permission denied" notice. Delete the
+Default Folder entry — we'll add the right one in step 2:
+
+1. Folders panel → Default Folder → ⚙ → **Remove** → confirm.
+2. Click the OK on the "permission denied" notice (it's stale; the
+   parent dir has been chowned to apps:apps already).
+
 ## 1. Syncthing GUI auth on NAS (~2 min)
 
 The Syncthing GUI is exposed at `https://syncthing.mati-lab.online`

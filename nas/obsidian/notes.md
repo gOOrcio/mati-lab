@@ -238,7 +238,16 @@ ssh truenas_admin@192.168.1.65 'midclt call cronjob.run 1'
    only for `bulk/photos` and `bulk/media` — `bulk/obsidian-*` was
    uncovered. Periodic snapshot tasks for both obsidian datasets are
    in place now (ids 6/8 hourly, 7/9 daily).
-7. **Secret leak via SETUP.md (rotated 2026-04-29).** First draft of
+7. **Syncthing's "Default Folder" trap.** On first run the official
+   image creates a `Default Folder` pointing at `/var/syncthing/Sync`
+   and tries to write `.stfolder` there. The parent dir
+   (`/mnt/bulk/syncthing-config/Sync`) is auto-created by Docker as
+   root because it's the parent of the bind-mounted
+   `obsidian-vault` subdir — so 568 can't write into it. Two ways
+   out: (a) chown the parent recursively to `568:568` (done), and
+   (b) delete the Default Folder entry in the Syncthing GUI — you
+   only want `obsidian-vault`.
+8. **Secret leak via SETUP.md (rotated 2026-04-29).** First draft of
    `SETUP.md` had the generated CouchDB admin + livesync passwords
    inline; committed to Gitea + mirrored to GitHub. Both passwords
    rotated immediately: livesync via `_users` doc PUT, admin via
