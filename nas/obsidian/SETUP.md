@@ -128,6 +128,29 @@ Same as iPhone, but if you turned on iCloud Drive / Handoff between
 your devices, double-check the vault name matches exactly so you don't
 end up with two parallel vaults.
 
+## 7b. Linux dev box setup (~3 min)
+
+No Syncthing needed on Linux — only the Mac feeds the plain-file
+mirror to NAS. Linux is just another LiveSync peer.
+
+1. Open Obsidian → "Open another vault" / "Create new vault" with
+   the **same name** as your Mac vault (matters for plugin sanity
+   only; what binds them is the CouchDB DB name).
+2. Settings → Community plugins → **Turn on community plugins** →
+   Browse → search `Self-hosted LiveSync` → Install → Enable.
+3. Settings → Self-hosted LiveSync → **Setup wizard**, manually
+   fill (no URI needed if password manager isn't handy):
+
+   | Field | Value |
+   |---|---|
+   | Server Type | `CouchDB` |
+   | URI | `https://obsidian.mati-lab.online` |
+   | Username | `livesync` |
+   | Password | (livesync password from password manager) |
+   | Database name | `obsidian-vault` |
+
+4. Test connection → Apply → first sync downloads vault from CouchDB.
+
 ## 8. Sync sanity test (~2 min)
 
 - Create a note on Mac → confirm it appears on iPhone within ~5s.

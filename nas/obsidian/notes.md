@@ -27,6 +27,13 @@ payload in `Install trace` below is the canonical record.
   `/_node/_local/_config`. Password in password manager.
 - **CouchDB user** (`livesync`): daily use; what the obsidian-livesync
   plugin connects with on every device. Password in password manager.
+  **Per-DB admin on `obsidian-vault` only** (server-admin still
+  restricted to `admin`). This is the privilege level the
+  `obsidian-livesync` project's setup_own_server.md recommends — it
+  lets the plugin's "Rebuild Everything" / "Lock Remote DB" flows work
+  without a 401, while still preventing a leaked livesync password
+  from touching `_users`, `_replicator`, server config, or any future
+  DB.
 - **NO Authelia forward_auth** on the Caddy vhost — same trap as Gitea.
   forward_auth would intercept the LiveSync plugin's HTTP basic auth
   and break sync entirely. Caddy `@obsidian` block in
@@ -123,11 +130,13 @@ Plus the per-vault setup:
 curl -X PUT -u "$ADMIN:$PASS" "$URL/_users/org.couchdb.user:livesync" \
   -H "Content-Type: application/json" \
   -d '{"name":"livesync","password":"<separate-password>","roles":[],"type":"user"}'
-# vault database + ACL
+# vault database + ACL (livesync as per-DB admin so the plugin's
+# rebuild/lock flows don't 401; member-only would also work but
+# breaks Rebuild Everything)
 curl -X PUT -u "$ADMIN:$PASS" "$URL/obsidian-vault"
 curl -X PUT -u "$ADMIN:$PASS" "$URL/obsidian-vault/_security" \
   -H "Content-Type: application/json" \
-  -d '{"admins":{"names":["admin"]},"members":{"names":["livesync"]}}'
+  -d '{"admins":{"names":["admin","livesync"],"roles":[]},"members":{"names":[],"roles":[]}}'
 ```
 
 ## Setup URI
