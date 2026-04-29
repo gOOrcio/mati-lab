@@ -6,7 +6,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=network/scripts/common.sh
 source "$SCRIPT_DIR/common.sh"
 
-CADDY_IMAGE="registry.mati-lab.online/caddy-cloudflare:latest"
+CADDY_IMAGE="gitea.mati-lab.online/gooral/caddy-cloudflare:latest"
 CADDY_DOCKERFILE="../caddy/Dockerfile"
 
 # Build the custom caddy image locally (fast x86/arm64) and push to the LAN registry.

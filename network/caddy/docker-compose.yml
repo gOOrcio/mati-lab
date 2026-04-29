@@ -4,7 +4,7 @@ networks:
 
 services:
   caddy:
-    image: registry.mati-lab.online/caddy-cloudflare:latest
+    image: gitea.mati-lab.online/gooral/caddy-cloudflare:latest
     container_name: caddy
     restart: unless-stopped
     security_opt: [no-new-privileges:true]
