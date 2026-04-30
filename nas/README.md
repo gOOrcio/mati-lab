@@ -15,9 +15,11 @@ backups end up.
 | qBittorrent | `qbit.mati-lab.online` (LAN + Authelia) | `bulk/downloads` | see [qbittorrent/notes.md](qbittorrent/notes.md) |
 | Immich | deferred | `bulk/photos` + `fast/databases/immich-pgdata` | blocked on `pgvecto_upgrade`; Task 3 of Phase 2 plan |
 | obsidian-couchdb | `obsidian.mati-lab.online` (LAN/VPN) | `bulk/obsidian-couchdb` + plain-file mirror at `bulk/obsidian-vault` | Phase 5; see [obsidian/notes.md](obsidian/notes.md) |
+| qdrant | `qdrant.mati-lab.online` (LAN/VPN, Authelia) | `fast/qdrant-data` | Phase 6; vector store for RAG. See [qdrant/notes.md](qdrant/notes.md) |
+| rag-watcher | (background daemon) | `/mnt/fast/databases/rag-watcher/.env` | Phase 6; tails `bulk/obsidian-vault`, embeds via LiteLLM, upserts to Qdrant. See [rag-watcher/notes.md](rag-watcher/notes.md) |
 
-Future phases will add: LiteLLM, OpenClaw, Gitea, CouchDB, Qdrant, file
-watcher.
+Future phases will add: LiteLLM, OpenClaw, Gitea, CouchDB, file watcher
+for code repos (Phase 6.2).
 
 ## Supporting pieces wired up in Phase 2
 
