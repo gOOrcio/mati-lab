@@ -153,35 +153,61 @@ def reconcile(
         rel = p.relative_to(vault_root).as_posix()
         on_disk[rel] = int(p.stat().st_mtime)
 
-    re_indexed = skipped = 0
+    re_indexed = skipped = failed = 0
     for rel, disk_mtime in on_disk.items():
         stored_mtime = known.get(rel, -1)
         if disk_mtime > stored_mtime:
-            _process(
-                str(vault_root / rel),
-                vault_root=vault_root,
-                embedder=embedder,
-                store=store,
-                batch=batch,
-            )
-            re_indexed += 1
+            try:
+                _process(
+                    str(vault_root / rel),
+                    vault_root=vault_root,
+                    embedder=embedder,
+                    store=store,
+                    batch=batch,
+                )
+                re_indexed += 1
+            except Exception:
+                # One bad file (oversize chunk, bad encoding, transient
+                # qdrant/embed failure) must not abort reconcile. Log full
+                # traceback and continue — the live watcher will retry on
+                # next save, or the next container restart will re-attempt.
+                log.exception("reconcile: failed to process %s", rel)
+                failed += 1
         else:
             skipped += 1
 
     missing_paths = set(known.keys()) - set(on_disk.keys())
     for rel in missing_paths:
-        log.info("reconcile: deleting orphaned points for %s", rel)
-        store.delete_by_path(rel)
+        try:
+            log.info("reconcile: deleting orphaned points for %s", rel)
+            store.delete_by_path(rel)
+        except Exception:
+            log.exception("reconcile: failed to delete %s", rel)
+            failed += 1
 
     log.info(
-        "reconcile: re_indexed=%d skipped=%d deleted=%d",
-        re_indexed, skipped, len(missing_paths),
+        "reconcile: re_indexed=%d skipped=%d deleted=%d failed=%d",
+        re_indexed, skipped, len(missing_paths), failed,
     )
     return re_indexed, len(missing_paths), skipped
 
 
 def main() -> int:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
+    try:
+        return _main()
+    except Exception:
+        # Top-level catch so the traceback lands in stdout/docker logs before
+        # exit. Without this, a startup crash in `from_env`, `reconcile`, or
+        # observer setup leaves only an exit code and `restart: unless-stopped`
+        # respawns into the same crash loop with no record of the cause.
+        log.exception("watcher startup failed")
+        # Re-raise so the container actually exits non-zero (so the supervisor
+        # restarts it instead of leaving a silently-broken "alive" process).
+        raise
+
+
+def _main() -> int:
     vault_root = Path(os.environ.get("VAULT_PATH", "/vault")).resolve()
     debounce = float(os.environ.get("DEBOUNCE_SECONDS", "5"))
     batch = int(os.environ.get("EMBED_BATCH", "16"))
@@ -192,10 +218,21 @@ def main() -> int:
     if skip_reconcile:
         log.info("reconcile: skipped (SKIP_RECONCILE set)")
     else:
-        reconcile(vault_root, embedder, store, batch)
+        try:
+            reconcile(vault_root, embedder, store, batch)
+        except Exception:
+            # reconcile() already swallows per-file errors; this catches a
+            # failure in known_paths_with_mtime (qdrant unreachable on boot,
+            # collection schema mismatch, etc). Log + continue — the live
+            # watcher can still serve new edits while the operator
+            # investigates Qdrant.
+            log.exception("reconcile: aborted; continuing to live watch")
 
     def fire(key: str) -> None:
-        _process(key, vault_root=vault_root, embedder=embedder, store=store, batch=batch)
+        try:
+            _process(key, vault_root=vault_root, embedder=embedder, store=store, batch=batch)
+        except Exception:
+            log.exception("live event failed: %s", key)
 
     deb = Debouncer(delay=debounce, on_fire=fire)
     handler = _Handler(deb, vault_root)

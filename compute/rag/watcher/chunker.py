@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import hashlib
 import re
+import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -94,7 +95,10 @@ def chunk_markdown(
     for hp, text in sections:
         for sub_idx, sub_text in enumerate(_split_long(text, max_chars, overlap)):
             id_seed = f"{path.as_posix()}::{'>'.join(hp)}::{sub_idx}"
-            chunk_id = hashlib.sha1(id_seed.encode()).hexdigest()
+            # Qdrant point IDs must be unsigned int or UUID. Take the first
+            # 16 bytes of the sha1 digest and format as a UUID — deterministic,
+            # collision-equivalent to a 128-bit truncation, valid for Qdrant.
+            chunk_id = str(uuid.UUID(bytes=hashlib.sha1(id_seed.encode()).digest()[:16]))
             chunks.append(
                 Chunk(
                     chunk_id=chunk_id,

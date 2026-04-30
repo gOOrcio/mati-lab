@@ -44,6 +44,16 @@ def test_chunk_id_is_deterministic():
     assert [c.chunk_id for c in chunks_a] == [c.chunk_id for c in chunks_b]
 
 
+def test_chunk_id_is_uuid_format():
+    """Qdrant point IDs must be UUID or unsigned int — sha1 hex is rejected."""
+    import uuid as _uuid
+
+    chunks = chunk_markdown(VAULT_NOTE, path=Path("notes/lab.md"))
+    for c in chunks:
+        # Will raise if not a valid UUID string
+        _uuid.UUID(c.chunk_id)
+
+
 def test_chunk_long_section_splits_with_overlap():
     long_section = "# Heading\n\n" + ("This is a sentence. " * 200)
     chunks = chunk_markdown(long_section, path=Path("notes/long.md"), max_chars=800, overlap=150)
