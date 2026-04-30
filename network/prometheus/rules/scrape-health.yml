@@ -1,0 +1,27 @@
+groups:
+  - name: scrape-health
+    interval: 30s
+    rules:
+      - alert: ScrapeTargetDown
+        expr: up == 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: 'Scrape target {{ $labels.job }} is down'
+          description: |
+            Prometheus has been unable to scrape {{ $labels.instance }}
+            (job {{ $labels.job }}) for more than 5 minutes. Either the
+            target is offline, or its /metrics endpoint moved.
+
+      - alert: ScrapeTargetMissingForLong
+        expr: up == 0
+        for: 1h
+        labels:
+          severity: critical
+        annotations:
+          summary: 'Scrape target {{ $labels.job }} down for >1h'
+          description: |
+            {{ $labels.instance }} (job {{ $labels.job }}) has been
+            unreachable for over an hour. Check if the underlying
+            service is intentionally stopped.

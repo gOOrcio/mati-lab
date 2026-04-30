@@ -1,0 +1,38 @@
+groups:
+  - name: litellm
+    interval: 30s
+    rules:
+      - alert: LiteLLMHighErrorRate
+        expr: |
+          (
+            sum by (requested_model) (rate(litellm_proxy_failed_requests_metric_total[10m]))
+              /
+            (sum by (requested_model) (rate(litellm_proxy_total_requests_metric_total[10m])) > 0)
+          ) > 0.05
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: 'LiteLLM error rate >5% for {{ $labels.requested_model }}'
+          description: |
+            More than 5% of requests to LiteLLM alias
+            {{ $labels.requested_model }} have failed in the last 10
+            minutes. Inspect the logs for the underlying provider —
+            check {{ $labels.requested_model }}'s configured model_list
+            in nas/litellm/config.yml.
+
+      - alert: LiteLLMKeyBudgetNearExhausted
+        expr: |
+          litellm_remaining_api_key_budget_metric < 1
+            and on() litellm_api_key_max_budget_metric > 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: 'LiteLLM key {{ $labels.api_key_alias }} has <$1 budget remaining'
+          description: |
+            Virtual key {{ $labels.api_key_alias }} is about to hit
+            its configured budget. Calls will start failing once the
+            budget reaches zero. Either rotate via
+            nas/litellm/issue-keys.sh + bump max_budget, or accept
+            that this consumer is over-spending and investigate.

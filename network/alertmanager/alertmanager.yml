@@ -1,0 +1,30 @@
+# Phase 8 — Alertmanager routing.
+# Single ntfy receiver via webhook (ntfy supports POST with title +
+# priority via custom headers; we route through HTTP basic-style with the
+# topic in the URL path).
+#
+# When more receivers / silences / inhibitions accumulate, split rules by
+# severity into separate routes. Today there's one severity (warning/critical)
+# and one channel (ntfy/homelab-alerts).
+
+global:
+  resolve_timeout: 5m
+
+route:
+  group_by: ['alertname', 'host', 'pool']
+  group_wait: 10s
+  group_interval: 5m
+  repeat_interval: 12h
+  receiver: ntfy
+
+receivers:
+  - name: ntfy
+    webhook_configs:
+      - url: 'http://ntfy:80/homelab-alerts'
+        send_resolved: true
+
+inhibit_rules:
+  # If a pool is critical-full, suppress the warning-full alert for the same pool.
+  - source_matchers: [severity="critical", alertname="ZFSPoolCritical"]
+    target_matchers: [severity="warning", alertname="ZFSPoolNearFull"]
+    equal: [pool, host]

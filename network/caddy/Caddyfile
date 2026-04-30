@@ -194,6 +194,25 @@
 		}
 	}
 
+	@alertmanager host alertmanager.mati-lab.online
+	handle @alertmanager {
+		# Alertmanager UI behind Authelia 2FA. Phase 8 — paired with
+		# Prometheus rule files in network/prometheus/rules/. Alerts
+		# route through alertmanager.yml's webhook receiver to ntfy.
+		# UI is for inspecting fired alerts, building silences, and
+		# checking the routing tree. No native auth on Alertmanager
+		# itself; Authelia is the gate.
+		forward_auth http://authelia:9091 {
+			uri /api/authz/forward-auth
+			copy_headers Remote-User Remote-Groups Remote-Name Remote-Email
+		}
+		reverse_proxy http://alertmanager:9093 {
+			header_up Host {host}
+			header_up X-Forwarded-Proto https
+			header_up X-Forwarded-Ssl on
+		}
+	}
+
 	@ntfy host ntfy.mati-lab.online
 	handle @ntfy {
 		# NO forward_auth. ntfy uses bearer-token auth at the
