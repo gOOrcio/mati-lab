@@ -1,0 +1,7 @@
+[
+  {"q": "best smartwatch with cuff-based blood pressure monitoring", "expect_path_substr": "49b4a435"},
+  {"q": "polish 5.5 percent ryczalt tax rate for self-published books", "expect_path_substr": "248821f2"},
+  {"q": "what should five year olds learn about nature in polish kindergarten", "expect_path_substr": "81764ff3"},
+  {"q": "free ssh client for ios to manage proxmox over cloudflare tunnel", "expect_path_substr": "0b86ffac"},
+  {"q": "automate instagram posting for a kids book brand using n8n", "expect_path_substr": "942b0d63"}
+]

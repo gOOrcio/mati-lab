@@ -68,6 +68,11 @@ model_list:
       output_cost_per_token: 0
 
   # ── embeddings (Phase 6 RAG consumer) ──
+  # Locked at nomic-embed-text after the 2026-04-30 bake-off:
+  # all three candidates (nomic 768d, mxbai 1024d, bge-m3 1024d) hit
+  # recall@5=1.00 on a 5-query corpus; nomic was lowest-latency (39ms
+  # median vs 43/157ms). 768d also halves Qdrant storage cost. The
+  # obsidian-vault collection's vector_size is locked at 768 to match.
   - model_name: embeddings
     litellm_params:
       model: ollama/nomic-embed-text
