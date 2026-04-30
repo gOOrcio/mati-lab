@@ -180,6 +180,30 @@ with a nightly `sqlite3 state.db '.backup ...'` dump to
 `bulk/backups/openclaw/` for consistency guarantees. Add to
 `nas/snapshots.md` when Phase 8 runs.
 
+## Phase 7 incident (2026-04-30) — currently STOPPED
+
+State: app stopped on NAS pending cutover decision. The Phase 7 attempt to migrate from the LiteLLM master key to the per-consumer `openclaw` virtual key (issued via `/key/generate`, stored under `homelab/litellm/openclaw` in PM) wedged the gateway. Sequence:
+
+1. `openclaw models auth paste-token --provider custom-192-168-1-65-4000 --profile-id custom-192-168-1-65-4000:manual` — succeeded; wrote new openclaw.json + .bak.
+2. `openclaw secrets reload` — failed with `gateway closed (1008): pairing required: device is asking for more scopes than currently approved`.
+3. `app.redeploy openclaw` — gateway logs reach `[gateway] starting...` and stop. Container stays in Docker `starting` state for 6+ minutes; `[plugins]` and `[telegram]` lines that appeared on a normal restart never appear.
+4. Rollback to `openclaw.json.bak` (paste-token's pre-paste backup) — same hang.
+5. Rollback to `openclaw.json.last-good` (OpenClaw-managed, 13:08 timestamp) — same hang.
+
+The hang isn't openclaw.json content alone — restoring known-good content didn't unstuck it. Suspects to investigate when revisiting:
+
+- Stale lock or pending-state file under `/home/node/.openclaw/devices/`, `/home/node/.openclaw/identity/`, or `/home/node/.openclaw/credentials/` from the truncated `secrets reload` (the scope-upgrade approval was never granted).
+- The `[gateway] starting...` line is logged just before the WebSocket listener binds; if a port collision or pairing-state-DB lock blocks it, no further log line appears.
+- Possibly a transient OpenClaw issue with the `paste-token` → in-memory swap path that the on-disk rollback alone doesn't reverse.
+
+Followup row tracking this: `docs/followups.md` 7.x.1. Three options when revisiting:
+
+- **(a) Investigate the hang.** Drop into the volume from outside the container, look for lock files / pending-approval entries, clear them, restart. Cheapest if the hang is a small bit of state.
+- **(b) Fresh install** with the virtual key wired from the start via `openclaw onboard --non-interactive --secret-input-mode ref --custom-api-key "$OPENCLAW_VKEY" --custom-provider-id custom-192-168-1-65-4000 ...` per the wizard-cli-automation docs. Keep the Telegram bot token (it's a BotFather artifact, not an OpenClaw artifact — survives the reinstall). Rebuild pairings + skill state from scratch.
+- **(c) Reconsider OpenClaw vs Hermes.** OpenClaw was already chosen as the *successor* to a Hermes attempt that fought TrueNAS's Custom App sandbox (see lessons below). If OpenClaw is producing more trouble than value, reverting to Hermes is on the table. Memory note `project_llm_stack` says "Hermes tried and abandoned, don't revive" — so this is the explicit unrevival case if (a) and (b) both fail.
+
+The LiteLLM `openclaw` virtual key remains valid (issued + budget assigned, no traffic). It can stay quiescent; rotation isn't urgent.
+
 ## Lessons from the install — don't repeat these
 
 1. **Don't use OpenClaw's "LiteLLM" provider driver** for a LiteLLM

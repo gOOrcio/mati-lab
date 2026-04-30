@@ -20,6 +20,7 @@ A single-pane index of every concrete piece of work that's been **intentionally 
 | Phase 4 follow-up (CI/CD adoption) | 6 | 7.5, 7.6, 4.f.1, 4.f.2, 4.f.3, 4.f.4, 4.f.5, ∞.2 |
 | Phase 5 (Obsidian sync) | 1 | ∞.3 — out-of-scope only; nothing real deferred |
 | Phase 6 (RAG pipeline) | 6 | 7.2, 7.4, 6.x.1, 6.x.2, 6.x.3, 6.x.4 |
+| Phase 7 (hardening, in flight) | 1 | 7.x.1 (OpenClaw key cutover deferred) |
 | (its own future plan) | 1 | Phase 6.2 — code-repo embedding |
 
 ## Phase 7 territory — Hardening & Polish
@@ -45,6 +46,12 @@ A single-pane index of every concrete piece of work that's been **intentionally 
 | 8.6 | **OpenClaw backup recipe.** Same shape as LiteLLM — note section reserved for Phase 8. | Phase 3 | `nas/openclaw/notes.md:174-181` |
 | 8.7 | **Hermes `memory.db` backup** flag. Bot abandoned per memory note, but if revived the location is documented for inclusion. | Phase 3 | `docs/superpowers/plans/2026-04-24-phase-3-llm-infrastructure.md:810-816` |
 | 8.8 | **Hermes `/ping` health probe** — no HTTP health endpoint; indirect monitor via cron. Phase 8 concern. | Phase 3 | `docs/superpowers/plans/2026-04-24-phase-3-llm-infrastructure.md:778` |
+
+## Phase 7.x — Hardening followups
+
+| # | Item | Origin | Source |
+|---|---|---|---|
+| 7.x.1 | **OpenClaw cutover to its virtual key.** Paste-token wrote the new key to `~/.openclaw/openclaw.json` cleanly (sha256 changed, .bak made), but post-restart the gateway hangs at `[gateway] starting...` and Telegram never reconnects. Rollback to `openclaw.json.last-good` also hangs. Need to either (a) re-investigate the hang (likely a non-config issue introduced by the paste-token / secrets-reload flow, possibly a stale lock in `/home/node/.openclaw/devices/` or the pending scope-upgrade approval state); (b) **fresh-install OpenClaw** reusing the existing Telegram bot token (@HermesMatiBot) — straight `app.delete openclaw` then re-onboard with `--secret-input-mode ref --custom-api-key "$OPENCLAW_VKEY"` per the wizard-cli-automation docs; (c) **revive the original Hermes agent** since OpenClaw was already an attempted-replacement-due-to-friction (per `nas/openclaw/notes.md` install lesson "OpenClaw replaces the originally-attempted Hermes Agent install"). The `openclaw` virtual key is already issued in LiteLLM under `homelab/litellm/openclaw`; consumer-side cutover is the only remaining work. App is currently STOPPED on the NAS. | Phase 7 | `nas/openclaw/notes.md`; followup paste-token investigation outside Phase 7 scope |
 
 ## Phase 6.x — RAG followups (own future plan when batched)
 
