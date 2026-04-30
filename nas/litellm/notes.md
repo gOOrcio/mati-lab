@@ -22,10 +22,44 @@ container image.
 | Path (NAS) | Content | Source of truth |
 |---|---|---|
 | `/mnt/fast/databases/litellm/config.yml` | Model aliases, routing, budgets | Copy of `nas/litellm/config.yml` in this repo — edit in repo, scp to NAS, restart app |
-| `/mnt/fast/databases/litellm/.env` | `LITELLM_MASTER_KEY`, `DEEPSEEK_API_KEY`, `ANTHROPIC_API_KEY`, `POSTGRES_PASSWORD`, `DATABASE_URL` | Only on NAS. Never committed; password-manager-backed |
+| `/mnt/fast/databases/litellm/.env` | `LITELLM_MASTER_KEY`, `DEEPSEEK_API_KEY`, `ANTHROPIC_API_KEY`, `POSTGRES_PASSWORD`, `DATABASE_URL`, `GENERIC_CLIENT_ID`/`GENERIC_CLIENT_SECRET`/`GENERIC_*_ENDPOINT`/`GENERIC_SCOPE`/`PROXY_BASE_URL` (Phase 7 SSO) | Only on NAS. Never committed; password-manager-backed |
 | `/mnt/fast/databases/litellm-pgdata/` | Postgres-16 data directory for the virtual-keys sidecar (added Phase 7). Owned `apps:apps` (568:568). | Block-level — snapshotted hourly+daily via task 12/13 on `fast/databases`. Phase 8 will add `pg_dump` for transactional consistency. |
 
 To apply a config.yml change: `scp nas/litellm/config.yml truenas_admin@192.168.1.65:/mnt/fast/databases/litellm/config.yml && ssh truenas_admin@192.168.1.65 'midclt call app.redeploy litellm'`.
+
+## Admin UI SSO (Phase 7)
+
+The "Login with SSO" button on `litellm.mati-lab.online/ui` is wired
+through Authelia OIDC. Flow: user → Caddy `forward_auth` (Authelia 2FA
+gate, already in place) → LiteLLM UI → click "Login with SSO" →
+Authelia `/api/oidc/authorization` (recognizes existing session) →
+bounces back to `https://litellm.mati-lab.online/sso/callback` → LiteLLM
+exchanges code for token → admin UI session as the Authelia identity.
+
+**Configured env vars** (in `.env` on NAS):
+
+| Var | Value |
+|---|---|
+| `GENERIC_CLIENT_ID` | `litellm` |
+| `GENERIC_CLIENT_SECRET` | plaintext; Authelia stores Argon2id hash |
+| `GENERIC_AUTHORIZATION_ENDPOINT` | `https://authelia.mati-lab.online/api/oidc/authorization` |
+| `GENERIC_TOKEN_ENDPOINT` | `https://authelia.mati-lab.online/api/oidc/token` |
+| `GENERIC_USERINFO_ENDPOINT` | `https://authelia.mati-lab.online/api/oidc/userinfo` |
+| `GENERIC_SCOPE` | `openid email profile groups` |
+| `PROXY_BASE_URL` | `https://litellm.mati-lab.online` |
+| `PROXY_ADMIN_ID` | `gooral` — the SSO-claim value (Authelia `preferred_username`) that is auto-promoted to `proxy_admin` on first login. Without this, the SSO-created user lands as `internal_user_viewer` and the UI shows "No keys found" because they can't see the system-wide virtual keys created by the master key. |
+
+Authelia client config: `network/authelia/configuration.yml` under
+`identity_providers.oidc.clients` as `litellm`, redirect URI
+`https://litellm.mati-lab.online/sso/callback`. Hashed secret on Pi at
+`network/authelia/data/oidc_litellm_client_secret.txt`.
+
+**Caddy `forward_auth` stays in place** — it's the outer gate that
+prevents anyone without Authelia 2FA from even loading the LiteLLM UI.
+SSO is the inner identity hand-off so LiteLLM knows *who* you are once
+Caddy lets you through.
+
+To rotate the SSO secret, see the row in `nas/secrets-inventory.md`.
 
 ## Architecture (Phase 7+)
 
