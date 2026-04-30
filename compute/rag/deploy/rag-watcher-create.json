@@ -1,0 +1,25 @@
+{
+  "app_name": "rag-watcher",
+  "custom_app": true,
+  "values": {"ix_context": {}},
+  "custom_compose_config": {
+    "services": {
+      "rag-watcher": {
+        "image": "gitea.mati-lab.online/gooral/rag-watcher:latest",
+        "restart": "unless-stopped",
+        "env_file": ["/mnt/fast/databases/rag-watcher/.env"],
+        "environment": {
+          "VAULT_PATH": "/vault",
+          "QDRANT_URL": "http://192.168.1.65:30017",
+          "QDRANT_COLLECTION": "obsidian-vault",
+          "LITELLM_BASE_URL": "http://192.168.1.65:4000",
+          "DEBOUNCE_SECONDS": "5",
+          "EMBED_BATCH": "16"
+        },
+        "volumes": [
+          {"type": "bind", "source": "/mnt/bulk/obsidian-vault", "target": "/vault", "read_only": true}
+        ]
+      }
+    }
+  }
+}
