@@ -76,6 +76,8 @@ ssh truenas_admin@192.168.1.65 '
 
 (`truenas_admin` cant read the passphrase file — run from TrueNAS UI Shell as root, or via a midclt-driven one-shot.)
 
-## Lessons (to populate as we hit them)
+## Lessons
 
-- (Reserved for the first incident.)
+- **Kuma push URLs land with a `?status=up&msg=OK&ping=` query string** in the example shown in the Kuma UI's "How to use Push monitor" panel. **Don't paste that suffix.** When dropped into the env file, bash reads `&` as a background-job separator and `?` as a glob, silently emptying the variable. The cron scripts append their own `?status=up&msg=ok` — you only need the base path. `stage-kuma-urls.sh` strips the query suffix and quotes the values defensively.
+- **Always validate by sourcing in a real shell before relying on the env file.** A one-shot midclt cron with `bash -c '. /file; echo URL_LEN=${#KEY}'` catches this in seconds; absence of the heartbeat in Kuma is a 5-min-grace-window away from being noticed.
+- **truenas_admin can't read root-owned files** even at 644. Every "what's actually in this file" check has to go through a midclt-driven cron (which runs as root) or the chmod-write-revert dance.

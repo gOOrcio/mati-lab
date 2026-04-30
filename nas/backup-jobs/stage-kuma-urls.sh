@@ -34,10 +34,20 @@ URL_GITEA=$(prompt_url "backup-gitea-pgdump")
 URL_LITELLM=$(prompt_url "backup-litellm-pgdump")
 URL_ZFS=$(prompt_url "nas-zfs-health")
 
+# Strip the query-string suffix (Kuma's "How to use" UI shows `?status=up&msg=OK&ping=`
+# attached to the example, but the cron scripts append their own suffix — and an
+# unquoted `&` in the env file makes bash treat it as a background-job separator,
+# which silently empties the variable). Quote the values too, defence-in-depth.
+strip_q() { echo "${1%%\?*}"; }
+
+URL_GITEA=$(strip_q "$URL_GITEA")
+URL_LITELLM=$(strip_q "$URL_LITELLM")
+URL_ZFS=$(strip_q "$URL_ZFS")
+
 # Build the env file content locally, pipe via stdin to NAS.
-ENV_CONTENT="KUMA_URL_GITEA_DUMP=$URL_GITEA
-KUMA_URL_LITELLM_DUMP=$URL_LITELLM
-KUMA_URL_ZFS_HEALTH=$URL_ZFS"
+ENV_CONTENT="KUMA_URL_GITEA_DUMP=\"$URL_GITEA\"
+KUMA_URL_LITELLM_DUMP=\"$URL_LITELLM\"
+KUMA_URL_ZFS_HEALTH=\"$URL_ZFS\""
 
 # Relax dir, write file as truenas_admin, chown back, restore dir.
 ssh truenas_admin@192.168.1.65 'midclt call -j filesystem.setperm "{\"path\":\"/mnt/bulk/backups/.secrets\",\"mode\":\"777\"}" 2>&1 | tail -1' >/dev/null
