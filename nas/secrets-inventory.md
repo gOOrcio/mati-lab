@@ -143,6 +143,12 @@ See [`litellm/notes.md`](litellm/notes.md) for `/key/generate`, `/key/regenerate
 
 ---
 
+## Backups
+
+| Role | File on disk | PM label | Dependents | Procedure | Last rotated |
+|---|---|---|---|---|---|
+| **Backup encryption passphrase** | NAS `/mnt/bulk/backups/.secrets/dump-passphrase` (root:root 600) | `homelab/backups/dump-passphrase` | Every cron under `nas/backup-jobs/*.sh` (`gpg --symmetric --passphrase-file ...`). **Loss = unrecoverable backups (intentional security property — encryption is meaningful precisely because the only key holder is the password manager).** | (1) `openssl rand -base64 48` for new value. (2) **Decrypt + re-encrypt every existing dump under `bulk/backups/{gitea,litellm}-pgdump/` with the new passphrase** — they were written under the old one. (3) Re-stage via `bash nas/backup-jobs/stage-passphrase.sh` (silent prompt + stdin pipe). (4) Update PM. | 2026-04-30 (issued at Phase 8 install) |
+
 ## Cross-references
 
 - LiteLLM `/key/generate` curl pattern: [`litellm/notes.md`](litellm/notes.md) "Virtual keys" section (added in Phase 7 Task 9).

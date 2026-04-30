@@ -18,6 +18,12 @@ is a human inventory — keep roughly in sync after UI/API changes.
 | 11 | `fast/qdrant-data` | daily 02:30 | 90 days | `auto-daily-%Y-%m-%d_%H-%M` | Phase 6 |
 | 12 | `fast/databases` (non-recursive) | hourly (min 0) | 2 weeks | `auto-%Y-%m-%d_%H-%M` | Phase 7 |
 | 13 | `fast/databases` (non-recursive) | daily 02:30 | 90 days | `auto-daily-%Y-%m-%d_%H-%M` | Phase 7 |
+| 14 | `bulk/gitea` **(recursive)** | daily 02:30 | 90 days | `auto-daily-%Y-%m-%d_%H-%M` | Phase 8 |
+| 15 | `bulk/gitea` **(recursive)** | hourly (min 0) | 2 weeks | `auto-%Y-%m-%d_%H-%M` | Phase 8 |
+| 16 | `fast/databases/gitea` (non-recursive, Postgres data) | daily 02:30 | 90 days | `auto-daily-%Y-%m-%d_%H-%M` | Phase 8 |
+| 17 | `fast/databases/gitea` (non-recursive, Postgres data) | hourly (min 0) | 2 weeks | `auto-%Y-%m-%d_%H-%M` | Phase 8 |
+| 18 | `bulk/backups` (non-recursive — captures Phase-8 dumps + Pi rsync target + Proxmox vzdump) | daily 02:30 | 90 days | `auto-daily-%Y-%m-%d_%H-%M` | Phase 8 |
+| 19 | `bulk/backups` (non-recursive) | hourly (min 0) | 2 weeks | `auto-%Y-%m-%d_%H-%M` | Phase 8 |
 
 **Pattern:** every protected dataset gets the same hourly+daily pair
 (2w / 90d). Different services occupy different id-blocks because of
@@ -52,8 +58,7 @@ Then add the two new ids to the table above.
 - `bulk/immich-uploads` — dataset exists but Immich is deferred (Phase 2 Task 3)
 - `fast/databases/immich-pgdata` — live Postgres; block snapshots alone are
   unsafe. Pair with `pg_dump` in Phase 8C before enabling.
-- `bulk/backups` — recursive/self-referential (it already *is* the backup
-  destination from the Pi)
+- ~~`bulk/backups` — was previously skipped as "self-referential."~~ Phase 8 enables snapshots here (tasks 18/19) — captures Phase-8 dumps + Pi rsync target + Proxmox vzdump. Diff-only storage cost is small; gives a multi-day rollback dimension on top of the in-script `find -mtime` retention.
 - `fast/databases/gitea` — separate sub-dataset; explicitly excluded by the
   non-recursive snapshot on `fast/databases` (Phase 7 task 12/13). Logical
   SQLite dump pairing lands in Phase 8 (followups row 8.4).
@@ -73,6 +78,38 @@ on `fast/databases` covers it without also sweeping `gitea` and
 The snapshots are crash-consistent (ZFS snapshot of a running Postgres);
 restore from one and Postgres will run WAL replay on first boot. Phase 8
 will pair this with periodic `pg_dump` for transactional consistency.
+
+## Encryption-at-rest posture (Phase 8 audit, 2026-04-30)
+
+**Zero datasets on this NAS use ZFS-native encryption today.** Per the
+single-NAS-no-off-box scope decided for Phase 8, the threat model that
+ZFS encryption defends against (physical theft of disks) is real but
+medium-priority. Migrating live data into encrypted children
+(`zfs send | zfs recv` + mountpoint swap) is a sustained-downtime
+operation; the call is to **encrypt-on-rebuild rather than encrypt-now**
+for existing datasets, and to use **per-file gpg-symmetric** encryption
+for new dump destinations rather than nesting that under ZFS-native too.
+
+| Dataset | Sensitivity | Verdict |
+|---|---|---|
+| `bulk/photos` | high (when populated) | encrypt-on-rebuild |
+| `bulk/obsidian-vault` | high | encrypt-on-rebuild |
+| `bulk/obsidian-couchdb` | high | encrypt-on-rebuild |
+| `bulk/gitea/*` | medium (mostly OSS code, but configs leak) | encrypt-on-rebuild |
+| `fast/qdrant-data` | medium (vault embeddings reconstruct vault content) | encrypt-on-rebuild |
+| `fast/databases/*` (litellm-pgdata, gitea pgdata, immich-pgdata) | high (DB contents) | encrypt-on-rebuild |
+| `bulk/backups/*-pgdump` (new in Phase 8) | high | gpg-symmetric only — see `nas/backup-jobs/notes.md` |
+| `bulk/media` | low | skip permanent |
+| `bulk/downloads` | low (transient) | skip permanent |
+| `bulk/immich-uploads` | medium (when populated) | encrypt-on-rebuild |
+| `bulk/backups/network-pi` | medium | encrypt-on-rebuild |
+| `fast/ix-apps` | mixed | skip — TrueNAS-managed |
+
+**When the next NAS rebuild happens** (replacement hardware, re-pool, fresh
+TrueNAS install, etc.), create every "encrypt-on-rebuild" dataset with
+native encryption from creation time. Use a hex-key file on the boot
+pool (auto-loaded) rather than a passphrase prompt, to avoid blocking
+boot. Key file goes in PM under `homelab/nas/zfs-encryption-key`.
 
 ## Datasets to consider for Phase 8
 
