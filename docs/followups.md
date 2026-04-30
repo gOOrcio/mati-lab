@@ -20,7 +20,7 @@ A single-pane index of every concrete piece of work that's been **intentionally 
 | Phase 4 follow-up (CI/CD adoption) | 6 | 7.5, 7.6, 4.f.1, 4.f.2, 4.f.3, 4.f.4, 4.f.5, ∞.2 |
 | Phase 5 (Obsidian sync) | 1 | ∞.3 — out-of-scope only; nothing real deferred |
 | Phase 6 (RAG pipeline) | 6 | 7.2, 7.4, 6.x.1, 6.x.2, 6.x.3, 6.x.4 |
-| Phase 7 (hardening, in flight) | 1 | 7.x.1 (OpenClaw key cutover deferred) |
+| Phase 7 (hardening, in flight) | 2 | 7.x.1 (OpenClaw key cutover deferred), 7.5 (madrale 17 manual ruff fixes) |
 | (its own future plan) | 1 | Phase 6.2 — code-repo embedding |
 
 ## Phase 7 territory — Hardening & Polish
@@ -31,7 +31,7 @@ A single-pane index of every concrete piece of work that's been **intentionally 
 | 7.2 | ~~**LiteLLM virtual-key scoping for rag-watcher.**~~ → shipped via Phase 7 Tasks 6–9 (see `nas/litellm/notes.md` "Virtual keys"). Required adding a Postgres sidecar to the LiteLLM Custom App. | Phase 6 | `nas/litellm/notes.md` |
 | 7.3 | ~~**Proxmox OIDC fix.**~~ → shipped via Phase 7 Task 10 (see `compute/proxmox_host/notes.md` "OIDC integration"). Three-part bug: `username-claim sub` (default) → fixed to `preferred_username`; missing pre-staged ACL → granted Administrator on `/`; root-disk-full → unrelated but masking the real fix. | Phase 4 | `compute/proxmox_host/notes.md` |
 | 7.4 | ~~**Promtail on the NAS.**~~ → shipped via Phase 7 Tasks 1–5 (see `nas/promtail/notes.md`). Loki host labels now include `nas`. | Phase 6 | `nas/promtail/notes.md` |
-| 7.5 | **Per-repo lint debt** (trailing-spaces, eslint, ruff, gofmt). CI surfaces; cleanup at the human's pace. | Phase 4 follow-up | `docs/superpowers/plans/2026-04-29-cicd-followup-after-phase-4.md:44-45` |
+| 7.5 | ~~**Per-repo lint debt** (trailing-spaces, eslint, ruff, gofmt).~~ → mostly shipped via Phase 7 Task 17 (`phase-7-lint-fastpass` branches in `dietly-scraper`, `madrale`, `smart-resume`, `grafana-ntfy-bridge`). Pre-commit + CI lint job added to all four. **Residual:** 17 manual ruff fixes in `madrale` (B904 raise-from + UP038 isinstance tuple); pre-commit `--fix --exit-zero` keeps them off the CI critical path. Hand-edit + remove `--exit-zero` when ready. | Phase 4 follow-up | `~/Projects/madrale` |
 | 7.6 | **Token rotation runbook in `nas/gitea/notes.md`** consolidating the per-PAT map (where each lives + what to update on rotation). | Phase 4 follow-up | `docs/superpowers/plans/2026-04-29-cicd-followup-after-phase-4.md:551-555` |
 
 ## Phase 8 territory — NAS Backups & Disaster Recovery

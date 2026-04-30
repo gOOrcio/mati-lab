@@ -25,9 +25,9 @@ to bypass the Authelia 302-redirect on Caddy-fronted vhosts).
 | ☐ | Name | Type | Endpoint | Match |
 |---|---|---|---|---|
 | ☐ | authelia | HTTP-Keyword | `http://authelia:9091/api/health` | `OK` |
-| ☐ | litellm | HTTP-Keyword | `http://192.168.1.65:4000/health/liveliness` | `healthy` |
+| ☐ | litellm | HTTP-Keyword | `http://192.168.1.65:4000/health/liveliness` | `alive` (response is `"I'm alive!"`, not `healthy`) |
 | ☐ | qdrant | HTTP-Keyword | `http://192.168.1.65:30017/healthz` | `passed` |
-| ☐ | gitea | HTTP-Keyword | `http://192.168.1.65:30009/api/v1/version` | `version` |
+| ☐ | gitea | HTTP-Keyword | `https://gitea.mati-lab.online/api/v1/version` | `version` (LAN `:30009` is SSH; HTTP only via Caddy) |
 | ☐ | ollama-gpu | HTTP-Keyword | `http://192.168.1.48:11434/` | `Ollama is running` |
 | ☐ | caddy | HTTP | `http://caddy:80` | 200/400 acceptable |
 | ☐ | cloudflared (transitive) | HTTP-Keyword | `https://gitea.mati-lab.online/api/v1/version` | `version` |
@@ -40,7 +40,7 @@ to bypass the Authelia 302-redirect on Caddy-fronted vhosts).
 | ☐ | prometheus | HTTP-Keyword | `http://prometheus:9090/-/healthy` | `Healthy` |
 | ☐ | grafana | HTTP-Keyword | `http://grafana:3000/api/health` | `ok` |
 | ☐ | ntfy | HTTP-Keyword | `http://ntfy:80/v1/health` | `success` |
-| ☐ | obsidian-couchdb | HTTP-Keyword | `http://192.168.1.65:30015/_up` | `ok` |
+| ☐ | obsidian-couchdb | HTTP (status code) | `http://192.168.1.65:30015/` | accept status `401` (CouchDB returns 401 on `/` and `/_up` for unauthenticated requests; 401 = "alive but auth required") |
 | ☐ | syncthing | HTTP-Keyword | `http://192.168.1.65:30016/rest/noauth/health` | `OK` |
 
 ### Tier 3 — useful, not critical
