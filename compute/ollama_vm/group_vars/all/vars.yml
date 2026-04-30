@@ -40,8 +40,13 @@ ollama_host: "0.0.0.0:11434"
 
 # Models to pull — pulled in order, large models last
 # smart-resume requires: qwen2.5:7b-instruct, nomic-embed-text
+# Phase 6 RAG bake-off: mxbai-embed-large + bge-m3 are the two challengers
+# against the existing nomic-embed-text. Whichever wins becomes the
+# `embeddings` alias target in nas/litellm/config.yml.
 ollama_models:
   - "nomic-embed-text:latest"
+  - "mxbai-embed-large:latest"
+  - "bge-m3:latest"
   - "qwen2.5:7b-instruct"
   - "qwen2.5-coder:7b"
   - "qwen3.5:2b"
