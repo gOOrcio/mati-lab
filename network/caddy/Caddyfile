@@ -310,6 +310,22 @@
 		}
 	}
 
+	@qdrant host qdrant.mati-lab.online
+	handle @qdrant {
+		# Qdrant dashboard + REST API behind Authelia 2FA. The watcher
+		# service hits 192.168.1.65:30017 directly on the LAN — Caddy
+		# is only here so we have a 2FA-gated UI for inspection.
+		forward_auth http://authelia:9091 {
+			uri /api/authz/forward-auth
+			copy_headers Remote-User Remote-Groups Remote-Name Remote-Email
+		}
+		reverse_proxy http://192.168.1.65:30017 {
+			header_up Host {host}
+			header_up X-Forwarded-Proto https
+			header_up X-Forwarded-Ssl on
+		}
+	}
+
 	@loki host loki.mati-lab.online
 	handle @loki {
 		@loki_health path /ready
