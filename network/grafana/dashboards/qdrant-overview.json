@@ -1,0 +1,160 @@
+{
+  "annotations": {"list": []},
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "uid": "qdrant-overview",
+  "title": "Qdrant — Overview",
+  "tags": ["qdrant", "rag", "phase-7"],
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "time": {"from": "now-6h", "to": "now"},
+  "timepicker": {},
+  "templating": {
+    "list": [
+      {
+        "name": "datasource",
+        "label": "Prometheus",
+        "type": "datasource",
+        "query": "prometheus",
+        "current": {"text": "Prometheus", "value": "Prometheus"},
+        "hide": 0
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Total vectors (all collections)",
+      "type": "stat",
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0},
+      "fieldConfig": {"defaults": {"unit": "short", "decimals": 0}},
+      "options": {
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "colorMode": "value",
+        "graphMode": "area"
+      },
+      "targets": [
+        {"expr": "sum(collections_vector_total)", "legendFormat": "vectors", "refId": "A"}
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Collections",
+      "type": "stat",
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "gridPos": {"h": 4, "w": 6, "x": 6, "y": 0},
+      "fieldConfig": {"defaults": {"unit": "short", "decimals": 0}},
+      "options": {
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "colorMode": "value",
+        "graphMode": "area"
+      },
+      "targets": [
+        {"expr": "collections_total", "legendFormat": "count", "refId": "A"}
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Requests / minute (5m avg)",
+      "type": "stat",
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "gridPos": {"h": 4, "w": 6, "x": 12, "y": 0},
+      "fieldConfig": {"defaults": {"unit": "rpm", "decimals": 1}},
+      "options": {
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "colorMode": "value",
+        "graphMode": "area"
+      },
+      "targets": [
+        {"expr": "sum(rate(rest_responses_total[5m])) * 60", "legendFormat": "rpm", "refId": "A"}
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Failures / minute",
+      "type": "stat",
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "gridPos": {"h": 4, "w": 6, "x": 18, "y": 0},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "rpm", "decimals": 2,
+          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "red", "value": 1}]}
+        }
+      },
+      "options": {
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "colorMode": "background",
+        "graphMode": "area"
+      },
+      "targets": [
+        {"expr": "sum(rate(rest_responses_fail_total[5m])) * 60", "legendFormat": "fail/min", "refId": "A"}
+      ]
+    },
+    {
+      "id": 5,
+      "title": "Request rate by method",
+      "type": "timeseries",
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4},
+      "fieldConfig": {"defaults": {"unit": "reqps"}},
+      "options": {"legend": {"displayMode": "table", "placement": "right", "calcs": ["mean", "max"]}},
+      "targets": [
+        {"expr": "sum by (method) (rate(rest_responses_total[5m]))", "legendFormat": "{{method}}", "refId": "A"}
+      ]
+    },
+    {
+      "id": 6,
+      "title": "P95 response duration (s)",
+      "type": "timeseries",
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 4},
+      "fieldConfig": {"defaults": {"unit": "s"}},
+      "options": {"legend": {"displayMode": "table", "placement": "right", "calcs": ["mean", "max"]}},
+      "targets": [
+        {"expr": "histogram_quantile(0.95, sum by (le, method) (rate(rest_responses_duration_seconds_bucket[5m])))", "legendFormat": "{{method}}", "refId": "A"}
+      ]
+    },
+    {
+      "id": 7,
+      "title": "Vectors per collection",
+      "type": "timeseries",
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 12},
+      "fieldConfig": {"defaults": {"unit": "short"}},
+      "options": {"legend": {"displayMode": "table", "placement": "right", "calcs": ["last"]}},
+      "targets": [
+        {"expr": "collection_hardware_metric_cpu", "legendFormat": "{{collection}}", "refId": "A", "hide": true},
+        {"expr": "sum by (collection) (collections_vector_total)", "legendFormat": "{{collection}}", "refId": "B"}
+      ]
+    },
+    {
+      "id": 8,
+      "title": "Per-collection CPU",
+      "type": "timeseries",
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 12},
+      "fieldConfig": {"defaults": {"unit": "percent"}},
+      "options": {"legend": {"displayMode": "table", "placement": "right", "calcs": ["mean", "max"]}},
+      "targets": [
+        {"expr": "collection_hardware_metric_cpu", "legendFormat": "{{collection}}", "refId": "A"}
+      ]
+    },
+    {
+      "id": 9,
+      "title": "Per-collection IO read/write",
+      "type": "timeseries",
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 20},
+      "fieldConfig": {"defaults": {"unit": "Bps"}},
+      "options": {"legend": {"displayMode": "table", "placement": "right", "calcs": ["mean", "max"]}},
+      "targets": [
+        {"expr": "rate(collection_hardware_metric_io_read[5m])", "legendFormat": "read {{collection}}", "refId": "A"},
+        {"expr": "rate(collection_hardware_metric_io_write[5m])", "legendFormat": "write {{collection}}", "refId": "B"}
+      ]
+    }
+  ]
+}
