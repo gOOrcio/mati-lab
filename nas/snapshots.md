@@ -16,6 +16,8 @@ is a human inventory — keep roughly in sync after UI/API changes.
 | 9 | `bulk/obsidian-vault` | daily 02:30 | 90 days | `auto-daily-%Y-%m-%d_%H-%M` | Phase 5 |
 | 10 | `fast/qdrant-data` | hourly (min 0) | 2 weeks | `auto-%Y-%m-%d_%H-%M` | Phase 6 |
 | 11 | `fast/qdrant-data` | daily 02:30 | 90 days | `auto-daily-%Y-%m-%d_%H-%M` | Phase 6 |
+| 12 | `fast/databases` (non-recursive) | hourly (min 0) | 2 weeks | `auto-%Y-%m-%d_%H-%M` | Phase 7 |
+| 13 | `fast/databases` (non-recursive) | daily 02:30 | 90 days | `auto-daily-%Y-%m-%d_%H-%M` | Phase 7 |
 
 **Pattern:** every protected dataset gets the same hourly+daily pair
 (2w / 90d). Different services occupy different id-blocks because of
@@ -52,12 +54,25 @@ Then add the two new ids to the table above.
   unsafe. Pair with `pg_dump` in Phase 8C before enabling.
 - `bulk/backups` — recursive/self-referential (it already *is* the backup
   destination from the Pi)
-- `fast/databases/litellm`, `fast/databases/rag-watcher`, `fast/databases/promtail`
-  — service-config datasets; small, redeployable from this repo + the password
-  manager. Phase 8 may add light snapshots if config drift becomes a concern,
-  but they're not on a ZFS-rollback criticality tier.
+- `fast/databases/gitea` — separate sub-dataset; explicitly excluded by the
+  non-recursive snapshot on `fast/databases` (Phase 7 task 12/13). Logical
+  SQLite dump pairing lands in Phase 8 (followups row 8.4).
+- `fast/databases/immich-pgdata` — Postgres for Immich. Block snapshots
+  alone are unsafe; pair with `pg_dump` in Phase 8 (followups row 8.3).
 - `fast/ix-apps` — TrueNAS-managed; iX-IT recommends not snapshotting this
   (interferes with image GC and app upgrade machinery).
+
+### Notable change in Phase 7
+
+Adding the LiteLLM Postgres sidecar (Tasks 6–9) made `fast/databases` itself
+stateful: the new directory `fast/databases/litellm-pgdata` is *inside* the
+parent dataset, not a sub-dataset of its own. The non-recursive snapshot task
+on `fast/databases` covers it without also sweeping `gitea` and
+`immich-pgdata` (which are separate sub-datasets).
+
+The snapshots are crash-consistent (ZFS snapshot of a running Postgres);
+restore from one and Postgres will run WAL replay on first boot. Phase 8
+will pair this with periodic `pg_dump` for transactional consistency.
 
 ## Datasets to consider for Phase 8
 

@@ -18,6 +18,7 @@ backups end up.
 | qdrant | `qdrant.mati-lab.online` (LAN/VPN, Authelia) | `fast/qdrant-data` | Phase 6; vector store for RAG. See [qdrant/notes.md](qdrant/notes.md) |
 | rag-watcher | (background daemon) | `/mnt/fast/databases/rag-watcher/.env` | Phase 6; tails `bulk/obsidian-vault`, embeds via LiteLLM, upserts to Qdrant. See [rag-watcher/notes.md](rag-watcher/notes.md) |
 | promtail | (background daemon) | `/mnt/fast/databases/promtail/` | Phase 7; ships every NAS container's logs to Loki on Pi (`192.168.1.252:3100`). See [promtail/notes.md](promtail/notes.md) |
+| litellm-postgres | (sidecar to litellm; not exposed) | `/mnt/fast/databases/litellm-pgdata` | Phase 7; backs LiteLLM's virtual-keys store. See [litellm/notes.md](litellm/notes.md) "Architecture" |
 
 Future phases will add: LiteLLM, OpenClaw, Gitea, CouchDB, file watcher
 for code repos (Phase 6.2).

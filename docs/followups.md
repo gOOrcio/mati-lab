@@ -27,9 +27,9 @@ A single-pane index of every concrete piece of work that's been **intentionally 
 | # | Item | Origin | Source |
 |---|---|---|---|
 | 7.1 | **LiteLLM Prometheus → Grafana cost/latency dashboard.** `/metrics` is scraped; dashboard not built. | Phase 3 | `docs/superpowers/plans/2026-04-24-phase-3-llm-infrastructure.md:513` |
-| 7.2 | **LiteLLM virtual-key scoping for rag-watcher.** Watcher uses the master key. Per-service scoped key deferred to Phase 7 hardening. | Phase 6 | `docs/superpowers/plans/2026-04-30-phase-6-rag-pipeline.md:47` |
-| 7.3 | **Proxmox OIDC fix.** Only Proxmox OIDC integration has user-permission issues post Pi LTS upgrade; other services (Gitea etc.) integrate normally. | Phase 4 | `docs/superpowers/plans/2026-04-25-phase-4-gitea-cicd.md:2483` |
-| 7.4 | **Promtail on the NAS** so Custom App container logs survive a stop. Right now Loki only sees Pi-side containers; once a NAS container exits, history is gone (bit us during Phase 6 watcher debug). | Phase 6 (post-deploy lesson) | `nas/rag-watcher/notes.md:105-112` |
+| 7.2 | ~~**LiteLLM virtual-key scoping for rag-watcher.**~~ → shipped via Phase 7 Tasks 6–9 (see `nas/litellm/notes.md` "Virtual keys"). Required adding a Postgres sidecar to the LiteLLM Custom App. | Phase 6 | `nas/litellm/notes.md` |
+| 7.3 | ~~**Proxmox OIDC fix.**~~ → shipped via Phase 7 Task 10 (see `compute/proxmox_host/notes.md` "OIDC integration"). Three-part bug: `username-claim sub` (default) → fixed to `preferred_username`; missing pre-staged ACL → granted Administrator on `/`; root-disk-full → unrelated but masking the real fix. | Phase 4 | `compute/proxmox_host/notes.md` |
+| 7.4 | ~~**Promtail on the NAS.**~~ → shipped via Phase 7 Tasks 1–5 (see `nas/promtail/notes.md`). Loki host labels now include `nas`. | Phase 6 | `nas/promtail/notes.md` |
 | 7.5 | **Per-repo lint debt** (trailing-spaces, eslint, ruff, gofmt). CI surfaces; cleanup at the human's pace. | Phase 4 follow-up | `docs/superpowers/plans/2026-04-29-cicd-followup-after-phase-4.md:44-45` |
 | 7.6 | **Token rotation runbook in `nas/gitea/notes.md`** consolidating the per-PAT map (where each lives + what to update on rotation). | Phase 4 follow-up | `docs/superpowers/plans/2026-04-29-cicd-followup-after-phase-4.md:551-555` |
 

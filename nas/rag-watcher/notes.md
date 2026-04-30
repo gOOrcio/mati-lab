@@ -34,7 +34,7 @@ None. Background daemon. Inspect via:
 
 | Path (NAS) | Content | Source of truth |
 |---|---|---|
-| `/mnt/fast/databases/rag-watcher/.env` | `LITELLM_API_KEY` (= LiteLLM master key) | Only on NAS. Never committed; password-manager-backed |
+| `/mnt/fast/databases/rag-watcher/.env` | `LITELLM_API_KEY` (= **LiteLLM virtual key `rag-watcher`** as of Phase 7 Task 7; previously the master key) | Only on NAS. Never committed; password-manager-backed under `homelab/litellm/rag-watcher` |
 | (compose env in `app.create` JSON) | `VAULT_PATH=/vault`, `QDRANT_URL=http://192.168.1.65:30017`, `QDRANT_COLLECTION=obsidian-vault`, `LITELLM_BASE_URL=http://192.168.1.65:4000`, `DEBOUNCE_SECONDS=5`, `EMBED_BATCH=16` | `compute/rag/deploy/rag-watcher-create.json` in this repo |
 
 The vault is bind-mounted **read-only** at `/vault`. Watcher should never
@@ -74,7 +74,7 @@ for a in json.load(sys.stdin):
 | Plain restart (no image change) | `make redeploy` |
 | Force a full re-embed | `cd compute/rag && make bulk-index` (sequential, ~30s for ~50 small notes; bigger vaults will want a `--workers N` flag — not yet implemented) |
 | Skip reconcile on startup | Set `SKIP_RECONCILE=1` in compose env, redeploy. Live watch still runs. Useful for debugging a poisoned point in Qdrant. |
-| Bump LiteLLM key | Edit `/mnt/fast/databases/rag-watcher/.env`, `midclt call app.redeploy rag-watcher` |
+| Bump LiteLLM key | `bash nas/litellm/swap-consumer-key.sh rag-watcher` (prompts silently, edits `.env` over SSH, image-pull-redeploys) |
 
 ## How a re-index works
 
