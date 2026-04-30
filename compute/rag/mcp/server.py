@@ -99,14 +99,16 @@ def vault_search(query: str, limit: int = DEFAULT_LIMIT) -> list[dict[str, Any]]
     """
     limit = max(1, min(50, int(limit)))
     vec = _embed(query)
-    results = qdrant.search(
+    # qdrant-client >= 1.15 removed `search()`; use `query_points()` and
+    # unwrap `.points` to get the same list of ScoredPoint objects.
+    response = qdrant.query_points(
         collection_name=QDRANT_COLLECTION,
-        query_vector=vec,
+        query=vec,
         limit=limit,
         with_payload=True,
     )
     out: list[dict[str, Any]] = []
-    for r in results:
+    for r in response.points:
         p = r.payload or {}
         out.append(
             {

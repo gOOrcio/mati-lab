@@ -76,7 +76,10 @@ def embed_batch(model: str, texts: list[str]) -> list[list[float]]:
 
 def index(model: str, dim: int) -> tuple[str, int]:
     coll = f"bakeoff-{model.replace('embed-', '').replace('-', '_')}"
-    QDRANT.recreate_collection(
+    # `recreate_collection` was removed in qdrant-client 1.15. Do it manually.
+    if QDRANT.collection_exists(coll):
+        QDRANT.delete_collection(coll)
+    QDRANT.create_collection(
         collection_name=coll,
         vectors_config=VectorParams(size=dim, distance=Distance.COSINE),
     )
@@ -120,9 +123,11 @@ def evaluate(model: str, coll: str) -> dict:
     for q in QUERIES:
         vec, lat = embed_one(model, q["q"])
         latencies.append(lat)
-        results = QDRANT.search(collection_name=coll, query_vector=vec, limit=5)
-        paths = [r.payload["path"] for r in results]
-        scores = [r.score for r in results]
+        # qdrant-client >= 1.15 removed `search()`; query_points returns a
+        # response object with `.points`.
+        response = QDRANT.query_points(collection_name=coll, query=vec, limit=5)
+        paths = [r.payload["path"] for r in response.points]
+        scores = [r.score for r in response.points]
         hit = any(q["expect_path_substr"] in p for p in paths)
         if hit:
             hits += 1
