@@ -137,13 +137,21 @@
 
     - name: Add Gitea (NAS:30009) to known_hosts
       ansible.builtin.known_hosts:
-        name: "[nas.mati-lab.online]:30009"
+        name: "[gitea-ssh.mati-lab.online]:30009"
         # Gitea's SSH host key. If Gitea is reinstalled and this key
-        # rotates, ssh-keyscan -p 30009 -t rsa nas.mati-lab.online and
-        # paste the new value.
-        key: "[nas.mati-lab.online]:30009 ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQC2hTbAdfmdk5IZQtV//exZWFM3/uIsqJixyAqX3u/Q0s8Vm9khgqpU3mCivQis0DkK4RqEN/j817yE0HZnMiSd6p70RFDJI7Zt+tiBACpB2vKs57oQjq/XHfwjPYLZSi0z+PZyn76AbossJ6ScQNLTbT67TaNZ+zvXcEbImSXP7wsOeQt3D6S2KVjL0rHMrwHwhgZugDe/IeJno+e729TGS63uI7mWfj0/bYtqnrtW/AVi6cbzwldpnlzUDkrBAGv9lGe154S5uTUxG9lyG5p1HNIt7w3KSdp5V9mNSl5uA/QNGua9p3+n58bcK3hgA+tftqbF0Nlh6lHJWXRH4M+B2Ww+xXrp9wr/M7ntnMluey13w2zDGXbtTfD5vqIiGpipfiraVFhMD2b8g/wxK/bxVBPOdG3e3jHAF+VkECZscqRPrqiugvHk9OdgvTqJ8WkwYVlmWfAp40s62BMvdgXWty7prvjALVC8s3md/SaCFHl8c6tAlriXfQMW6o+l6InQtnBf4kCGfNF3nPv/CQNbnC+sNmgVHZoeY/Oiaq+AWN4Ifu+CYGuRnxvwvnEYHHz9lt4HWJijz9hunNezpQlBUu/6rehPIsss6NXd7Hhq8uUPIrD2KslEEZ8V73XC+GEBpYqVa0+qZApeVqrriWLmjn9yEpNXx+DoJ/t2YUyhpQ=="
+        # rotates, ssh-keyscan -p 30009 -t rsa gitea-ssh.mati-lab.online
+        # and paste the new value.
+        key: "[gitea-ssh.mati-lab.online]:30009 ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQC2hTbAdfmdk5IZQtV//exZWFM3/uIsqJixyAqX3u/Q0s8Vm9khgqpU3mCivQis0DkK4RqEN/j817yE0HZnMiSd6p70RFDJI7Zt+tiBACpB2vKs57oQjq/XHfwjPYLZSi0z+PZyn76AbossJ6ScQNLTbT67TaNZ+zvXcEbImSXP7wsOeQt3D6S2KVjL0rHMrwHwhgZugDe/IeJno+e729TGS63uI7mWfj0/bYtqnrtW/AVi6cbzwldpnlzUDkrBAGv9lGe154S5uTUxG9lyG5p1HNIt7w3KSdp5V9mNSl5uA/QNGua9p3+n58bcK3hgA+tftqbF0Nlh6lHJWXRH4M+B2Ww+xXrp9wr/M7ntnMluey13w2zDGXbtTfD5vqIiGpipfiraVFhMD2b8g/wxK/bxVBPOdG3e3jHAF+VkECZscqRPrqiugvHk9OdgvTqJ8WkwYVlmWfAp40s62BMvdgXWty7prvjALVC8s3md/SaCFHl8c6tAlriXfQMW6o+l6InQtnBf4kCGfNF3nPv/CQNbnC+sNmgVHZoeY/Oiaq+AWN4Ifu+CYGuRnxvwvnEYHHz9lt4HWJijz9hunNezpQlBUu/6rehPIsss6NXd7Hhq8uUPIrD2KslEEZ8V73XC+GEBpYqVa0+qZApeVqrriWLmjn9yEpNXx+DoJ/t2YUyhpQ=="
         path: "/home/{{ pi_user }}/.ssh/known_hosts"
         state: present
+      become: false
+      tags: [base, git]
+
+    - name: Remove stale Gitea entry for old nas.mati-lab.online host
+      ansible.builtin.known_hosts:
+        name: "[nas.mati-lab.online]:30009"
+        path: "/home/{{ pi_user }}/.ssh/known_hosts"
+        state: absent
       become: false
       tags: [base, git]
 
@@ -156,7 +164,7 @@
         create: true
         marker: "# {mark} ANSIBLE MANAGED — Gitea on NAS"
         block: |
-          Host nas.mati-lab.online
+          Host gitea-ssh.mati-lab.online
               Port 30009
               User git
               IdentityFile ~/.ssh/id_ed25519

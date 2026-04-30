@@ -9,14 +9,18 @@ to GitHub for public visibility.
 
 - **Web (LAN+VPN, behind Caddy):** `https://gitea.mati-lab.online`
 - **Web (direct LAN):** `http://192.168.1.65:30008`
-- **SSH (LAN+VPN only, no Caddy):** `git@nas.mati-lab.online:30009`
-  - Pi-hole DNS override: `nas.mati-lab.online → 192.168.1.65` (specific
-    entry; sidesteps the `*.mati-lab.online → Caddy` wildcard since SSH
-    isn't proxied).
+- **SSH (LAN+VPN only, no Caddy):** `git@gitea-ssh.mati-lab.online:30009`
+  - Pi-hole DNS override: `gitea-ssh.mati-lab.online → 192.168.1.65`
+    (specific entry; sidesteps the `*.mati-lab.online → Caddy` wildcard
+    since SSH isn't proxied). Kept *separate* from `nas.mati-lab.online`
+    on purpose — a previous override pinned `nas.mati-lab.online` to
+    192.168.1.65 too, which made browser HTTPS hit TrueNAS's self-signed
+    cert instead of Caddy. See
+    `docs/superpowers/plans/2026-04-30-split-nas-hostname-from-gitea-ssh.md`.
   - Add to `~/.ssh/config`:
 
     ```
-    Host nas.mati-lab.online
+    Host gitea-ssh.mati-lab.online
         Port 30009
         User git
         IdentityFile ~/.ssh/id_ed25519

@@ -17,8 +17,8 @@ BRANCH="${BRANCH:-main}"
 SSH_OPTS=(-o BatchMode=yes -o StrictHostKeyChecking=accept-new)
 REMOTE="${SERVER_USER}@${SERVER_HOST}"
 # Source of truth is self-hosted Gitea on the NAS. Pi authenticates with
-# its own SSH key (see Pi `~/.ssh/config` Host nas.mati-lab.online :30009).
-GITEA_REPO="git@nas.mati-lab.online:gooral/mati-lab.git"
+# its own SSH key (see Pi `~/.ssh/config` Host gitea-ssh.mati-lab.online :30009).
+GITEA_REPO="git@gitea-ssh.mati-lab.online:gooral/mati-lab.git"
 
 log(){ printf "\033[0;34m[INFO]\033[0m %s\n" "$*"; }
 log_success(){ printf "\033[0;32m[SUCCESS]\033[0m %s\n" "$*"; }
