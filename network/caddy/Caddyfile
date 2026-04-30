@@ -39,11 +39,18 @@
 
 	@smart-resume host smart-resume.mati-lab.online
 	handle @smart-resume {
+		# No forward_auth: smart-resume is a public-facing personal app
+		# (LXC at 192.168.1.200). Authn/authz, if any, is the app's own
+		# concern. If this is ever turned into a private app, add a
+		# forward_auth block matching the @litellm pattern.
 		reverse_proxy 192.168.1.200:80
 	}
 
 	@restorate host restorate.mati-lab.online
 	handle @restorate {
+		# No forward_auth: restorate is a public-facing personal app
+		# (LXC at 192.168.1.203). Authn/authz, if any, is the app's own
+		# concern. Same reasoning as @smart-resume above.
 		reverse_proxy 192.168.1.203:80
 	}
 
@@ -189,6 +196,11 @@
 
 	@ntfy host ntfy.mati-lab.online
 	handle @ntfy {
+		# NO forward_auth. ntfy uses bearer-token auth at the
+		# application layer; mobile/curl clients can't perform a 302
+		# Authelia redirect. There's a matching `bypass` rule in
+		# authelia configuration.yml access_control so even if a client
+		# were caught up in forward-auth, it'd skip the gate.
 		reverse_proxy http://ntfy:80 {
 			header_up Host {host}
 			header_up X-Forwarded-Proto https
@@ -198,6 +210,8 @@
 
 	@authelia host authelia.mati-lab.online
 	handle @authelia {
+		# NO forward_auth — Authelia cannot gate itself (chicken-and-egg).
+		# Login UI must be reachable for everything else to work.
 		reverse_proxy http://authelia:9091 {
 			header_up Host {host}
 			header_up X-Forwarded-Proto https
@@ -207,6 +221,9 @@
 
 	@jellyfin host jellyfin.mati-lab.online
 	handle @jellyfin {
+		# NO forward_auth. Jellyfin has its own login + apps (mobile,
+		# AppleTV) auth via API tokens that can't follow Authelia's 302.
+		# Forward-auth in front would break every native client.
 		reverse_proxy 192.168.1.65:30013 {
 			header_up Host {host}
 			header_up X-Forwarded-Proto https
