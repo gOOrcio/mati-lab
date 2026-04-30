@@ -1,0 +1,49 @@
+# Promtail config — NAS side. Ships logs from every TrueNAS Custom App
+# container to the Pi-side Loki. Mirror of network/promtail/promtail-config.yml
+# with NAS-specific paths and labels.
+#
+# The Pi side uses tecnativa/docker-socket-proxy to least-privilege the
+# socket exposure to Promtail. We're skipping that wrapper here and
+# mounting /var/run/docker.sock directly read-only — homelab single-tenant,
+# Promtail is the only consumer, image is from Grafana Labs. If we ever
+# add more docker-socket consumers on the NAS, switch to the proxy
+# pattern (Phase 7.x followup).
+
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /var/lib/promtail/positions.yaml
+
+clients:
+  - url: http://192.168.1.252:3100/loki/api/v1/push
+    backoff_config:
+      min_period: 500ms
+      max_period: 5s
+      max_retries: 10
+
+scrape_configs:
+  - job_name: nas-docker
+    docker_sd_configs:
+      - host: unix:///var/run/docker.sock
+        refresh_interval: 10s
+    relabel_configs:
+      # Container name (strip leading slash docker prepends)
+      - source_labels: ["__meta_docker_container_name"]
+        regex: "/(.*)"
+        target_label: container
+      # Compose project + service when present (TrueNAS-launched apps set these)
+      - source_labels: ["__meta_docker_container_label_com_docker_compose_project"]
+        target_label: compose_project
+      - source_labels: ["__meta_docker_container_label_com_docker_compose_service"]
+        target_label: compose_service
+      # Distinguish NAS from Pi side in queries
+      - target_label: host
+        replacement: nas
+      - target_label: job
+        replacement: nas-docker
+      # Don't scrape ourselves (Loki is fed by us; recursion is fatal)
+      - source_labels: ["__meta_docker_container_name"]
+        regex: "/(promtail|ix-promtail-promtail-1)"
+        action: drop

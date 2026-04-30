@@ -1,0 +1,21 @@
+{
+  "app_name": "promtail",
+  "custom_app": true,
+  "values": {"ix_context": {}},
+  "custom_compose_config": {
+    "services": {
+      "promtail": {
+        "image": "grafana/promtail:3.5.0",
+        "restart": "unless-stopped",
+        "command": ["-config.file=/etc/promtail/config.yml"],
+        "user": "0:0",
+        "volumes": [
+          {"type": "bind", "source": "/mnt/fast/databases/promtail/config.yml", "target": "/etc/promtail/config.yml", "read_only": true},
+          {"type": "bind", "source": "/var/run/docker.sock", "target": "/var/run/docker.sock", "read_only": true},
+          {"type": "bind", "source": "/mnt/.ix-apps/docker/containers", "target": "/mnt/.ix-apps/docker/containers", "read_only": true},
+          {"type": "bind", "source": "/mnt/fast/databases/promtail/positions", "target": "/var/lib/promtail"}
+        ]
+      }
+    }
+  }
+}
