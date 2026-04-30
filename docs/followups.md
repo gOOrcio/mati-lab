@@ -21,6 +21,7 @@ A single-pane index of every concrete piece of work that's been **intentionally 
 | Phase 5 (Obsidian sync) | 1 | ∞.3 — out-of-scope only; nothing real deferred |
 | Phase 6 (RAG pipeline) | 6 | 7.2, 7.4, 6.x.1, 6.x.2, 6.x.3, 6.x.4 |
 | Phase 7 (hardening, in flight) | 2 | 7.x.1 (OpenClaw key cutover deferred), 7.5 (madrale 17 manual ruff fixes) |
+| Phase 8 (backups, in flight) | 3 stays open | 8.1 (off-box — accepted risk), 8.3 (Immich pg_dump pending Phase 2), 8.6 (OpenClaw backup pending 7.x.1) |
 | (its own future plan) | 1 | Phase 6.2 — code-repo embedding |
 
 ## Phase 7 territory — Hardening & Polish
@@ -38,14 +39,14 @@ A single-pane index of every concrete piece of work that's been **intentionally 
 
 | # | Item | Origin | Source |
 |---|---|---|---|
-| 8.1 | **Off-box replication** for all NAS datasets. ZFS snapshots are the local-rollback down-payment; replication is the "fire / theft / double-disk-death" answer. | Phase 2 | `docs/superpowers/plans/2026-04-17-phase-2-nas-media-stack.md:776, 885`; `nas/README.md` |
-| 8.2 | **Postgres restore drills** documented per service in the relevant `nas/<service>/notes.md`. | Phase 2 | `docs/superpowers/plans/2026-04-17-phase-2-nas-media-stack.md:818` |
-| 8.3 | **Immich logical `pg_dump`** to `bulk/backups/immich/` paired with the ZFS snapshot of `bulk/photos` + `bulk/immich-uploads`. | Phase 2 | `docs/superpowers/plans/2026-04-17-phase-2-nas-media-stack.md:348, 760` |
-| 8.4 | **Gitea SQLite nightly `.backup` dump** + retention policy. ZFS snapshots already in place; logical dump remaining. | Phase 4 | `nas/gitea/notes.md:133-141` |
-| 8.5 | **LiteLLM backup recipe.** Note section reserved; just snapshots of `fast/databases/litellm` are documented today. | Phase 3 | `nas/litellm/notes.md:87` |
-| 8.6 | **OpenClaw backup recipe.** Same shape as LiteLLM — note section reserved for Phase 8. | Phase 3 | `nas/openclaw/notes.md:174-181` |
-| 8.7 | **Hermes `memory.db` backup** flag. Bot abandoned per memory note, but if revived the location is documented for inclusion. | Phase 3 | `docs/superpowers/plans/2026-04-24-phase-3-llm-infrastructure.md:810-816` |
-| 8.8 | **Hermes `/ping` health probe** — no HTTP health endpoint; indirect monitor via cron. Phase 8 concern. | Phase 3 | `docs/superpowers/plans/2026-04-24-phase-3-llm-infrastructure.md:778` |
+| 8.1 | **Off-box replication** for all NAS datasets. **Explicitly accepted as risk in Phase 8** (no off-box destination — single NAS, no cloud, no rotated USB). The fire / theft / double-disk-death scenarios are documented as data loss in `nas/disaster-rebuild.md`. Revisit if appetite to invest emerges (cheap external drive, rsync.net €30/yr, etc.). | Phase 2 | `nas/disaster-rebuild.md` |
+| 8.2 | ~~**Postgres restore drills.**~~ → shipped via Phase 8 Tasks 8–9. Q1 drill ran 2026-04-30 (`nas/restore-drills/q1-postgres.md`); quarterly cadence documented; Q2/Q3/Q4 runbook stubs in place. | Phase 2 | `nas/restore-drills/` |
+| 8.3 | **Immich logical `pg_dump`** — stays open. Immich app itself is still deferred (Phase 2 Task 3); when Immich ships, copy the `litellm-pgdump.sh` template + register as a fourth backup cron. | Phase 2 | `docs/superpowers/plans/2026-04-17-phase-2-nas-media-stack.md` |
+| 8.4 | ~~**Gitea logical dump.**~~ → shipped via Phase 8 Task 3 (`nas/backup-jobs/gitea-pgdump.sh`). Note: Gitea's catalog app uses Postgres, not SQLite as originally noted in the followup; updated. | Phase 4 | `nas/backup-jobs/notes.md` |
+| 8.5 | ~~**LiteLLM backup recipe.**~~ → shipped via Phase 8 Task 4 (`nas/backup-jobs/litellm-pgdump.sh`). | Phase 3 | `nas/backup-jobs/notes.md` |
+| 8.6 | **OpenClaw backup recipe** — stays open, blocked on followup 7.x.1 (OpenClaw cutover decision). When OpenClaw revives, copy the litellm-pgdump template; nothing to back up while the app is stopped. | Phase 3 | `nas/openclaw/notes.md` |
+| 8.7 | ~~**Hermes `memory.db` backup**~~ — closed as obsolete. Hermes was abandoned per `project_llm_stack` memory; revival is conditional + would carry its own backup design. | Phase 3 | (closed) |
+| 8.8 | ~~**Hermes `/ping` health probe**~~ — closed as obsolete (same reason as 8.7). | Phase 3 | (closed) |
 
 ## Phase 7.x — Hardening followups
 
