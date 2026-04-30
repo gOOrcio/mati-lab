@@ -195,3 +195,77 @@ with a nightly `sqlite3 state.db '.backup ...'` dump to
    conflicts + mDNS name collisions.
 4. **Pairing is per-device.** A fresh incognito tab counts as a new
    device. Embrace it or keep `openclaw devices list` handy.
+
+## RAG integration (Phase 6)
+
+**Decision:** Connect OpenClaw to the homelab Qdrant via MCP, not via a
+custom skill. OpenClaw is already an MCP client; reusing the same
+`vault_search` server that Claude Code consumes keeps "what tool the
+agent has access to" identical across surfaces and avoids forking
+implementations.
+
+**Why not the openclaw-rag-skill community project:** it would mean
+maintaining a second embedding pipeline parallel to the one
+`rag-watcher` and `mcp/server.py` already implement, and the skill
+cannot be reused by Claude Code or OpenCode. The MCP path is the
+single-source-of-truth choice.
+
+**Why not stdio transport** (the way Claude Code consumes our server):
+OpenClaw runs inside a TrueNAS container with no `uv` and no access to
+the dev box's filesystem where `compute/rag/mcp/server.py` lives. Stdio
+means baking the script + uv into OpenClaw's container — fragile.
+
+**Architecture:** run a second instance of `compute/rag/mcp/server.py`
+as a **streamable-http** server in its own TrueNAS Custom App
+(`vault-rag-mcp`) on host port `30019`. OpenClaw connects via
+`http://192.168.1.65:30019/mcp` over the LAN.
+
+**Status: NOT YET DEPLOYED.** Phase 6 closeout deferred this — the
+Claude Code / OpenCode integration via stdio is sufficient for daily
+use; OpenClaw RAG ships in Phase 6.x once we have appetite to add
+another small Custom App. The MCP server already supports streamable-http
+via `MCP_TRANSPORT=streamable-http` (see top of `compute/rag/mcp/server.py`),
+so deployment is just packaging.
+
+**Runbook for when we deploy it:**
+
+1. **Add a Dockerfile under `compute/rag/mcp/`** — same Python 3.12 slim
+   base as the watcher, copy `server.py`, `pip install mcp httpx
+   qdrant-client`, default `CMD` runs the script.
+2. **Push image to Gitea** at `gitea.mati-lab.online/gooral/vault-rag-mcp:latest`.
+3. **Stage env file at** `/mnt/fast/databases/vault-rag-mcp/.env`:
+   ```
+   LITELLM_API_KEY=<from password manager>
+   ```
+4. **Create the Custom App** with this compose (host port 30019 maps to 8080 inside):
+   ```yaml
+   services:
+     vault-rag-mcp:
+       image: gitea.mati-lab.online/gooral/vault-rag-mcp:latest
+       restart: unless-stopped
+       env_file: ["/mnt/fast/databases/vault-rag-mcp/.env"]
+       environment:
+         QDRANT_URL: http://192.168.1.65:30017
+         QDRANT_COLLECTION: obsidian-vault
+         LITELLM_BASE_URL: http://192.168.1.65:4000
+         LITELLM_EMBED_MODEL: embeddings
+         MCP_TRANSPORT: streamable-http
+         MCP_HTTP_PORT: "8080"
+       ports:
+         - {mode: host, protocol: tcp, published: 30019, target: 8080}
+   ```
+5. **Register with OpenClaw** — from a shell *inside* the OpenClaw
+   container (TrueNAS UI → Apps → openclaw → Shell):
+   ```
+   openclaw mcp set vault-rag '{"url":"http://192.168.1.65:30019/mcp","transport":"streamable-http"}'
+   openclaw mcp list
+   ```
+6. **Verify** by asking OpenClaw a vault question
+   ("what's in my homelab notes about LiteLLM"). Expect a
+   citation-bearing answer pulled from `nas/litellm/notes.md`.
+
+**Open question deferred to deploy time:** auth on the HTTP MCP. v1
+relies on LAN-only port + `mode: host` binding (no Caddy exposure).
+If/when we want this reachable from outside the LAN, add a bearer-token
+check via FastMCP middleware and rotate the token alongside the
+LiteLLM key.

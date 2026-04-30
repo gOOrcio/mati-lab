@@ -31,6 +31,9 @@ Configuration via env (caller sets these in `~/.claude/mcp.json`):
   LITELLM_API_KEY     <from password manager>
   LITELLM_EMBED_MODEL embeddings   (LiteLLM alias name; default ok)
   QDRANT_SEARCH_LIMIT 5            (default top-k)
+  MCP_TRANSPORT       stdio  (or `streamable-http` for OpenClaw / remote)
+  MCP_HTTP_HOST       0.0.0.0   (only used when MCP_TRANSPORT=streamable-http)
+  MCP_HTTP_PORT       8080      (only used when MCP_TRANSPORT=streamable-http)
 
 Tools exposed (read-only by design — no `store`/`upsert`/`delete`):
   vault_search(query, limit?)  Vector search over the Obsidian-vault collection.
@@ -118,4 +121,13 @@ def vault_search(query: str, limit: int = DEFAULT_LIMIT) -> list[dict[str, Any]]
 
 
 if __name__ == "__main__":
-    mcp.run()
+    transport = os.environ.get("MCP_TRANSPORT", "stdio")
+    if transport == "stdio":
+        mcp.run()
+    elif transport == "streamable-http":
+        # FastMCP's settings honour `host`/`port` for streamable-http.
+        mcp.settings.host = os.environ.get("MCP_HTTP_HOST", "0.0.0.0")
+        mcp.settings.port = int(os.environ.get("MCP_HTTP_PORT", "8080"))
+        mcp.run(transport="streamable-http")
+    else:
+        raise SystemExit(f"unknown MCP_TRANSPORT={transport!r}; expected stdio or streamable-http")
