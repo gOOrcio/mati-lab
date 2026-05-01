@@ -17,12 +17,27 @@ model:
   # api_key unset — falls back to OPENAI_API_KEY env var (the `hermes` virtual key).
 
 # =============================================================================
-# MCP servers — vault search
+# MCP servers — vault search + (later) qbittorrent
 # =============================================================================
 mcp_servers:
   vault-rag:
     url: http://192.168.1.65:30019/mcp
     timeout: 60
+    headers:
+      # Bearer token enforced by the vault-rag-mcp server's ASGI middleware.
+      # NOTE: ${VAR} substitution is documented to work in Hermes config but
+      # in practice doesn't fire inside `headers` blocks (only URLs). The
+      # canonical config.yaml on NAS holds the literal token value; this
+      # committed example is a placeholder. Rotation: regenerate, update
+      # both /mnt/fast/databases/vault-rag-mcp/.env (MCP_BEARER_TOKEN) AND
+      # /mnt/.ix-apps/app_mounts/hermes/data/config.yaml (literal Bearer
+      # value), then midclt app.update vault-rag-mcp + app.redeploy hermes.
+      Authorization: Bearer <PASTE-vault-rag-mcp-bearer-from-PM>
+  qbittorrent:
+    url: http://192.168.1.65:30020/mcp
+    timeout: 30
+    headers:
+      Authorization: Bearer <PASTE-qbittorrent-mcp-bearer-from-PM>
 
 # =============================================================================
 # Session reset — wipe context daily / on idle, persist memory

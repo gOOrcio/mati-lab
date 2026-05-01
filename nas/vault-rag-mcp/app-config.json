@@ -5,7 +5,7 @@
   "custom_compose_config": {
     "services": {
       "vault-rag-mcp": {
-        "image": "gitea.mati-lab.online/gooral/vault-rag-mcp:v2",
+        "image": "gitea.mati-lab.online/gooral/vault-rag-mcp:v3",
         "restart": "unless-stopped",
         "user": "568:568",
         "env_file": ["/mnt/fast/databases/vault-rag-mcp/.env"],

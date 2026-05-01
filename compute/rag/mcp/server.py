@@ -31,9 +31,14 @@ Configuration via env (caller sets these in `~/.claude/mcp.json`):
   LITELLM_API_KEY     <from password manager>
   LITELLM_EMBED_MODEL embeddings   (LiteLLM alias name; default ok)
   QDRANT_SEARCH_LIMIT 5            (default top-k)
-  MCP_TRANSPORT       stdio  (or `streamable-http` for OpenClaw / remote)
+  MCP_TRANSPORT       stdio  (or `streamable-http` for Hermes / remote)
   MCP_HTTP_HOST       0.0.0.0   (only used when MCP_TRANSPORT=streamable-http)
   MCP_HTTP_PORT       8080      (only used when MCP_TRANSPORT=streamable-http)
+  MCP_BEARER_TOKEN    (optional) when set + transport=streamable-http, every
+                      HTTP request must carry `Authorization: Bearer <value>`
+                      or get 401. Stdio transport is unaffected (subprocess
+                      auth is implicit). Unset = open access on the HTTP
+                      surface — only safe on a tightly-scoped LAN.
 
 Tools exposed (read-only by design — no `store`/`upsert`/`delete`):
   vault_search(query, limit?)  Vector search over the Obsidian-vault collection.
@@ -131,6 +136,53 @@ def vault_search(query: str, limit: int = DEFAULT_LIMIT) -> list[dict[str, Any]]
     return out
 
 
+class _BearerAuthASGI:
+    """ASGI middleware enforcing `Authorization: Bearer <token>` on HTTP requests.
+
+    Only wraps the app when `MCP_BEARER_TOKEN` is set. Skips non-HTTP scopes
+    (lifespan, websocket) and CORS preflight (OPTIONS) so the MCP transport
+    layer can negotiate normally. Constant-time string compare to avoid
+    timing oracles on the token.
+    """
+
+    def __init__(self, app: Any, token: str) -> None:
+        self.app = app
+        self._token = token
+
+    async def __call__(self, scope: Any, receive: Any, send: Any) -> None:
+        if scope["type"] != "http" or scope.get("method") == "OPTIONS":
+            await self.app(scope, receive, send)
+            return
+        provided = ""
+        for name, value in scope.get("headers", []):
+            if name == b"authorization":
+                provided = value.decode("latin-1", errors="replace")
+                break
+        expected = f"Bearer {self._token}"
+        # secrets.compare_digest avoids leaking length / prefix via timing.
+        import secrets
+
+        if not provided or not secrets.compare_digest(provided, expected):
+            await send(
+                {
+                    "type": "http.response.start",
+                    "status": 401,
+                    "headers": [
+                        (b"content-type", b"application/json"),
+                        (b"www-authenticate", b'Bearer realm="vault-rag-mcp"'),
+                    ],
+                }
+            )
+            await send(
+                {
+                    "type": "http.response.body",
+                    "body": b'{"error":"unauthorized"}',
+                }
+            )
+            return
+        await self.app(scope, receive, send)
+
+
 if __name__ == "__main__":
     transport = os.environ.get("MCP_TRANSPORT", "stdio")
     if transport == "stdio":
@@ -139,6 +191,17 @@ if __name__ == "__main__":
         # Host + port already wired in via env at FastMCP construction time
         # (see _HTTP_HOST / _HTTP_PORT above) so DNS rebinding protection
         # doesn't auto-latch to localhost-only.
-        mcp.run(transport="streamable-http")
+        bearer = os.environ.get("MCP_BEARER_TOKEN")
+        if not bearer:
+            # Run the default path — no auth wrapper.
+            mcp.run(transport="streamable-http")
+        else:
+            # Wrap the FastMCP ASGI app with bearer-auth, then run via uvicorn.
+            # We bypass mcp.run() so we can inject middleware around the app.
+            import uvicorn
+
+            inner_app = mcp.streamable_http_app()
+            app = _BearerAuthASGI(inner_app, bearer)
+            uvicorn.run(app, host=_HTTP_HOST, port=_HTTP_PORT, log_level="info")
     else:
         raise SystemExit(f"unknown MCP_TRANSPORT={transport!r}; expected stdio or streamable-http")
