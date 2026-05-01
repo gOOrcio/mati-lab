@@ -19,6 +19,7 @@ backups end up.
 | Bazarr | `bazarr.mati-lab.online` (LAN + Authelia 2FA) | `fast/databases/bazarr/config` | Subtitles for Sonarr + Radarr libraries. See [bazarr/notes.md](bazarr/notes.md) |
 | Recyclarr | (cron-driven, no exposed UI) | `fast/databases/recyclarr/config.yml` | TRaSH-Guides quality sync into Sonarr/Radarr; weekly Sun 04:30 UTC. See [recyclarr/notes.md](recyclarr/notes.md) |
 | Jellyseerr | `requests.mati-lab.online` (LAN + Tailscale/WireGuard, Jellyfin auth) | `fast/databases/jellyseerr/config` | Request portal backed by Jellyfin user DB. See [jellyseerr/notes.md](jellyseerr/notes.md) |
+| FlareSolverr | (LAN-only, NodePort 30030) | (stateless) | Cloudflare anti-bot bypass for Prowlarr indexers (TPB, Nyaa.si). See [flaresolverr/notes.md](flaresolverr/notes.md) |
 | Immich | deferred | `bulk/photos` + `fast/databases/immich-pgdata` | blocked on `pgvecto_upgrade`; Task 3 of Phase 2 plan |
 | obsidian-couchdb | `obsidian.mati-lab.online` (LAN/VPN) | `bulk/obsidian-couchdb` + plain-file mirror at `bulk/obsidian-vault` | Phase 5; see [obsidian/notes.md](obsidian/notes.md) |
 | qdrant | `qdrant.mati-lab.online` (LAN/VPN, Authelia) | `fast/qdrant-data` | Phase 6; vector store for RAG. See [qdrant/notes.md](qdrant/notes.md) |

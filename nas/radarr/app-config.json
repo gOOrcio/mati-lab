@@ -10,7 +10,8 @@
         "environment": {
           "PUID": "568",
           "PGID": "568",
-          "TZ": "Europe/Warsaw"
+          "TZ": "Europe/Warsaw",
+          "DOTNET_SYSTEM_NET_DISABLEIPV6": "true"
         },
         "volumes": [
           {"type": "bind", "source": "/mnt/fast/databases/radarr/config", "target": "/config"},
