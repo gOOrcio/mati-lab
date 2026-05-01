@@ -1,7 +1,7 @@
 # Network Services Makefile
 # Provides convenient shortcuts for common operations
 
-.PHONY: help deploy update restart status logs stop start clean setup env rebuild-caddy backup backup-status backup-check
+.PHONY: help deploy update restart status logs stop start clean setup env rebuild-caddy backup backup-status backup-check add-authelia-user add-authelia-admin
 
 # Service definitions — ordered for dependency-safe deploys
 # pihole (DNS) → registry-mirror (Docker registry) → caddy (TLS reverse proxy) → rest
@@ -38,6 +38,8 @@ help:
 	@echo "Special targets:"
 	@echo "  check-pihole         - Check Pi-hole DNS resolution"
 	@echo "  rebuild-caddy        - Rebuild Caddy image (use when Dockerfile/plugins change)"
+	@echo "  add-authelia-user    - Add a regular user to Authelia (group: users)"
+	@echo "  add-authelia-admin   - Add an admin user to Authelia (group: admins)"
 	@echo ""
 	@echo "Examples:"
 	@echo "  make deploy-caddy"
@@ -71,6 +73,13 @@ rebuild-caddy:
 rebuild-grafana-ntfy-bridge:
 	@echo "Rebuilding Grafana-Ntfy-Bridge..."
 	@cd scripts && BRANCH=$(BRANCH) ./manage-grafana-ntfy-bridge.sh rebuild
+
+# Authelia user management — interactive prompts
+add-authelia-user:
+	@cd scripts && ./add-authelia-user.sh
+
+add-authelia-admin:
+	@cd scripts && ./add-authelia-user.sh --admin
 
 # Backup targets
 backup:
