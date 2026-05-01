@@ -119,6 +119,17 @@ See [`litellm/notes.md`](litellm/notes.md) for `/key/generate`, `/key/regenerate
 |---|---|---|---|---|---|
 | **WebUI admin password** | qBit container config (in-app) | `homelab/qbittorrent/admin` | qBittorrent UI login (LAN bypass; Authelia 2FA externally). | UI → Tools → Options → Web UI → password; or curl per `nas/qbittorrent/notes.md:87`. | 2026-XX-XX (post Phase 2 install) |
 
+## *arr stack (Sonarr / Radarr / Prowlarr / Bazarr)
+
+| Role | File on disk | PM label | Dependents | Procedure | Last rotated |
+|---|---|---|---|---|---|
+| **Sonarr API key** | `/mnt/fast/databases/sonarr/config/config.xml` `<ApiKey>` | `homelab/sonarr/api-key` | Prowlarr `Apps → Sonarr`, Bazarr `sonarr.apikey`, future Jellyfin-Connect or scrapers. | (1) Sonarr UI → Settings → General → Security → API Key → regenerate. (2) Update Prowlarr `Apps → Sonarr → Edit → API Key`. (3) Update Bazarr settings (UI or config.yaml at `/mnt/fast/databases/bazarr/config/config/config.yaml` `sonarr.apikey`, then `app.stop bazarr && app.start bazarr`). (4) PM. | 2026-05-01 (issued at install) |
+| **Radarr API key** | `/mnt/fast/databases/radarr/config/config.xml` `<ApiKey>` | `homelab/radarr/api-key` | Prowlarr `Apps → Radarr`, Bazarr `radarr.apikey`. | Same shape as Sonarr's, mutatis mutandis. | 2026-05-01 (issued at install) |
+| **Prowlarr API key** | `/mnt/fast/databases/prowlarr/config/config.xml` `<ApiKey>` | `homelab/prowlarr/api-key` | (None today — no external apps reference Prowlarr's key. Will become load-bearing if a scraper / MCP / dashboard is added.) | Settings → General → Security → API Key → regenerate. PM. | 2026-05-01 (issued at install) |
+| **Bazarr API key** | `/mnt/fast/databases/bazarr/config/config/config.yaml` `auth.apikey` | `homelab/bazarr/api-key` | (None today — Bazarr is a leaf consumer.) | Settings → General → Security → API Key (UI). PM. | 2026-05-01 (issued at install) |
+| **Subtitle provider creds (per provider)** | Bazarr's settings DB / `config.yaml` block per provider | `homelab/bazarr/provider-<name>` (added when each provider is wired) | Bazarr subtitle pulls. | Bazarr UI → Settings → Providers → click provider → paste/rotate creds. PM. | (set per provider at first use) |
+| **Indexer creds in Prowlarr (per private tracker)** | Prowlarr's settings DB | `homelab/prowlarr/indexer-<name>` (added when each tracker is wired) | Prowlarr indexer searches; downstream Sonarr/Radarr searches via Prowlarr. | Prowlarr UI → Indexers → click indexer → rotate creds (cookies / API keys). PM. Some private trackers reject qBit's `anonymous_mode=true`; flip per-tracker if rejected, not globally. | (set per tracker at first use) |
+
 ## Obsidian (CouchDB + Syncthing)
 
 | Role | File on disk | PM label | Dependents | Procedure | Last rotated |
@@ -149,7 +160,8 @@ See [`litellm/notes.md`](litellm/notes.md) for `/key/generate`, `/key/regenerate
 
 | Role | File on disk | PM label | Dependents | Procedure | Last rotated |
 |---|---|---|---|---|---|
-| **Backup encryption passphrase** | NAS `/mnt/bulk/backups/.secrets/dump-passphrase` (root:root 600) | `homelab/backups/dump-passphrase` | Every cron under `nas/backup-jobs/*.sh` (`gpg --symmetric --passphrase-file ...`). **Loss = unrecoverable backups (intentional security property — encryption is meaningful precisely because the only key holder is the password manager).** | (1) `openssl rand -base64 48` for new value. (2) **Decrypt + re-encrypt every existing dump under `bulk/backups/{gitea,litellm}-pgdump/` with the new passphrase** — they were written under the old one. (3) Re-stage via `bash nas/backup-jobs/stage-passphrase.sh` (silent prompt + stdin pipe). (4) Update PM. | 2026-04-30 (issued at Phase 8 install) |
+| **Backup encryption passphrase** | NAS `/mnt/bulk/backups/.secrets/dump-passphrase` (root:root 600) | `homelab/backups/dump-passphrase` | Every cron under `nas/backup-jobs/*.sh` (`gpg --symmetric --passphrase-file ...`), now including `arr-config-backup.sh`. **Loss = unrecoverable backups (intentional security property — encryption is meaningful precisely because the only key holder is the password manager).** | (1) `openssl rand -base64 48` for new value. (2) **Decrypt + re-encrypt every existing dump under `bulk/backups/{gitea,litellm,hermes,arr}*` with the new passphrase** — they were written under the old one. (3) Re-stage via `bash nas/backup-jobs/stage-passphrase.sh` (silent prompt + stdin pipe). (4) Update PM. | 2026-04-30 (issued at Phase 8 install) |
+| **Kuma push URL — `arr-config-backup`** | NAS `/root/.backup-env` (`KUMA_URL_ARR_CONFIG=`, root:root 600) | `homelab/uptime-kuma/push-arr-config-backup` | `arr-config-backup.sh` weekly heartbeat. | Mint a new push monitor in Kuma UI; copy the bare URL (strip query string per `feedback_kuma_push_url_query_string`). Stage via `read -rs URL && ssh truenas_admin@nas "sudo tee -a /root/.backup-env <<<\"KUMA_URL_ARR_CONFIG=$URL\""`. PM. | 2026-05-01 (issued at install) |
 
 ## Cross-references
 

@@ -1,0 +1,24 @@
+{
+  "app_name": "prowlarr",
+  "custom_app": true,
+  "values": {"ix_context": {}},
+  "custom_compose_config": {
+    "services": {
+      "prowlarr": {
+        "image": "lscr.io/linuxserver/prowlarr:latest",
+        "restart": "unless-stopped",
+        "environment": {
+          "PUID": "568",
+          "PGID": "568",
+          "TZ": "Europe/Warsaw"
+        },
+        "volumes": [
+          {"type": "bind", "source": "/mnt/fast/databases/prowlarr/config", "target": "/config"}
+        ],
+        "ports": [
+          {"mode": "host", "protocol": "tcp", "published": 30025, "target": 9696}
+        ]
+      }
+    }
+  }
+}

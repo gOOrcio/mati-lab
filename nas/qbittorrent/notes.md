@@ -20,14 +20,26 @@ TrueNAS Scale Apps catalog, `community` train. Installed 2026-04-24.
 | Role | Type | Path (host → container) |
 |---|---|---|
 | Config (settings DB, resume data, GeoDB) | `ixVolume` (managed) | `/mnt/.ix-apps/app_mounts/qbittorrent/config` → `/config` |
-| Downloads | Host path on SATA mirror | `/mnt/bulk/downloads` → `/downloads` |
+| Downloads | Host path on SATA mirror | `/mnt/bulk/data/torrents` → `/downloads` |
 
-Subdir layout under `/mnt/bulk/downloads`:
+Subdir layout under `/mnt/bulk/data/torrents` (the in-container path is
+still `/downloads/...`, just the host source moved):
 
 ```
 complete/     default save path
 incomplete/   temp_path, with `.!qB` extension on in-progress files
 ```
+
+### Why `/downloads` doesn't match the host path anymore
+
+The host bind source moved from `/mnt/bulk/downloads` →
+`/mnt/bulk/data/torrents` during the *arr-stack migration on 2026-05-01,
+to put `torrents/` and the Sonarr/Radarr media libraries on the **same**
+ZFS dataset (`bulk/data`). Hardlinks can't cross datasets, so all four
+`*arr` apps mount `/data → /mnt/bulk/data` and Sonarr/Radarr translate
+qBit's `/downloads/foo` paths to `/data/torrents/foo` via Remote Path
+Mapping. qBit's container view is unchanged from before — torrents
+didn't need re-checking.
 
 ### Heads-up: the TrueNAS app form swaps the storage labels
 
@@ -42,7 +54,9 @@ ssh truenas_admin@192.168.1.65 \
    | python3 -c "import json,sys;v=json.load(sys.stdin)[0][\"active_workloads\"][\"container_details\"][0][\"volume_mounts\"];print(json.dumps(v,indent=2))"'
 ```
 
-`/downloads` must resolve to `/mnt/bulk/downloads`, not to the ix_volume.
+`/downloads` must resolve to `/mnt/bulk/data/torrents`, not to the
+ix_volume and not to the legacy `/mnt/bulk/downloads` (destroyed
+post-migration).
 
 ## Credentials + access model
 

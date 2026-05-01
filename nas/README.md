@@ -11,8 +11,12 @@ backups end up.
 
 | App | URL | Data location | Notes |
 |---|---|---|---|
-| Jellyfin | `jellyfin.mati-lab.online` | `bulk/media` | AMD VAAPI hardware transcoding |
-| qBittorrent | `qbit.mati-lab.online` (LAN + Authelia) | `bulk/downloads` | see [qbittorrent/notes.md](qbittorrent/notes.md) |
+| Jellyfin | `jellyfin.mati-lab.online` | `bulk/data/media` | AMD VAAPI hardware transcoding (currently STOPPED — start when needed) |
+| qBittorrent | `qbit.mati-lab.online` (LAN + Authelia) | `bulk/data/torrents` | see [qbittorrent/notes.md](qbittorrent/notes.md) |
+| Prowlarr | `prowlarr.mati-lab.online` (LAN + Authelia 2FA) | `fast/databases/prowlarr/config` | Indexer aggregator; syncs into Sonarr + Radarr. See [prowlarr/notes.md](prowlarr/notes.md) |
+| Sonarr | `sonarr.mati-lab.online` (LAN + Authelia 2FA) | `fast/databases/sonarr/config` | TV + anime; hardlink imports onto `bulk/data/media/{tv,anime}`. See [sonarr/notes.md](sonarr/notes.md) |
+| Radarr | `radarr.mati-lab.online` (LAN + Authelia 2FA) | `fast/databases/radarr/config` | Movies; hardlink imports onto `bulk/data/media/movies`. See [radarr/notes.md](radarr/notes.md) |
+| Bazarr | `bazarr.mati-lab.online` (LAN + Authelia 2FA) | `fast/databases/bazarr/config` | Subtitles for Sonarr + Radarr libraries. See [bazarr/notes.md](bazarr/notes.md) |
 | Immich | deferred | `bulk/photos` + `fast/databases/immich-pgdata` | blocked on `pgvecto_upgrade`; Task 3 of Phase 2 plan |
 | obsidian-couchdb | `obsidian.mati-lab.online` (LAN/VPN) | `bulk/obsidian-couchdb` + plain-file mirror at `bulk/obsidian-vault` | Phase 5; see [obsidian/notes.md](obsidian/notes.md) |
 | qdrant | `qdrant.mati-lab.online` (LAN/VPN, Authelia) | `fast/qdrant-data` | Phase 6; vector store for RAG. See [qdrant/notes.md](qdrant/notes.md) |
@@ -30,7 +34,7 @@ for code repos (Phase 6.2).
   with LAN-only reach.
 - **Uptime Kuma** monitors `jellyfin` and `qbittorrent` (ntfy push on
   failure). Inventory in [network/uptime-kuma/monitors.md](../network/uptime-kuma/monitors.md).
-- **ZFS snapshots** on `bulk/photos` (hourly+daily) and `bulk/media` (daily).
+- **ZFS snapshots** on `bulk/photos` (hourly+daily) and `bulk/data` (daily, 14d).
   Full policy in [snapshots.md](snapshots.md). `bulk/downloads` intentionally
   unprotected.
 - **Prometheus + Grafana** pulling NAS metrics through a

@@ -278,6 +278,58 @@
 		}
 	}
 
+	@prowlarr host prowlarr.mati-lab.online
+	handle @prowlarr {
+		forward_auth http://authelia:9091 {
+			uri /api/authz/forward-auth
+			copy_headers Remote-User Remote-Groups Remote-Name Remote-Email
+		}
+		reverse_proxy http://192.168.1.65:30025 {
+			header_up Host {host}
+			header_up X-Forwarded-Proto https
+			header_up X-Forwarded-Ssl on
+		}
+	}
+
+	@sonarr host sonarr.mati-lab.online
+	handle @sonarr {
+		forward_auth http://authelia:9091 {
+			uri /api/authz/forward-auth
+			copy_headers Remote-User Remote-Groups Remote-Name Remote-Email
+		}
+		reverse_proxy http://192.168.1.65:30026 {
+			header_up Host {host}
+			header_up X-Forwarded-Proto https
+			header_up X-Forwarded-Ssl on
+		}
+	}
+
+	@radarr host radarr.mati-lab.online
+	handle @radarr {
+		forward_auth http://authelia:9091 {
+			uri /api/authz/forward-auth
+			copy_headers Remote-User Remote-Groups Remote-Name Remote-Email
+		}
+		reverse_proxy http://192.168.1.65:30027 {
+			header_up Host {host}
+			header_up X-Forwarded-Proto https
+			header_up X-Forwarded-Ssl on
+		}
+	}
+
+	@bazarr host bazarr.mati-lab.online
+	handle @bazarr {
+		forward_auth http://authelia:9091 {
+			uri /api/authz/forward-auth
+			copy_headers Remote-User Remote-Groups Remote-Name Remote-Email
+		}
+		reverse_proxy http://192.168.1.65:30028 {
+			header_up Host {host}
+			header_up X-Forwarded-Proto https
+			header_up X-Forwarded-Ssl on
+		}
+	}
+
 	@litellm host litellm.mati-lab.online
 	handle @litellm {
 		# LiteLLM runs on the NAS (TrueNAS Custom App), not on pihole-net.

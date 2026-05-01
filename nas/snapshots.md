@@ -9,7 +9,7 @@ is a human inventory — keep roughly in sync after UI/API changes.
 |---:|---|---|---|---|---|
 | 1 | `bulk/photos` | hourly (min 0) | 2 weeks | `auto-%Y-%m-%d_%H-%M` | Phase 2 |
 | 2 | `bulk/photos` | daily 02:30 | 90 days | `auto-daily-%Y-%m-%d_%H-%M` | Phase 2 |
-| 3 | `bulk/media` | daily 03:00 | 14 days | `auto-daily-%Y-%m-%d_%H-%M` | Phase 2 |
+| 20 | `bulk/data` | daily 00:30 | 14 days | `auto-%Y-%m-%d_%H-%M` | Phase 2.r (*arr stack, 2026-05-01) |
 | 6 | `bulk/obsidian-couchdb` | hourly (min 0) | 2 weeks | `auto-%Y-%m-%d_%H-%M` | Phase 5 |
 | 7 | `bulk/obsidian-couchdb` | daily 02:30 | 90 days | `auto-daily-%Y-%m-%d_%H-%M` | Phase 5 |
 | 8 | `bulk/obsidian-vault` | hourly (min 0) | 2 weeks | `auto-%Y-%m-%d_%H-%M` | Phase 5 |
@@ -54,7 +54,15 @@ Then add the two new ids to the table above.
 
 ## Intentionally *not* snapshotted
 
-- `bulk/downloads` — transient torrent data; snapshots would balloon
+- ~~`bulk/downloads`~~ — destroyed 2026-05-01 during the *arr-stack
+  migration. Replaced by `bulk/data` (single dataset holding both
+  `torrents/` and `media/` so hardlinks work). The whole `bulk/data`
+  dataset *is* snapshotted (id 20 above); torrent partials in
+  `torrents/incomplete/` get briefly captured but ZFS only stores changed
+  blocks, so the cost is negligible compared with the value of being able
+  to roll back an *arr mis-import.
+- ~~`bulk/media`~~ — destroyed 2026-05-01 (was empty); content lives
+  under `bulk/data/media/{movies,tv,anime}` now.
 - `bulk/immich-uploads` — dataset exists but Immich is deferred (Phase 2 Task 3)
 - `fast/databases/immich-pgdata` — live Postgres; block snapshots alone are
   unsafe. Pair with `pg_dump` in Phase 8C before enabling.
@@ -99,8 +107,7 @@ for new dump destinations rather than nesting that under ZFS-native too.
 | `fast/qdrant-data` | medium (vault embeddings reconstruct vault content) | encrypt-on-rebuild |
 | `fast/databases/*` (litellm-pgdata, gitea pgdata, immich-pgdata) | high (DB contents) | encrypt-on-rebuild |
 | `bulk/backups/*-pgdump` (new in Phase 8) | high | gpg-symmetric only — see `nas/backup-jobs/notes.md` |
-| `bulk/media` | low | skip permanent |
-| `bulk/downloads` | low (transient) | skip permanent |
+| `bulk/data` (replaces `bulk/media` + `bulk/downloads`) | low | skip permanent |
 | `bulk/immich-uploads` | medium (when populated) | encrypt-on-rebuild |
 | `bulk/backups/network-pi` | medium | encrypt-on-rebuild |
 | `fast/ix-apps` | mixed | skip — TrueNAS-managed |

@@ -80,6 +80,39 @@ cat ~/Projects/mati-lab/nas/secrets-inventory.md   # confirms PM labels
 - **Jellyfin / qBittorrent: re-acquire content.** No backup of media.
 - Immich: deferred per the original plan; nothing to restore.
 
+### Phase 2.r — *arr automation (Sonarr / Radarr / Prowlarr / Bazarr)
+
+- Pre-req: `bulk/data` dataset exists (single dataset replacing the old
+  `bulk/downloads` + `bulk/media` split — see `nas/snapshots.md`).
+  Subdirs `torrents/{complete,incomplete}` and `media/{movies,tv,anime}`
+  all owned `568:568` mode `0775`.
+- Re-create the four Custom Apps from the committed payloads:
+  ```bash
+  for app in prowlarr sonarr radarr bazarr; do
+    scp nas/$app/app-config.json truenas_admin@nas:/tmp/$app-app-config.json
+    ssh truenas_admin@nas "midclt call -j app.create \"\$(cat /tmp/$app-app-config.json)\""
+  done
+  ```
+- Restore latest config archive:
+  ```bash
+  ssh truenas_admin@nas \
+    'gpg -d --passphrase-file /mnt/bulk/backups/.secrets/dump-passphrase \
+       /mnt/bulk/backups/arr/arr-<latest>.tar.gz.gpg \
+     | tar -C /mnt/fast/databases -xzf -'
+  ```
+  Then restart each app: `midclt call -j app.stop <app>` + `app.start <app>`.
+- API keys persist inside the SQLite DB (Sonarr/Radarr/Prowlarr) and
+  `config.yaml` (Bazarr). Prowlarr's `Apps → Sonarr/Radarr` entries also
+  persist. After restore, smoke-test by hitting each app's
+  `/api/.../system/status` with the `X-Api-Key` from PM.
+- Re-add Caddy vhosts (`network/caddy/Caddyfile` `@prowlarr` / `@sonarr`
+  / `@radarr` / `@bazarr` blocks) and force-recreate Caddy.
+- Indexers in Prowlarr come back from the restored DB; private trackers
+  may need session-cookie refresh per `nas/prowlarr/notes.md`.
+- **Media library data:** under `bulk/data/media/{movies,tv,anime}` —
+  same accepted-risk bucket as the old `bulk/media` (no off-box backup,
+  followup 8.1).
+
 ### Phase 3 — LLM stack (LiteLLM + OpenClaw + Hermes)
 
 - Deploy LiteLLM Custom App per `nas/litellm/notes.md` install trace.
