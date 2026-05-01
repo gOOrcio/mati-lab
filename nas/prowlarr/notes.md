@@ -1,7 +1,15 @@
 # Prowlarr (NAS)
 
-TrueNAS Scale Custom App. Installed 2026-05-01 to centralise indexer config
-for Sonarr + Radarr. LinuxServer.io image (`lscr.io/linuxserver/prowlarr:latest`).
+> **Now part of the `vpn-stack` Custom App** (since 2026-05-01) —
+> Prowlarr shares the gluetun container's network namespace so its
+> indexer searches egress through ProtonVPN, bypassing UniFi's
+> content-filter MITM. **For deploy / restore / VPN-related
+> operations, see [`../vpn-stack/notes.md`](../vpn-stack/notes.md).**
+> This file remains as the historical install trace + Prowlarr-specific
+> wiring details.
+
+Originally a standalone TrueNAS Scale Custom App. LinuxServer.io image
+(`lscr.io/linuxserver/prowlarr:latest`).
 
 ## Endpoints
 

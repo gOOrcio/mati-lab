@@ -1,0 +1,13 @@
+# Gluetun control-server auth config.
+# https://github.com/qdm12/gluetun-wiki/blob/main/setup/advanced/control-server.md
+#
+# Default behaviour in Gluetun v3.40+ is auth-required on every route.
+# We expose ONLY the public-IP read endpoint without auth so Uptime Kuma
+# can do an HTTP-Keyword liveness check (LAN-only, no risk).
+# Mutating endpoints (e.g. POST /v1/openvpn/actions/restart) stay
+# auth-required (omitted from this config — Gluetun's default-deny applies).
+
+[[roles]]
+name = "public-monitoring"
+routes = ["GET /v1/publicip/ip"]
+auth = "none"

@@ -1,6 +1,19 @@
 # qBittorrent (NAS)
 
-TrueNAS Scale Apps catalog, `community` train. Installed 2026-04-24.
+> **Now part of the `vpn-stack` Custom App** (since 2026-05-01) —
+> qBit shares the gluetun container's network namespace so peer +
+> tracker traffic egresses through ProtonVPN. Originally installed as
+> a TrueNAS Apps catalog `community`-train app; **migrated to a Custom
+> App** under `vpn-stack` to allow `network_mode: service:gluetun`,
+> with `/config` migrated from `ixVolume` to bind-mount
+> `/mnt/fast/databases/qbittorrent-config/`. **For deploy / restore /
+> VPN-related operations, see
+> [`../vpn-stack/notes.md`](../vpn-stack/notes.md).** This file
+> remains as the historical install trace + qBit-specific operational
+> notes (privacy toggles, password reset, etc.).
+
+Originally TrueNAS Scale Apps catalog, `community` train. Installed
+2026-04-24, migrated to vpn-stack Custom App 2026-05-01.
 
 ## Endpoints
 
@@ -19,8 +32,13 @@ TrueNAS Scale Apps catalog, `community` train. Installed 2026-04-24.
 
 | Role | Type | Path (host → container) |
 |---|---|---|
-| Config (settings DB, resume data, GeoDB) | `ixVolume` (managed) | `/mnt/.ix-apps/app_mounts/qbittorrent/config` → `/config` |
+| Config (settings DB, resume data, GeoDB) | Bind mount (post-vpn-stack migration) | `/mnt/fast/databases/qbittorrent-config` → `/config` |
 | Downloads | Host path on SATA mirror | `/mnt/bulk/data/torrents` → `/downloads` |
+
+The pre-vpn-stack catalog app used a managed `ixVolume` at
+`/mnt/.ix-apps/app_mounts/qbittorrent/config`. During the 2026-05-01
+migration the contents were copied to the new bind path (preserves
+state across Custom App lifecycle).
 
 Subdir layout under `/mnt/bulk/data/torrents` (the in-container path is
 still `/downloads/...`, just the host source moved):

@@ -117,7 +117,15 @@ See [`litellm/notes.md`](litellm/notes.md) for `/key/generate`, `/key/regenerate
 
 | Role | File on disk | PM label | Dependents | Procedure | Last rotated |
 |---|---|---|---|---|---|
-| **WebUI admin password** | qBit container config (in-app) | `homelab/qbittorrent/admin` | qBittorrent UI login (LAN bypass; Authelia 2FA externally). | UI → Tools → Options → Web UI → password; or curl per `nas/qbittorrent/notes.md:87`. | 2026-XX-XX (post Phase 2 install) |
+| **WebUI admin password** | qBit container config (in-app, persisted at `/mnt/fast/databases/qbittorrent-config/qBittorrent/qBittorrent.conf`) | `homelab/qbittorrent/admin` | qBittorrent UI login (LAN bypass; Authelia 2FA externally). | UI → Tools → Options → Web UI → password; or curl per `nas/qbittorrent/notes.md:87`. | 2026-XX-XX (post Phase 2 install) |
+
+## vpn-stack (Gluetun / ProtonVPN)
+
+| Role | File on disk | PM label | Dependents | Procedure | Last rotated |
+|---|---|---|---|---|---|
+| **ProtonVPN account** | account.proton.me login | `homelab/protonvpn/account` | Login required to (re)generate WireGuard configs in Proton's UI. | Reset via Proton UI / email recovery. | (subscription purchased 2026-05-01) |
+| **WireGuard config (full `.conf`)** | per-device, regenerated in Proton UI | `homelab/protonvpn/wireguard-config-vpn-stack-nas` | Source of truth for the private key staged on NAS. | Proton UI → VPN → WireGuard → delete + re-create with same name. Re-stage on NAS. | 2026-05-01 |
+| **WireGuard private key** | NAS `/mnt/fast/databases/vpn-stack/.env` `WIREGUARD_PRIVATE_KEY=` (root:root 0600) | `homelab/protonvpn/wireguard-private-key` | Gluetun's tunnel establishment. Loss = no VPN egress (killswitch holds → qBit/Prowlarr go silent). | (1) New WG config in Proton UI → copy `PrivateKey` value. (2) `read -rs KEY && ssh -t truenas_admin@nas 'sudo install -m 0600 -o root -g root /dev/stdin /mnt/fast/databases/vpn-stack/.env <<<"WIREGUARD_PRIVATE_KEY=$KEY"'`. (3) `app.redeploy vpn-stack`. (4) PM. (5) Verify Gluetun's public IP via `/v1/publicip/ip`. | 2026-05-01 |
 
 ## *arr stack (Sonarr / Radarr / Prowlarr / Bazarr)
 

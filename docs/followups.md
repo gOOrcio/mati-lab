@@ -14,7 +14,7 @@ A single-pane index of every concrete piece of work that's been **intentionally 
 | Origin | Count | Rows |
 |---|---|---|
 | Phase 1 (TrueNAS foundation) | 0 | — closed cleanly, foundational |
-| Phase 2 (media stack) | 6 | 2.r.2, 2.r.3, 2.r.4, 8.1, 8.3 (2.r.1 + 2.r.5 shipped 2026-05-01; 8.2 shipped Phase 8) |
+| Phase 2 (media stack) | 5 | 2.r.3, 2.r.4, 8.1, 8.3 (2.r.1 + 2.r.2 + 2.r.5 shipped 2026-05-01; 8.2 shipped Phase 8) |
 | Phase 3 (LLM infrastructure) | 1 stays open | 7.1 (LiteLLM Prometheus → Grafana dashboard); 8.5/8.6/8.7/8.8 shipped via Followups Plan A+C |
 | Phase 4 (Gitea + CI/CD) | 1 | ∞.1 (7.3 + 8.4 shipped Phase 7+8) |
 | Phase 4 follow-up (CI/CD adoption) | 6 | 7.5, 7.6, 4.f.1, 4.f.2, 4.f.3, 4.f.4, 4.f.5, ∞.2 |
@@ -88,8 +88,8 @@ Origin: Phase 6. Source: `docs/superpowers/plans/2026-04-30-phase-6-rag-pipeline
 | # | Item | Origin | Source |
 |---|---|---|---|
 | 2.r.1 | ~~**Sonarr / Radarr**~~ → shipped 2026-05-01 as the *arr stack (Prowlarr + Sonarr + Radarr + Bazarr) on TrueNAS Custom Apps. Unified `bulk/data` ZFS dataset enables hardlink imports from qBit → Jellyfin. Per-app notes: `nas/{prowlarr,sonarr,radarr,bazarr}/notes.md`. Spec: `docs/superpowers/specs/2026-05-01-arr-stack-design.md` (gitignored, local). | Phase 2 | `docs/superpowers/plans/2026-04-17-phase-2-nas-media-stack.md:938` |
-| 2.r.2 | **VPN for qBittorrent** (Gluetun pattern documented but not applied). Pick up if ISP/legal posture changes. | Phase 2 | `docs/superpowers/plans/2026-04-17-phase-2-nas-media-stack.md:438` |
-| 2.r.3 | **qBittorrent incoming-peer port 51413** router/firewall forward — only matters if you want to seed. **New trigger:** if private trackers are added in Prowlarr (now possible post-2.r.1), this becomes relevant for ratio health. | Phase 2 | `docs/superpowers/plans/2026-04-17-phase-2-nas-media-stack.md:367` |
+| 2.r.2 | ~~**VPN for qBittorrent**~~ → shipped 2026-05-01. Gluetun + ProtonVPN WireGuard (Switzerland) sidecar fronting both qBit and Prowlarr in the new `vpn-stack` Custom App. Triggered by UniFi Threat-Management MITM-blocking torrent indexer DNS — VPN tunnel bypasses that AND ISP visibility AND most Cloudflare-region issues. Killswitch ON; LAN + docker-bridge subnets bypass VPN so Sonarr/Radarr → Prowlarr API calls keep working. See [`nas/vpn-stack/notes.md`](../nas/vpn-stack/notes.md). | Phase 2 | `nas/vpn-stack/notes.md` |
+| 2.r.3 | **qBittorrent incoming-peer port via VPN port-forwarding** — Pre-vpn-stack: needed router/firewall forward to seed (only public trackers; download-only-acceptable). Post-vpn-stack: router-forward is moot (qBit is behind Gluetun's tunnel). Real path forward is **ProtonVPN NAT-PMP port-forwarding** wired to qBit's `listen_port` via a Gluetun sidecar script. **Trigger:** when joining a private tracker that requires healthy ratio. | Phase 2 | `nas/vpn-stack/notes.md` "Followups still open" |
 | 2.r.4 | **Immich + qBittorrent Prometheus exporters** — community exporters exist; not maintained for Phase 2. | Phase 2 | `docs/superpowers/plans/2026-04-17-phase-2-nas-media-stack.md:621` |
 | 2.r.5 | ~~**Jellyfin HW transcode revisit**~~ → shipped 2026-05-01. `/dev/dri/renderD128` is in fact present (amdgpu module loaded; AMD Barcelo iGPU). Wired the device into the Jellyfin catalog app via `app.update` (`jellyfin.devices` array), set `HardwareAccelerationType=vaapi` + `VaapiDevice=/dev/dri/renderD128` + `AllowHevcEncoding=false` so browsers get h264-encoded output. End-to-end: HEVC 10-bit decode + h264 encode on GPU at ~5× realtime; Apple clients direct-play, browsers transcode-stream. | Phase 2 | `nas/jellyfin/notes.md` |
 

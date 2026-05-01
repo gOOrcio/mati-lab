@@ -140,6 +140,50 @@ After the *arr stack itself is back:
 3. **Caddy `@jellyseerr` vhost** comes back via the `network/` deploy. No Authelia in front.
 4. **PROWLARR_API_KEY + BAZARR_API_KEY** in `/root/.backup-env` are required by the post-2026-05-01 `arr-config-backup.sh` (it issues per-app API backups instead of tar-of-config).
 
+### Phase 2.r — vpn-stack (Gluetun + qBittorrent + Prowlarr)
+
+This stack supersedes the standalone qBittorrent (catalog) and
+Prowlarr (Custom App) deploys.
+
+1. **ProtonVPN credentials**:
+   - Recover Proton account from PM (`homelab/protonvpn/account`).
+   - Either restore the saved WireGuard config from PM
+     (`homelab/protonvpn/wireguard-config-vpn-stack-nas`) OR generate
+     a new one in Proton's UI (account.proton.me → VPN → WireGuard
+     configuration → Create, name `vpn-stack-nas`, Switzerland P2P,
+     NAT-PMP off).
+   - Stage the private key on NAS:
+     ```bash
+     read -rs KEY && ssh -t truenas_admin@nas \
+       'sudo install -m 0600 -o root -g root /dev/stdin /mnt/fast/databases/vpn-stack/.env <<<"WIREGUARD_PRIVATE_KEY=$KEY"'
+     ```
+2. **Restore qBittorrent state**:
+   - `mkdir -p /mnt/fast/databases/qbittorrent-config` (568:568, 0775).
+   - Restore from ZFS snapshot (`fast/databases` daily snapshot covers
+     this dir) OR re-create from `nas/qbittorrent/notes.md` (admin
+     password + privacy toggles documented).
+3. **Restore Prowlarr state**:
+   - `mkdir -p /mnt/fast/databases/prowlarr/config` (568:568, 0755).
+   - Restore from latest `arr-config-backup` API ZIP (Prowlarr's
+     `prowlarr.zip` inside the bundle).
+4. **Deploy the stack**:
+   ```bash
+   scp nas/vpn-stack/app-config.json truenas_admin@nas:/tmp/vpn-stack-app-config.json
+   ssh truenas_admin@nas 'midclt call -j app.create "$(cat /tmp/vpn-stack-app-config.json)"'
+   ```
+5. **Verify**:
+   ```bash
+   curl -fsS http://192.168.1.65:8000/v1/publicip/ip   # Swiss IP, NOT home IP
+   curl -fsS -o /dev/null -w '%{http_code}\n' http://192.168.1.65:30024/   # qBit 200
+   curl -fsS -o /dev/null -w '%{http_code}\n' http://192.168.1.65:30025/login   # Prowlarr 200
+   ```
+6. **Re-test indexer connections** in Prowlarr UI (gear icon on each
+   indexer). Should return green; the UniFi DNS-MITM that broke this
+   pre-VPN no longer applies because Gluetun resolves DNS inside the
+   tunnel.
+7. Caddy vhosts (`@qbittorrent`, `@prowlarr`) come back via the
+   `network/` deploy — port mappings unchanged.
+
 ### Phase 3 — LLM stack (LiteLLM + OpenClaw + Hermes)
 
 - Deploy LiteLLM Custom App per `nas/litellm/notes.md` install trace.

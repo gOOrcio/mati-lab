@@ -1,9 +1,21 @@
 # FlareSolverr (NAS)
 
-TrueNAS Scale Custom App. Image `ghcr.io/flaresolverr/flaresolverr:latest`.
-Installed 2026-05-01 to bypass Cloudflare anti-bot challenges on
-torrent-tracker indexers (TPB, Nyaa.si, etc.) that started getting
-"Unable to connect to indexer" errors in Prowlarr.
+> **Now part of the `vpn-stack` Custom App** (since 2026-05-01) —
+> FlareSolverr was originally a standalone Custom App on NodePort
+> 30030, but was **consolidated into vpn-stack** alongside qBittorrent
+> and Prowlarr because Cardigann's 2-stage challenge-solve flow
+> (FlareSolverr-solves → Prowlarr-refetches with cookies) requires
+> **both stages to use the same egress IP**. Otherwise Cloudflare
+> session cookies are invalidated when Prowlarr (Swiss VPN exit) tries
+> to use cookies issued for FlareSolverr's IP (originally NAS LAN IP).
+> Putting both behind Gluetun's namespace fixes the IP coherence.
+> **For deploy / restore / VPN-related operations, see
+> [`../vpn-stack/notes.md`](../vpn-stack/notes.md).** This file
+> remains as the FlareSolverr-specific behaviour reference.
+
+Image `ghcr.io/flaresolverr/flaresolverr:latest`. Originally installed
+2026-05-01 standalone; consolidated into vpn-stack same day after
+testing showed Cardigann's 2-stage flow needed IP coherence.
 
 ## What it does
 
@@ -14,10 +26,14 @@ Proxy) routes per-tagged-indexer searches through it.
 
 ## Endpoints
 
-- **Direct (LAN):** `http://192.168.1.65:30030`
-- **No Caddy vhost** — only Prowlarr (NAS-internal, container-to-host
-  via LAN bridge) needs to reach it. Pure JSON API, no human UI to
-  protect.
+- **Direct (LAN):** `http://192.168.1.65:30030` — published via
+  Gluetun's host port mapping (FlareSolverr shares Gluetun's network
+  namespace, so 30030 on the host forwards to 8191 in the namespace).
+  Useful for diagnostics; not used by Prowlarr.
+- **From Prowlarr** (same gluetun namespace): `http://localhost:8191`.
+  This is the URL configured in Prowlarr's Indexer Proxy.
+- **No Caddy vhost** — only Prowlarr (same namespace) needs to reach
+  it. Pure JSON API, no human UI to protect.
 - **No Authelia** — N/A.
 
 ## App details

@@ -34,6 +34,12 @@ Authelia, useless for probing).
 | ☑ | jellyseerr | HTTP-Keyword | `http://192.168.1.65:30029/status` | `version` (Jellyseerr's `/status` 307s to `/login`; the login HTML contains "version" in metadata. **Don't set Body Encoding to JSON** — Express strict-mode rejects GETs with `Content-Type: application/json`.) |
 | ☑ | recyclarr-sync | Push | minted in Kuma UI; URL in PM (`homelab/uptime-kuma/push-recyclarr-sync`) and `/root/.backup-env` (`KUMA_URL_RECYCLARR_SYNC`) | weekly heartbeat (interval 604800s, retry 259200s) |
 
+## vpn-stack — ProtonVPN tunnel
+
+| ☐ | Name | Type | URL | Match |
+|---|---|---|---|---|
+| ☐ | gluetun-vpn-tunnel | HTTP-Keyword | `http://192.168.1.65:8000/v1/publicip/ip` | `public_ip` — Gluetun's control API exposes the tunnel-side public IP. If the container is up and tunnel is established, this returns 200 with a JSON body containing `public_ip` (a Swiss IP). If tunnel handshake fails or container is down, the endpoint either 503s or returns no body — Kuma flips red. (Bonus: visit the URL manually after a deploy to confirm `public_ip` is NOT your home IP — that would indicate killswitch failure.) |
+
 ## Phase 7 coverage gap list (to add)
 
 Walk this top-down via the Kuma UI; tick each row when added. Match the
