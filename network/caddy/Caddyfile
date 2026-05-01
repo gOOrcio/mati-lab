@@ -330,6 +330,18 @@
 		}
 	}
 
+	@jellyseerr host requests.mati-lab.online
+	handle @jellyseerr {
+		# No forward_auth — Jellyseerr delegates auth to Jellyfin's user DB.
+		# Once Jellyfin OIDC is in place, the chain becomes Authelia →
+		# Jellyfin → Jellyseerr.
+		reverse_proxy http://192.168.1.65:30029 {
+			header_up Host {host}
+			header_up X-Forwarded-Proto https
+			header_up X-Forwarded-Ssl on
+		}
+	}
+
 	@litellm host litellm.mati-lab.online
 	handle @litellm {
 		# LiteLLM runs on the NAS (TrueNAS Custom App), not on pihole-net.

@@ -1,0 +1,24 @@
+{
+  "app_name": "jellyseerr",
+  "custom_app": true,
+  "values": {"ix_context": {}},
+  "custom_compose_config": {
+    "services": {
+      "jellyseerr": {
+        "image": "fallenbagel/jellyseerr:latest",
+        "restart": "unless-stopped",
+        "user": "568:568",
+        "environment": {
+          "TZ": "Europe/Warsaw",
+          "LOG_LEVEL": "info"
+        },
+        "volumes": [
+          {"type": "bind", "source": "/mnt/fast/databases/jellyseerr/config", "target": "/app/config"}
+        ],
+        "ports": [
+          {"mode": "host", "protocol": "tcp", "published": 30029, "target": 5055}
+        ]
+      }
+    }
+  }
+}

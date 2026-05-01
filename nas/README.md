@@ -11,12 +11,14 @@ backups end up.
 
 | App | URL | Data location | Notes |
 |---|---|---|---|
-| Jellyfin | `jellyfin.mati-lab.online` | `bulk/data/media` | AMD VAAPI hardware transcoding (currently STOPPED — start when needed) |
+| Jellyfin | `jellyfin.mati-lab.online` | `bulk/data/media` | AMD VAAPI hardware transcoding (renderD128 + h264 encode for browsers) |
 | qBittorrent | `qbit.mati-lab.online` (LAN + Authelia) | `bulk/data/torrents` | see [qbittorrent/notes.md](qbittorrent/notes.md) |
 | Prowlarr | `prowlarr.mati-lab.online` (LAN + Authelia 2FA) | `fast/databases/prowlarr/config` | Indexer aggregator; syncs into Sonarr + Radarr. See [prowlarr/notes.md](prowlarr/notes.md) |
 | Sonarr | `sonarr.mati-lab.online` (LAN + Authelia 2FA) | `fast/databases/sonarr/config` | TV + anime; hardlink imports onto `bulk/data/media/{tv,anime}`. See [sonarr/notes.md](sonarr/notes.md) |
 | Radarr | `radarr.mati-lab.online` (LAN + Authelia 2FA) | `fast/databases/radarr/config` | Movies; hardlink imports onto `bulk/data/media/movies`. See [radarr/notes.md](radarr/notes.md) |
 | Bazarr | `bazarr.mati-lab.online` (LAN + Authelia 2FA) | `fast/databases/bazarr/config` | Subtitles for Sonarr + Radarr libraries. See [bazarr/notes.md](bazarr/notes.md) |
+| Recyclarr | (cron-driven, no exposed UI) | `fast/databases/recyclarr/config.yml` | TRaSH-Guides quality sync into Sonarr/Radarr; weekly Sun 04:30 UTC. See [recyclarr/notes.md](recyclarr/notes.md) |
+| Jellyseerr | `requests.mati-lab.online` (LAN + Tailscale/WireGuard, Jellyfin auth) | `fast/databases/jellyseerr/config` | Request portal backed by Jellyfin user DB. See [jellyseerr/notes.md](jellyseerr/notes.md) |
 | Immich | deferred | `bulk/photos` + `fast/databases/immich-pgdata` | blocked on `pgvecto_upgrade`; Task 3 of Phase 2 plan |
 | obsidian-couchdb | `obsidian.mati-lab.online` (LAN/VPN) | `bulk/obsidian-couchdb` + plain-file mirror at `bulk/obsidian-vault` | Phase 5; see [obsidian/notes.md](obsidian/notes.md) |
 | qdrant | `qdrant.mati-lab.online` (LAN/VPN, Authelia) | `fast/qdrant-data` | Phase 6; vector store for RAG. See [qdrant/notes.md](qdrant/notes.md) |

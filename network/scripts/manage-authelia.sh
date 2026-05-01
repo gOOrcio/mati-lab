@@ -23,7 +23,7 @@ copy_data() {
   fi
 
   # Copy OIDC key files if they exist
-  for oidc_file in oidc.key oidc_hmac_secret.txt oidc_proxmox_client_secret.txt; do
+  for oidc_file in oidc.key oidc_hmac_secret.txt oidc_proxmox_client_secret.txt oidc_gitea_client_secret.txt oidc_litellm_client_secret.txt; do
     if [[ -f "${SERVICE_DIR}/data/${oidc_file}" ]]; then
       log "Copying ${oidc_file} to server..."
       scp "${SSH_OPTS[@]}" "${SERVICE_DIR}/data/${oidc_file}" "$REMOTE:$REMOTE_DATA/"

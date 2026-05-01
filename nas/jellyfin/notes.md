@@ -44,13 +44,47 @@ If a future migration moves the media dataset again, Jellyfin will fail to
 start with "Failed 'up' action" until its bind mount is repointed via the
 same procedure.
 
-## AMD VAAPI hardware transcoding
+## AMD VAAPI hardware transcoding (working as of 2026-05-01)
 
-Resources block enables `use_all_gpus: true` and the catalog passes
-`/dev/kfd` + `/dev/dri` into the container. **`renderD128` is currently
-not present** on this NAS (no iGPU render node) — followups row 2.r.5 has
-the cross-reference. Hardware transcode is therefore not actually doing
-anything; software transcode handles whatever clients can't direct-play.
+`/dev/dri/renderD128` IS present (amdgpu module loaded; AMD Barcelo iGPU).
+The TrueNAS catalog `gpus.use_all_gpus: true` flag does NOT auto-mount
+`/dev/dri` for AMD GPUs (NVIDIA-only behaviour). Required explicit device
+passthrough via `app.update`:
+
+```bash
+ssh truenas_admin@192.168.1.65 'midclt call app.config jellyfin' > /tmp/cfg.json
+# patch jellyfin.devices to add /dev/dri/renderD128 host→container, full payload
+ssh truenas_admin@192.168.1.65 'midclt call -j app.update jellyfin "{\"values\": ...}"'
+```
+
+Then in Jellyfin Dashboard → Playback (or via API at
+`/System/Configuration/encoding`):
+
+- `HardwareAccelerationType: vaapi`
+- `VaapiDevice: /dev/dri/renderD128`
+- `EnableHardwareEncoding: true`
+- `AllowHevcEncoding: false` ← critical for browser support; otherwise
+  Jellyfin tries to output HEVC and Chrome/Firefox refuse it
+- `EnableTonemapping: true`, `EnableVppTonemapping: false` (correct for
+  AMD; OpenCL tonemapping, not VPP)
+- `HardwareDecodingCodecs: [h264, hevc, vp9, vc1, mpeg2video]`
+
+End-to-end pipeline:
+- Apple clients (iOS/macOS Safari) direct-play HEVC, no transcode.
+- Chrome/Firefox: GPU decode HEVC → GPU encode h264 8-bit @ ~5× realtime.
+  CPU stays cool.
+
+**Footgun:** if the bind-mount of the host `/dev/dri/renderD128` ever
+disappears (TrueNAS app config wiped, or a future migration patches the
+storage block without preserving `jellyfin.devices`), Jellyfin will
+fall back silently to software transcode and pin a CPU core during
+playback. Verify after any `app.update` with:
+
+```bash
+ssh truenas_admin@192.168.1.65 'midclt call app.config jellyfin | python3 -c "import json,sys;print(json.load(sys.stdin)[\"jellyfin\"][\"devices\"])"'
+```
+
+Expected: a list containing the renderD128 entry. If empty, re-patch.
 
 ## Wiring (Sonarr / Radarr → Jellyfin Connect)
 

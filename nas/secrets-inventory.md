@@ -129,6 +129,21 @@ See [`litellm/notes.md`](litellm/notes.md) for `/key/generate`, `/key/regenerate
 | **Bazarr API key** | `/mnt/fast/databases/bazarr/config/config/config.yaml` `auth.apikey` | `homelab/bazarr/api-key` | (None today — Bazarr is a leaf consumer.) | Settings → General → Security → API Key (UI). PM. | 2026-05-01 (issued at install) |
 | **Subtitle provider creds (per provider)** | Bazarr's settings DB / `config.yaml` block per provider | `homelab/bazarr/provider-<name>` (added when each provider is wired) | Bazarr subtitle pulls. | Bazarr UI → Settings → Providers → click provider → paste/rotate creds. PM. | (set per provider at first use) |
 | **Indexer creds in Prowlarr (per private tracker)** | Prowlarr's settings DB | `homelab/prowlarr/indexer-<name>` (added when each tracker is wired) | Prowlarr indexer searches; downstream Sonarr/Radarr searches via Prowlarr. | Prowlarr UI → Indexers → click indexer → rotate creds (cookies / API keys). PM. Some private trackers reject qBit's `anonymous_mode=true`; flip per-tracker if rejected, not globally. | (set per tracker at first use) |
+| **Subtitle provider creds (paid: opensubtitles VIP)** | opensubtitles.com account | `homelab/bazarr/provider-opensubtitlescom` | Bazarr subtitle pulls. Free tier: 5/day; VIP: 1000/day. | opensubtitles.com → Account → password reset. Bazarr → Settings → Providers → opensubtitlescom → re-paste. | 2026-05-01 (VIP purchased) |
+
+## *arr stack — backups + automation
+
+| Role | File on disk | PM label | Dependents | Procedure | Last rotated |
+|---|---|---|---|---|---|
+| **Recyclarr Kuma push URL** | NAS `/root/.backup-env` (`KUMA_URL_RECYCLARR_SYNC=`, root:root 600) | `homelab/uptime-kuma/push-recyclarr-sync` | Weekly recyclarr-sync heartbeat (Sun 04:30 UTC). | Mint new push monitor in Kuma UI; `read -rs URL && ssh ... "sudo sed -i '/^KUMA_URL_RECYCLARR_SYNC=/d' /root/.backup-env && sudo tee -a /root/.backup-env <<<\"KUMA_URL_RECYCLARR_SYNC=$URL\""`. PM. | 2026-05-01 (issued at install) |
+| **`SONARR_API_KEY` / `RADARR_API_KEY` / `PROWLARR_API_KEY` / `BAZARR_API_KEY` env vars** | NAS `/root/.backup-env` (root:root 600) | (cleartext copies of the same `homelab/{sonarr,radarr,prowlarr,bazarr}/api-key` PM rows above) | `recyclarr-sync.sh` (Sonarr+Radarr) and `arr-config-backup.sh` (all four — API-issued backup ZIPs). | When rotating the *arr API key in its UI, also update the corresponding line in `/root/.backup-env`. PM stays the same row. | 2026-05-01 (initial stage) |
+
+## Jellyseerr
+
+| Role | File on disk | PM label | Dependents | Procedure | Last rotated |
+|---|---|---|---|---|---|
+| **Jellyseerr admin login** | n/a (delegates to Jellyfin user DB) | (uses `homelab/jellyfin/admin`) | Jellyseerr UI auth — first Jellyfin user is auto-promoted to Jellyseerr admin. | Rotates with the Jellyfin admin password; no separate Jellyseerr-side action. | n/a |
+| **Jellyseerr API key** (only minted if a future automation needs it) | Settings → General → API Key (in `/mnt/fast/databases/jellyseerr/config/db/db.sqlite3`) | `homelab/jellyseerr/api-key` (when needed) | Whatever uses it — not load-bearing today. | UI → Settings → General → API Key → regenerate. PM. | (not minted as of install) |
 
 ## Obsidian (CouchDB + Syncthing)
 

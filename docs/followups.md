@@ -14,7 +14,7 @@ A single-pane index of every concrete piece of work that's been **intentionally 
 | Origin | Count | Rows |
 |---|---|---|
 | Phase 1 (TrueNAS foundation) | 0 | — closed cleanly, foundational |
-| Phase 2 (media stack) | 7 | 2.r.2, 2.r.3, 2.r.4, 2.r.5, 8.1, 8.3 (2.r.1 shipped 2026-05-01; 8.2 shipped Phase 8) |
+| Phase 2 (media stack) | 6 | 2.r.2, 2.r.3, 2.r.4, 8.1, 8.3 (2.r.1 + 2.r.5 shipped 2026-05-01; 8.2 shipped Phase 8) |
 | Phase 3 (LLM infrastructure) | 1 stays open | 7.1 (LiteLLM Prometheus → Grafana dashboard); 8.5/8.6/8.7/8.8 shipped via Followups Plan A+C |
 | Phase 4 (Gitea + CI/CD) | 1 | ∞.1 (7.3 + 8.4 shipped Phase 7+8) |
 | Phase 4 follow-up (CI/CD adoption) | 6 | 7.5, 7.6, 4.f.1, 4.f.2, 4.f.3, 4.f.4, 4.f.5, ∞.2 |
@@ -91,7 +91,7 @@ Origin: Phase 6. Source: `docs/superpowers/plans/2026-04-30-phase-6-rag-pipeline
 | 2.r.2 | **VPN for qBittorrent** (Gluetun pattern documented but not applied). Pick up if ISP/legal posture changes. | Phase 2 | `docs/superpowers/plans/2026-04-17-phase-2-nas-media-stack.md:438` |
 | 2.r.3 | **qBittorrent incoming-peer port 51413** router/firewall forward — only matters if you want to seed. **New trigger:** if private trackers are added in Prowlarr (now possible post-2.r.1), this becomes relevant for ratio health. | Phase 2 | `docs/superpowers/plans/2026-04-17-phase-2-nas-media-stack.md:367` |
 | 2.r.4 | **Immich + qBittorrent Prometheus exporters** — community exporters exist; not maintained for Phase 2. | Phase 2 | `docs/superpowers/plans/2026-04-17-phase-2-nas-media-stack.md:621` |
-| 2.r.5 | **Jellyfin HW transcode revisit** if `renderD128` ever appears (currently no iGPU render node). | Phase 2 | `docs/superpowers/plans/2026-04-17-phase-2-nas-media-stack.md:145` |
+| 2.r.5 | ~~**Jellyfin HW transcode revisit**~~ → shipped 2026-05-01. `/dev/dri/renderD128` is in fact present (amdgpu module loaded; AMD Barcelo iGPU). Wired the device into the Jellyfin catalog app via `app.update` (`jellyfin.devices` array), set `HardwareAccelerationType=vaapi` + `VaapiDevice=/dev/dri/renderD128` + `AllowHevcEncoding=false` so browsers get h264-encoded output. End-to-end: HEVC 10-bit decode + h264 encode on GPU at ~5× realtime; Apple clients direct-play, browsers transcode-stream. | Phase 2 | `nas/jellyfin/notes.md` |
 
 ## Out of scope, no phase named
 

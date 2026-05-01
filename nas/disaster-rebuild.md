@@ -93,16 +93,24 @@ cat ~/Projects/mati-lab/nas/secrets-inventory.md   # confirms PM labels
     ssh truenas_admin@nas "midclt call -j app.create \"\$(cat /tmp/$app-app-config.json)\""
   done
   ```
-- Restore latest config archive:
+- Restore latest config archive (the `arr-config-backup.sh` weekly bundle
+  contains app-issued ZIPs — restore via each *arr's UI):
   ```bash
+  # 1. Decrypt the bundle locally
   ssh truenas_admin@nas \
     'gpg -d --passphrase-file /mnt/bulk/backups/.secrets/dump-passphrase \
        /mnt/bulk/backups/arr/arr-<latest>.tar.gz.gpg \
-     | tar -C /mnt/fast/databases -xzf -'
+     > /tmp/arr-bundle.tar.gz && tar -tzf /tmp/arr-bundle.tar.gz'
+  # 2. The bundle contains: prowlarr.zip, sonarr.zip, radarr.zip,
+  #    bazarr.zip, jellyseerr-config.tar.gz
+  # 3. For each *arr ZIP, extract + place under
+  #    /mnt/fast/databases/<app>/config/Backups/manual/, then in the app
+  #    UI: System → Backup → Restore from File → upload the ZIP.
+  # 4. For Jellyseerr, untar over /mnt/fast/databases/jellyseerr/config.
   ```
   Then restart each app: `midclt call -j app.stop <app>` + `app.start <app>`.
-- API keys persist inside the SQLite DB (Sonarr/Radarr/Prowlarr) and
-  `config.yaml` (Bazarr). Prowlarr's `Apps → Sonarr/Radarr` entries also
+- API keys persist inside the SQLite DBs (Sonarr/Radarr/Prowlarr) and
+  `config.yaml` (Bazarr). Prowlarr's `Apps → Sonarr/Radarr` entries
   persist. After restore, smoke-test by hitting each app's
   `/api/.../system/status` with the `X-Api-Key` from PM.
 - Re-add Caddy vhosts (`network/caddy/Caddyfile` `@prowlarr` / `@sonarr`
@@ -112,6 +120,25 @@ cat ~/Projects/mati-lab/nas/secrets-inventory.md   # confirms PM labels
 - **Media library data:** under `bulk/data/media/{movies,tv,anime}` —
   same accepted-risk bucket as the old `bulk/media` (no off-box backup,
   followup 8.1).
+
+### Phase 2.r extras Phase 1 — Recyclarr / Jellyseerr
+
+After the *arr stack itself is back:
+
+1. **Recyclarr:**
+   - `mkdir -p /mnt/fast/databases/recyclarr` and scp `nas/recyclarr/config.yml` into it (chown 568:568).
+   - Re-stage `nas/backup-jobs/recyclarr-sync.sh` under `/mnt/bulk/backups/.scripts/` (sudo install).
+   - Re-add `SONARR_API_KEY`, `RADARR_API_KEY`, `KUMA_URL_RECYCLARR_SYNC` to `/root/.backup-env`.
+   - Register cron via `midclt cronjob.create` (Sun 04:30 UTC, root).
+   - Run once manually; verify `WEB-1080p` / `HD Bluray + WEB` profiles + custom formats appear in Sonarr/Radarr UIs.
+2. **Jellyseerr:**
+   - `mkdir -p /mnt/fast/databases/jellyseerr/config`, chown 568:568.
+   - `app.create jellyseerr` from `nas/jellyseerr/app-config.json`.
+   - Restore latest `arr-config-backup.tar.gz.gpg` (it includes the `jellyseerr-config.tar.gz` inside).
+   - `app.start jellyseerr`. Wiring (Jellyfin/Sonarr/Radarr) is in the restored DB; spot-check via `/api/v1/status` + a UI smoke test.
+   - In Jellyseerr → Settings → Services → Radarr → ensure **"Tag Requests with Username"** is **disabled** (Radarr v6 rejects spaces in tag names — silent failure mode otherwise; see `nas/jellyseerr/notes.md`).
+3. **Caddy `@jellyseerr` vhost** comes back via the `network/` deploy. No Authelia in front.
+4. **PROWLARR_API_KEY + BAZARR_API_KEY** in `/root/.backup-env` are required by the post-2026-05-01 `arr-config-backup.sh` (it issues per-app API backups instead of tar-of-config).
 
 ### Phase 3 — LLM stack (LiteLLM + OpenClaw + Hermes)
 

@@ -14,18 +14,25 @@ URL: `https://uptime-kuma.mati-lab.online`
 
 Immich monitor deferred with Task 3.
 
-## Phase 2.r — *arr automation (to add)
+## Phase 2.r — *arr automation
 
-Add via Kuma UI; tick each when done. Each monitor uses the **direct LAN
-NodePort** (Caddy fronts return 302 → Authelia, useless for probing).
+Each monitor uses the **direct LAN NodePort** (Caddy fronts return 302 →
+Authelia, useless for probing).
 
-| ☐ | Name | Type | URL | Match |
+| ☑ | Name | Type | URL | Match |
 |---|---|---|---|---|
-| ☐ | prowlarr | HTTP-Keyword | `http://192.168.1.65:30025/login` | `Prowlarr` |
-| ☐ | sonarr | HTTP-Keyword | `http://192.168.1.65:30026/login` | `Sonarr` |
-| ☐ | radarr | HTTP-Keyword | `http://192.168.1.65:30027/login` | `Radarr` |
-| ☐ | bazarr | HTTP-Keyword | `http://192.168.1.65:30028/` | `Bazarr` |
-| ☐ | arr-config-backup | Push | minted in Kuma UI; URL stored in PM (`homelab/uptime-kuma/push-arr-config-backup`) and `/root/.backup-env` (`KUMA_URL_ARR_CONFIG`) | weekly heartbeat (interval 604800s, retry 259200s) |
+| ☑ | prowlarr | HTTP-Keyword | `http://192.168.1.65:30025/login` | `Prowlarr` |
+| ☑ | sonarr | HTTP-Keyword | `http://192.168.1.65:30026/login` | `Sonarr` |
+| ☑ | radarr | HTTP-Keyword | `http://192.168.1.65:30027/login` | `Radarr` |
+| ☑ | bazarr | HTTP-Keyword | `http://192.168.1.65:30028/` | `Bazarr` |
+| ☑ | arr-config-backup | Push | minted in Kuma UI; URL in PM (`homelab/uptime-kuma/push-arr-config-backup`) and `/root/.backup-env` (`KUMA_URL_ARR_CONFIG`) | weekly heartbeat (interval 604800s, retry 259200s) |
+
+## Phase 2.r extras Phase 1 — Recyclarr + Jellyseerr
+
+| ☑ | Name | Type | URL | Match |
+|---|---|---|---|---|
+| ☑ | jellyseerr | HTTP-Keyword | `http://192.168.1.65:30029/status` | `version` (Jellyseerr's `/status` 307s to `/login`; the login HTML contains "version" in metadata. **Don't set Body Encoding to JSON** — Express strict-mode rejects GETs with `Content-Type: application/json`.) |
+| ☑ | recyclarr-sync | Push | minted in Kuma UI; URL in PM (`homelab/uptime-kuma/push-recyclarr-sync`) and `/root/.backup-env` (`KUMA_URL_RECYCLARR_SYNC`) | weekly heartbeat (interval 604800s, retry 259200s) |
 
 ## Phase 7 coverage gap list (to add)
 

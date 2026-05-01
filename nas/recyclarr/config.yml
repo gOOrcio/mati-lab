@@ -1,0 +1,69 @@
+# yaml-language-server: $schema=https://schemas.recyclarr.dev/v8/config-schema.json
+#
+# Recyclarr config — TRaSH-Guides curated profiles + custom formats.
+#
+# Inlined from Recyclarr v8 templates (the v8 branch's `template:` include
+# mechanism is generator-only, not a runtime lookup). Sources of truth:
+#   sonarr: https://github.com/recyclarr/config-templates/blob/v8/sonarr/templates/web-1080p.yml
+#   radarr: https://github.com/recyclarr/config-templates/blob/v8/radarr/templates/hd-bluray-web.yml
+#
+# Storage-cautious posture: 1080p tier only (no 4K/UHD/REMUX), HD Bluray + WEB
+# for movies. Anime is handled by Sonarr's web-1080p profile + its embedded
+# anime-aware CFs (the v8 anime-only template is REMUX-tier and unrealistic
+# for 8 TB).
+#
+# CF groups have default and required CFs auto-included; only `select:` here
+# what's NOT default — listing defaults causes "redundant" warnings.
+
+sonarr:
+  sonarr-main:
+    base_url: http://192.168.1.65:30026
+    api_key: !env_var SONARR_API_KEY
+    delete_old_custom_formats: true
+
+    quality_definition:
+      type: series
+
+    quality_profiles:
+      - trash_id: 72dae194fc92bf828f32cde7744e51a1   # WEB-1080p
+        reset_unmatched_scores:
+          enabled: true
+
+    custom_format_groups:
+      add:
+        - trash_id: 158188097a58d7687dee647e04af0da3   # [Optional] Golden Rule HD
+          select:
+            - 47435ece6b99a0b477caf360e79ba0bb         # x265 (HD) — opt-in for HEVC scoring
+        - trash_id: 85fae4a2294965b75710ef2989c850eb   # [Streaming Services] HD/UHD boost (defaults already cover us)
+        - trash_id: 59c3af66780d08332fdc64e68297098f   # [Unwanted] Unwanted Formats
+          select:
+            - 15a05bc7c1a36e2b57fd628f8977e2fc         # AV1 — additional reject
+            - 32b367365729d530ca1c124a0b180c64         # Bad Dual Groups — additional reject
+            - 23297a736ca77c0fc8e70f8edd7ee56c         # Upscaled — additional reject
+
+radarr:
+  radarr-main:
+    base_url: http://192.168.1.65:30027
+    api_key: !env_var RADARR_API_KEY
+    delete_old_custom_formats: true
+
+    quality_definition:
+      type: movie
+
+    quality_profiles:
+      - trash_id: d1d67249d3890e49bc12e275d989a7e9   # HD Bluray + WEB
+        reset_unmatched_scores:
+          enabled: true
+
+    custom_format_groups:
+      add:
+        - trash_id: f8bf8eab4617f12dfdbd16303d8da245   # [Optional] Golden Rule HD
+          select:
+            - dc98083864ea246d05a42df0d05f81cc         # x265 (HD)
+        - trash_id: a3ac6af01d78e4f21fcb75f601ac96df   # [Unwanted] Unwanted Formats
+          select:
+            - b8cd450cbfa689c0259a01d9e29ba3d6         # 3D — additional reject
+            - cae4ca30163749b891686f95532519bd         # AV1 — additional reject
+            - cc444569854e9de0b084ab2b8b1532b2         # Black and White Editions — additional reject
+            - 712d74cd88bceb883ee32f773656b1f5         # Sing-Along Versions — additional reject
+            - bfd8eb01832d646a0a89c4deb46f8564         # Upscaled — additional reject
