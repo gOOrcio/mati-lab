@@ -119,6 +119,21 @@
 		}
 	}
 
+	# Kuma Push heartbeat endpoint — bypass Authelia (the random token in the
+	# URL is the auth). Without this, curl-driven cron heartbeats hit the
+	# 2FA login redirect (302) and never reach Kuma; with -fsS curl returns
+	# success silently, so every cron looks healthy while no monitor flips
+	# green. This sibling handle is more specific (host AND path) than the
+	# @uptime-kuma host-only handle below, so Caddy picks it first for
+	# /api/push/* requests.
+	@kuma-push {
+		host uptime-kuma.mati-lab.online
+		path /api/push/*
+	}
+	handle @kuma-push {
+		reverse_proxy http://uptime-kuma:3001
+	}
+
 	@uptime-kuma host uptime-kuma.mati-lab.online
 	handle @uptime-kuma {
 		forward_auth http://authelia:9091 {
@@ -281,12 +296,14 @@
 		}
 	}
 
-	@openclaw host openclaw.mati-lab.online
-	handle @openclaw {
-		# OpenClaw dashboard (:30262) — NAS catalog app. Authelia 2FA
-		# required for the web UI. Direct LAN access to 192.168.1.65:30262
-		# bypasses Authelia; OpenClaw's own Gateway Token is the only
-		# layer there.
+	@hermes host hermes.mati-lab.online
+	handle @hermes {
+		# Hermes Agent web dashboard (`hermes dashboard --port 9119 --insecure`)
+		# running as a sidecar in the `hermes` Custom App on NAS, exposed at
+		# host port 30262. Authelia 2FA gates browser access; LAN-direct still
+		# bypasses (same posture as old OpenClaw vhost). Hermes also embeds
+		# its own per-session token in the HTML, so LAN-direct still needs
+		# that token.
 		forward_auth http://authelia:9091 {
 			uri /api/authz/forward-auth
 			copy_headers Remote-User Remote-Groups Remote-Name Remote-Email

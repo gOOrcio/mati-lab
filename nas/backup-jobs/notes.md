@@ -10,6 +10,7 @@ lives outside the repo per the secrets-inventory pattern.
 |---|---|---|---|
 | `gitea-pgdump.sh` | nightly 03:15 UTC | `/mnt/bulk/backups/gitea-pgdump/gitea-<ISO>.sql.gz.gpg` | Gitea Postgres sidecar |
 | `litellm-pgdump.sh` | nightly 03:30 UTC | `/mnt/bulk/backups/litellm-pgdump/litellm-<ISO>.sql.gz.gpg` | LiteLLM Postgres sidecar (Phase 7) |
+| `hermes-backup.sh` | nightly 04:15 UTC | `/mnt/bulk/backups/hermes/hermes-<ISO>.zip.gpg` | Hermes Agent Custom App (logical backup via `hermes backup` inside the container, encrypted on the host) |
 | `zfs-health-cron.sh` | daily 00:07 UTC | (no file — direct ntfy on non-OK) | `zpool`, `midclt`, ntfy |
 | `stage-passphrase.sh` | one-shot, run from dev box | NAS `/mnt/bulk/backups/.secrets/dump-passphrase` | password manager |
 
@@ -19,7 +20,7 @@ lives outside the repo per the secrets-inventory pattern.
 |---|---|---|---|
 | `/mnt/bulk/backups/.secrets/dump-passphrase` | `root:root` | `600` | Symmetric gpg passphrase. Loss = unrecoverable backups. PM label `homelab/backups/dump-passphrase`. Stage via `bash nas/backup-jobs/stage-passphrase.sh`. |
 | `/mnt/bulk/backups/.secrets/ntfy-token` | `root:root` | `600` | ntfy bearer token for the `homelab-alerts` topic. PM label `homelab/ntfy/homelab-alerts`. Optional — script falls back to anonymous post if missing. |
-| `/root/.backup-env` | `root:root` | `600` | sourced by every cron; defines `KUMA_URL_GITEA_DUMP`, `KUMA_URL_LITELLM_DUMP`, `KUMA_URL_ZFS_HEALTH`, optionally `NTFY_URL`. PM label per push monitor: `homelab/uptime-kuma/push-<name>`. |
+| `/root/.backup-env` | `root:root` | `600` | sourced by every cron; defines `KUMA_URL_GITEA_DUMP`, `KUMA_URL_LITELLM_DUMP`, `KUMA_URL_HERMES_DUMP`, `KUMA_URL_ZFS_HEALTH`, optionally `NTFY_URL`. PM label per push monitor: `homelab/uptime-kuma/push-<name>`. |
 
 ## Encryption posture
 
@@ -41,6 +42,7 @@ stagger:
 00:07  zfs-health-cron.sh
 03:15  gitea-pgdump.sh
 03:30  litellm-pgdump.sh
+04:15  hermes-backup.sh
 ```
 
 ZFS snapshots run hourly at minute 0; daily at 02:30. Dumps are

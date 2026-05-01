@@ -14,14 +14,14 @@ A single-pane index of every concrete piece of work that's been **intentionally 
 | Origin | Count | Rows |
 |---|---|---|
 | Phase 1 (TrueNAS foundation) | 0 | — closed cleanly, foundational |
-| Phase 2 (media stack) | 8 | 2.r.1, 2.r.2, 2.r.3, 2.r.4, 2.r.5, 8.1, 8.2, 8.3 |
-| Phase 3 (LLM infrastructure) | 5 | 7.1, 8.5, 8.6, 8.7, 8.8 |
-| Phase 4 (Gitea + CI/CD) | 2 | 7.3, 8.4, ∞.1 |
+| Phase 2 (media stack) | 8 | 2.r.1, 2.r.2, 2.r.3, 2.r.4, 2.r.5, 8.1, 8.3 (8.2 shipped Phase 8) |
+| Phase 3 (LLM infrastructure) | 1 stays open | 7.1 (LiteLLM Prometheus → Grafana dashboard); 8.5/8.6/8.7/8.8 shipped via Followups Plan A+C |
+| Phase 4 (Gitea + CI/CD) | 1 | ∞.1 (7.3 + 8.4 shipped Phase 7+8) |
 | Phase 4 follow-up (CI/CD adoption) | 6 | 7.5, 7.6, 4.f.1, 4.f.2, 4.f.3, 4.f.4, 4.f.5, ∞.2 |
 | Phase 5 (Obsidian sync) | 1 | ∞.3 — out-of-scope only; nothing real deferred |
-| Phase 6 (RAG pipeline) | 6 | 7.2, 7.4, 6.x.1, 6.x.2, 6.x.3, 6.x.4 |
-| Phase 7 (hardening, in flight) | 2 | 7.x.1 (OpenClaw key cutover deferred), 7.5 (madrale 17 manual ruff fixes) |
-| Phase 8 (backups, in flight) | 3 stays open | 8.1 (off-box — accepted risk), 8.3 (Immich pg_dump pending Phase 2), 8.6 (OpenClaw backup pending 7.x.1) |
+| Phase 6 (RAG pipeline) | 4 | 6.x.2, 6.x.3, 6.x.4 (6.x.1 shipped via Followups Plan B) |
+| Phase 7 (hardening, in flight) | 1 stays + 2 new | 7.5 (madrale 17 manual ruff fixes); NEW 7.x.4 (verify other Kuma push monitors after Caddy fix), 7.x.5 (image-build CI workflows for vault-rag-mcp). 7.x.1 closed via Followups Plan A. |
+| Phase 8 (backups, in flight) | 2 stays open | 8.1 (off-box — accepted risk), 8.3 (Immich pg_dump pending Phase 2). 8.6 shipped via Followups Plan C. |
 | (its own future plan) | 1 | Phase 6.2 — code-repo embedding |
 
 ## Phase 7 territory — Hardening & Polish
@@ -44,21 +44,23 @@ A single-pane index of every concrete piece of work that's been **intentionally 
 | 8.3 | **Immich logical `pg_dump`** — stays open. Immich app itself is still deferred (Phase 2 Task 3); when Immich ships, copy the `litellm-pgdump.sh` template + register as a fourth backup cron. | Phase 2 | `docs/superpowers/plans/2026-04-17-phase-2-nas-media-stack.md` |
 | 8.4 | ~~**Gitea logical dump.**~~ → shipped via Phase 8 Task 3 (`nas/backup-jobs/gitea-pgdump.sh`). Note: Gitea's catalog app uses Postgres, not SQLite as originally noted in the followup; updated. | Phase 4 | `nas/backup-jobs/notes.md` |
 | 8.5 | ~~**LiteLLM backup recipe.**~~ → shipped via Phase 8 Task 4 (`nas/backup-jobs/litellm-pgdump.sh`). | Phase 3 | `nas/backup-jobs/notes.md` |
-| 8.6 | **OpenClaw backup recipe** — stays open, blocked on followup 7.x.1 (OpenClaw cutover decision). When OpenClaw revives, copy the litellm-pgdump template; nothing to back up while the app is stopped. | Phase 3 | `nas/openclaw/notes.md` |
-| 8.7 | ~~**Hermes `memory.db` backup**~~ — closed as obsolete. Hermes was abandoned per `project_llm_stack` memory; revival is conditional + would carry its own backup design. | Phase 3 | (closed) |
-| 8.8 | ~~**Hermes `/ping` health probe**~~ — closed as obsolete (same reason as 8.7). | Phase 3 | (closed) |
+| 8.6 | ~~**OpenClaw backup recipe**~~ → shipped via Followups Plan Task C, retargeted from OpenClaw to Hermes. Nightly `hermes backup` zip via `docker exec`, gpg AES256 → `bulk/backups/hermes/hermes-<ISO>.zip.gpg`, 14-day retention, Kuma push monitor `backup-hermes-dump`, decrypt-roundtrip verified 2026-05-01, `nas/restore-drills/hermes-restore.md` runbook drafted. | Phase 3 | `nas/backup-jobs/notes.md` |
+| 8.7 | ~~**Hermes `memory.db` backup**~~ — superseded by 8.6 closure (Hermes shipped 2026-05-01; logical-zip backup covers `state.db` plus everything else under `/opt/data`). | Phase 3 | (closed) |
+| 8.8 | ~~**Hermes `/ping` health probe**~~ — superseded by 8.6 + Kuma HTTP-Keyword monitor on the Hermes dashboard sidecar at `192.168.1.65:30262/`. | Phase 3 | (closed) |
 
 ## Phase 7.x — Hardening followups
 
 | # | Item | Origin | Source |
 |---|---|---|---|
-| 7.x.1 | **OpenClaw cutover to its virtual key.** Paste-token wrote the new key to `~/.openclaw/openclaw.json` cleanly (sha256 changed, .bak made), but post-restart the gateway hangs at `[gateway] starting...` and Telegram never reconnects. Rollback to `openclaw.json.last-good` also hangs. Need to either (a) re-investigate the hang (likely a non-config issue introduced by the paste-token / secrets-reload flow, possibly a stale lock in `/home/node/.openclaw/devices/` or the pending scope-upgrade approval state); (b) **fresh-install OpenClaw** reusing the existing Telegram bot token (@HermesMatiBot) — straight `app.delete openclaw` then re-onboard with `--secret-input-mode ref --custom-api-key "$OPENCLAW_VKEY"` per the wizard-cli-automation docs; (c) **revive the original Hermes agent** since OpenClaw was already an attempted-replacement-due-to-friction (per `nas/openclaw/notes.md` install lesson "OpenClaw replaces the originally-attempted Hermes Agent install"). The `openclaw` virtual key is already issued in LiteLLM under `homelab/litellm/openclaw`; consumer-side cutover is the only remaining work. App is currently STOPPED on the NAS. | Phase 7 | `nas/openclaw/notes.md`; followup paste-token investigation outside Phase 7 scope |
+| 7.x.1 | ~~**OpenClaw cutover to its virtual key.**~~ → shipped via Followups Plan Task A (path A.NAS.1, `2026-04-30-hermes-pivot-followups.md`). Pivoted from OpenClaw to Hermes Agent (Path A.3 from the cleanup plan): OpenClaw `app.delete remove_ix_volumes:true` 2026-05-01 after snapshotting `.openclaw/` to `bulk/backups/openclaw-final-20260430.tar.gz`. Hermes deployed as TrueNAS Custom App (root + gosu drop-priv to 568 with `HERMES_UID=568 HERMES_GID=568`) plus `hermes dashboard --insecure` sidecar exposed at host port 30262 behind Caddy `hermes.mati-lab.online` + Authelia 2FA. LiteLLM virtual key alias renamed `openclaw` → `hermes`. Telegram round-trip + `/sethome` (config in-band edit) verified. | Phase 7 | `nas/hermes/notes.md` |
+| 7.x.4 | **Verify other Kuma push monitors flip green** (`backup-litellm-pgdump`, `backup-gitea-pgdump`, `nas-zfs-health`) after the Caddy `/api/push/*` Authelia bypass shipped 2026-05-01. They were silently broken since install (curl `-fsS` treated the 302-to-Authelia as success). After their next scheduled cron run (03:15 / 03:30 / 00:07 UTC), check Kuma; if any are still red, fall back to triggering `cronjob.run <id>` to confirm. | Followups Plan Task 7 | `network/caddy/Caddyfile` |
+| 7.x.5 | **Image-build CI workflows** for `vault-rag-mcp` and (if ever revived) `hermes-image` custom Dockerfile. Manual trigger (`workflow_dispatch`) plus optional path-based trigger on changes under the respective dirs. Mirror the workflow shape in other Gitea repos. Today: images are built locally on dev box via `docker buildx ... --push`. | Followups Plan Task 6 | `compute/rag/mcp/Dockerfile` |
 
 ## Phase 6.x — RAG followups (own future plan when batched)
 
 | # | Item | Origin | Source |
 |---|---|---|---|
-| 6.x.1 | **Deploy `vault-rag-mcp` Custom App** (streamable-http MCP for OpenClaw on host port 30019). All artefacts already drafted: server supports `MCP_TRANSPORT=streamable-http`, runbook lives in `nas/openclaw/notes.md` "RAG integration (Phase 6)". Just needs Dockerfile + image push + `app.create` + `openclaw mcp set`. | Phase 6 | `nas/openclaw/notes.md:215-271`; `compute/rag/mcp/server.py` |
+| 6.x.1 | ~~**Deploy `vault-rag-mcp` Custom App**~~ → shipped via Followups Plan Task B (`2026-04-30-hermes-pivot-followups.md`). Image `gitea.mati-lab.online/gooral/vault-rag-mcp:v2` (Dockerfile at `compute/rag/mcp/Dockerfile`, multi-arch); deployed at `http://192.168.1.65:30019/mcp`; Hermes consumes via `mcp_servers.vault-rag.url` in its config.yaml. Note: required a server.py fix to construct FastMCP with the bind host from env BEFORE construction — default-host construction auto-enables DNS-rebinding protection with localhost-only allowlist, rejecting LAN with 421 "Invalid Host header". | Phase 6 | `nas/vault-rag-mcp/notes.md` |
 | 6.x.2 | **`--workers N` parallelism flag for `bulk_index.py`.** Sequential is fine for the current vault. Lands in Phase 6.2 once code-repo volumes warrant it. | Phase 6 | `docs/superpowers/plans/2026-04-30-phase-6-rag-pipeline.md:46, 2113`; `nas/rag-watcher/notes.md:75` |
 | 6.x.3 | **Cross-encoder reranking.** Only revisit if recall feels weak in real use (top-1 < 0.5). Current empirical: 0.806 on smoke query. | Phase 6 | `docs/superpowers/plans/2026-04-30-phase-6-rag-pipeline.md:2102` |
 | 6.x.4 | **Auth on the HTTP MCP** if/when we expose it beyond LAN. v1 relies on LAN-only port + `mode: host` binding + no Caddy exposure. Bearer-token middleware on FastMCP for the public path. | Phase 6 | `nas/openclaw/notes.md` |

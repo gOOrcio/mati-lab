@@ -48,7 +48,7 @@ to bypass the Authelia 302-redirect on Caddy-fronted vhosts).
 | ☐ | Name | Type | Endpoint | Match |
 |---|---|---|---|---|
 | ☐ | pi-hole (DNS) | DNS | `mati-lab.online` via `192.168.1.252` | resolves |
-| ☐ | openclaw | HTTP-Keyword | `http://192.168.1.65:30262/health` | (per `nas/openclaw/notes.md`) |
+| ☐ | hermes | HTTP-Keyword | `http://192.168.1.65:30262/` | `Hermes Agent - Dashboard` (the dashboard sidecar serves a 200 with this title) |
 | ☐ | homebridge | HTTP | `http://192.168.1.155:8581/health` | 200 |
 | ☐ | homarr | HTTP | `http://homarr:7575/api/health` | 200 |
 | ☐ | rag-watcher | Push | (Kuma → new push monitor → cron in container) | within 12h |

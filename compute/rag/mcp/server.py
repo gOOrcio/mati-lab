@@ -63,7 +63,16 @@ LITELLM_API_KEY = _env("LITELLM_API_KEY")
 LITELLM_EMBED_MODEL = _env("LITELLM_EMBED_MODEL", "embeddings")
 DEFAULT_LIMIT = int(_env("QDRANT_SEARCH_LIMIT", "5"))
 
-mcp = FastMCP("vault-rag")
+# Build FastMCP with the bind host from env at construction time. If we leave
+# the default ("127.0.0.1") and then mutate `mcp.settings.host` later, FastMCP
+# has already auto-enabled DNS-rebinding protection with a localhost-only
+# allowlist (see fastmcp/server.py: `if host in ("127.0.0.1", "localhost",
+# "::1")`). Subsequent LAN requests get rejected with 421 "Invalid Host header".
+# Reading the env upfront sidesteps that auto-enable for streamable-http.
+_HTTP_HOST = os.environ.get("MCP_HTTP_HOST", "127.0.0.1")
+_HTTP_PORT = int(os.environ.get("MCP_HTTP_PORT", "8080"))
+
+mcp = FastMCP("vault-rag", host=_HTTP_HOST, port=_HTTP_PORT)
 qdrant = QdrantClient(url=QDRANT_URL, timeout=30)
 
 
@@ -127,9 +136,9 @@ if __name__ == "__main__":
     if transport == "stdio":
         mcp.run()
     elif transport == "streamable-http":
-        # FastMCP's settings honour `host`/`port` for streamable-http.
-        mcp.settings.host = os.environ.get("MCP_HTTP_HOST", "0.0.0.0")
-        mcp.settings.port = int(os.environ.get("MCP_HTTP_PORT", "8080"))
+        # Host + port already wired in via env at FastMCP construction time
+        # (see _HTTP_HOST / _HTTP_PORT above) so DNS rebinding protection
+        # doesn't auto-latch to localhost-only.
         mcp.run(transport="streamable-http")
     else:
         raise SystemExit(f"unknown MCP_TRANSPORT={transport!r}; expected stdio or streamable-http")

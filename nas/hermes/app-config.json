@@ -1,0 +1,47 @@
+{
+  "app_name": "hermes",
+  "custom_app": true,
+  "values": {"ix_context": {}},
+  "custom_compose_config": {
+    "services": {
+      "hermes": {
+        "image": "nousresearch/hermes-agent:v2026.4.23",
+        "restart": "unless-stopped",
+        "user": "0:0",
+        "cap_add": ["CHOWN", "FOWNER", "SETUID", "SETGID", "DAC_OVERRIDE"],
+        "shm_size": "1gb",
+        "command": ["hermes", "gateway"],
+        "environment": {
+          "HERMES_UID": "568",
+          "HERMES_GID": "568",
+          "HERMES_HOME": "/opt/data"
+        },
+        "env_file": ["/mnt/fast/databases/hermes/.env"],
+        "volumes": [
+          {"type": "bind", "source": "/mnt/.ix-apps/app_mounts/hermes/data", "target": "/opt/data"}
+        ]
+      },
+      "hermes-dashboard": {
+        "image": "nousresearch/hermes-agent:v2026.4.23",
+        "restart": "unless-stopped",
+        "user": "0:0",
+        "cap_add": ["CHOWN", "FOWNER", "SETUID", "SETGID", "DAC_OVERRIDE"],
+        "shm_size": "256m",
+        "command": ["hermes", "dashboard", "--port", "9119", "--host", "0.0.0.0", "--no-open", "--insecure"],
+        "environment": {
+          "HERMES_UID": "568",
+          "HERMES_GID": "568",
+          "HERMES_HOME": "/opt/data"
+        },
+        "env_file": ["/mnt/fast/databases/hermes/.env"],
+        "volumes": [
+          {"type": "bind", "source": "/mnt/.ix-apps/app_mounts/hermes/data", "target": "/opt/data"}
+        ],
+        "ports": [
+          {"mode": "host", "protocol": "tcp", "published": 30262, "target": 9119}
+        ],
+        "depends_on": {"hermes": {"condition": "service_started"}}
+      }
+    }
+  }
+}

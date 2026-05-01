@@ -1,0 +1,70 @@
+# Hermes Agent — homelab config (template).
+# Real config lives at /mnt/fast/databases/hermes/config.yaml on NAS (or
+# /etc/hermes/config.yaml on the LXC fallback). Real .env at the matching
+# path holds the secrets (mode 0600, 568:568 on NAS / hermes user on LXC).
+#
+# Schema reference: https://hermes-agent.nousresearch.com/docs/user-guide/configuration
+# Upstream example: https://github.com/NousResearch/hermes-agent/blob/main/cli-config.yaml.example
+
+# =============================================================================
+# Model — LiteLLM gateway as OpenAI-compatible upstream
+# =============================================================================
+model:
+  provider: custom
+  default: agent-default
+  base_url: http://192.168.1.65:4000/v1
+  api_mode: chat_completions
+  # api_key unset — falls back to OPENAI_API_KEY env var (the `hermes` virtual key).
+
+# =============================================================================
+# MCP servers — vault search
+# =============================================================================
+mcp_servers:
+  vault-rag:
+    url: http://192.168.1.65:30019/mcp
+    timeout: 60
+
+# =============================================================================
+# Session reset — wipe context daily / on idle, persist memory
+# =============================================================================
+session_reset:
+  mode: both
+  idle_minutes: 1440
+  at_hour: 4
+group_sessions_per_user: true
+
+# =============================================================================
+# Skills
+# =============================================================================
+skills:
+  creation_nudge_interval: 15
+
+# =============================================================================
+# Agent behavior
+# =============================================================================
+agent:
+  max_turns: 60
+
+# =============================================================================
+# Terminal — local execution inside the Hermes container
+# =============================================================================
+terminal:
+  backend: local
+  cwd: "/opt/data/workspace"
+  timeout: 180
+  lifetime_seconds: 300
+
+# =============================================================================
+# STT (voice) — local faster-whisper, no external API
+# =============================================================================
+stt:
+  enabled: true
+  local:
+    model: base
+
+# =============================================================================
+# Toolset wiring (defaults; pinned for clarity)
+# =============================================================================
+platform_toolsets:
+  cli: [hermes-cli]
+  telegram: [hermes-telegram]

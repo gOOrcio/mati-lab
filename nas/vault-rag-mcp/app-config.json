@@ -1,0 +1,27 @@
+{
+  "app_name": "vault-rag-mcp",
+  "custom_app": true,
+  "values": {"ix_context": {}},
+  "custom_compose_config": {
+    "services": {
+      "vault-rag-mcp": {
+        "image": "gitea.mati-lab.online/gooral/vault-rag-mcp:v2",
+        "restart": "unless-stopped",
+        "user": "568:568",
+        "env_file": ["/mnt/fast/databases/vault-rag-mcp/.env"],
+        "environment": {
+          "QDRANT_URL": "http://192.168.1.65:30017",
+          "QDRANT_COLLECTION": "obsidian-vault",
+          "LITELLM_BASE_URL": "http://192.168.1.65:4000",
+          "LITELLM_EMBED_MODEL": "embeddings",
+          "MCP_TRANSPORT": "streamable-http",
+          "MCP_HTTP_HOST": "0.0.0.0",
+          "MCP_HTTP_PORT": "8080"
+        },
+        "ports": [
+          {"mode": "host", "protocol": "tcp", "published": 30019, "target": 8080}
+        ]
+      }
+    }
+  }
+}

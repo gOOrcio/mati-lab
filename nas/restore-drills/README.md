@@ -12,6 +12,7 @@ need it.
 | Q3 (Jul–Sep 2026) | ZFS rollback to scratch dataset | [`q2-zfs-rollback.md`](q2-zfs-rollback.md) | (pending) |
 | Q4 (Oct–Dec 2026) | vzdump VM restore | [`q3-vzdump.md`](q3-vzdump.md) | (pending) |
 | 2027 Q1 | Vault rebuild end-to-end | [`q4-vault-rebuild.md`](q4-vault-rebuild.md) | (pending) |
+| 2027 Q2 | Hermes Agent restore (logical zip) | [`hermes-restore.md`](hermes-restore.md) | (pending — recipe smoke-tested 2026-05-01) |
 
 ## Rules
 
