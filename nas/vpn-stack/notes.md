@@ -159,49 +159,61 @@ automatic on tunnel restore.
     container exits, the entire namespace tears down and both
     monitors flip red simultaneously. So the existing monitors
     cover Gluetun-container-down failure mode for free.
-  - `gluetun-vpn-tunnel` (deferred — see "Auth on Gluetun's control
-    API" below). Would have detected: tunnel handshake failed even
-    while container is "up". Skipped for now because Gluetun v3.40+
-    requires API-key auth on the control server, and our LAN-only
-    Kuma can't easily authenticate. Workaround documented below.
-- **Promtail**: auto-scrapes `ix-vpn-stack-{gluetun,qbittorrent,prowlarr}-*`.
-  Useful for WireGuard handshake diagnosis.
+  - `gluetun-vpn-tunnel` — HTTP-Keyword on
+    `http://192.168.1.65:8000/v1/publicip/ip`, keyword `public_ip`.
+    Active since the auth.toml cutover (see "Auth on Gluetun's
+    control API" below). Detects tunnel-handshake-failed-but-
+    container-up — gluetun's healthcheck doesn't catch that case.
+    Bonus: opening the URL by hand should show a Swiss IP — if it
+    shows your home IP, killswitch failed.
+  - `vpn-port-mismatch` — push monitor (every 30 min). The
+    `qbit-port-probe.sh` cron compares gluetun's
+    `/tmp/gluetun/forwarded_port` with qBit's live `listen_port`
+    (read via the qBit API inside the shared netns) and pushes
+    `up`/`down` accordingly. Catches every silent-failure mode the
+    NAT-PMP up-command can hit:
+      - up-command exited 0 after max retries (qBit was unreachable)
+      - up-command never fired (NAT-PMP never granted)
+      - someone toggled qBit's `random_port` back on in the UI
+    See "VPN port forwarding (NAT-PMP)" → "Port-consistency probe"
+    below for setup.
+- **Promtail**: auto-scrapes `ix-vpn-stack-{gluetun,qbittorrent,prowlarr,flaresolverr}-*`.
+  Useful for WireGuard handshake diagnosis. Watch for
+  `[qbit-update-port] FAILED after 20 attempts` — that's the up-
+  command silently giving up; the port-mismatch monitor is the loud
+  signal, the log line is the diagnosis aid.
 
-## Auth on Gluetun's control API (deferred)
+## Auth on Gluetun's control API
 
 Gluetun v3.40+ requires API-key auth on every control-server route
-(port 8000). Without auth, `GET /v1/publicip/ip` returns 401, which
-means Uptime Kuma can't probe it for tunnel-leak detection.
+(port 8000) by default. Our `nas/vpn-stack/auth.toml` allowlists
+`GET /v1/publicip/ip` without auth so Uptime Kuma can keyword-probe
+the tunnel state. Mutating endpoints stay default-deny (omitted from
+the config — Gluetun's default-deny applies).
 
-The fix is committed but not deployed: `nas/vpn-stack/auth.toml`
-exposes `GET /v1/publicip/ip` without auth (LAN-only, read-only —
-safe). Mutating endpoints stay default-deny. **To activate:**
+Gluetun reads the file via the `HTTP_CONTROL_SERVER_AUTH_CONFIG_FILEPATH`
+env var → `/auth/config.toml`, bound from
+`/mnt/fast/databases/vpn-stack/auth.toml` (root:root 0644). LAN-only
+(control server is `192.168.1.65:8000`, never exposed externally).
 
-1. Stage the file via sudo (root-owned bind mount):
-   ```bash
-   scp nas/vpn-stack/auth.toml truenas_admin@192.168.1.65:/tmp/auth.toml
-   ssh -t truenas_admin@192.168.1.65 'sudo install -m 0644 -o root -g root /tmp/auth.toml /mnt/fast/databases/vpn-stack/auth.toml && rm /tmp/auth.toml'
-   ```
-2. Re-edit `nas/vpn-stack/app-config.json` to add the bind mount on
-   gluetun + the env var:
-   ```json
-   "environment": {
-     ...,
-     "HTTP_CONTROL_SERVER_AUTH_CONFIG_FILEPATH": "/auth/config.toml"
-   },
-   "volumes": [
-     {"type": "bind", "source": "/mnt/fast/databases/vpn-stack/auth.toml", "target": "/auth/config.toml", "read_only": true}
-   ]
-   ```
-3. `app.update vpn-stack` with the new config.
-4. Verify: `curl http://192.168.1.65:8000/v1/publicip/ip` returns 200
-   with `{"public_ip":"...","country":"Switzerland",...}`.
-5. Add the `gluetun-vpn-tunnel` Kuma monitor:
-   HTTP-Keyword on the same URL, keyword `public_ip`.
+If the file is missing or invalid TOML, gluetun startup fails —
+container goes unhealthy and qBit/Prowlarr/FlareSolverr stop egressing.
+On rebuild, stage the file BEFORE `app.create`.
 
-**Cost of deferring**: less direct tunnel-leak detection. The qBit
-"firewalled / not firewalled" status (visible in qBit UI) and the
-indirect monitors above are sufficient for normal operation.
+**Bind-mount gotcha**: gluetun must read `auth.toml` via a **directory**
+bind, not a single-file bind. TrueNAS's compose-up auto-creates the
+target as a directory when the source is referenced as a file path,
+producing `is a directory` on container start. We bind
+`/mnt/fast/databases/vpn-stack/gluetun-auth/` → `/gluetun-auth` and
+point the env var at `/gluetun-auth/auth.toml`.
+
+**Kuma cachebuster gotcha**: gluetun's HTTP control server treats the
+query string as part of the route path. `GET /v1/publicip/ip` is
+allowlisted, but `GET /v1/publicip/ip?uptime_kuma_cachebuster=xxx`
+returns `400 route /ip?uptime_kuma_cachebuster=xxx not supported`.
+For the `gluetun-vpn-tunnel` Kuma monitor: Advanced → **uncheck**
+"Add the uptime_kuma_cachebuster parameter". The endpoint is
+dynamic (re-resolved per call) so there's no cache to bust anyway.
 
 ## Backups
 
@@ -342,6 +354,166 @@ curl -s http://192.168.1.65:30024/api/v2/app/preferences \
 - **Multiple-clients risk:** only qBit listens on the forwarded port.
   Don't add a second peer-listening service to the namespace without
   picking a different scheme (e.g. running its own NAT-PMP client).
+
+### Port-consistency probe
+
+`scripts/qbit-port-probe.sh` runs as a NAS-host root cron every 30
+min. It does a `docker exec` into the gluetun container to read both
+`/tmp/gluetun/forwarded_port` (gluetun's view) and qBit's live
+`listen_port` (via qBit's API on `localhost:30024`, localhost-bypass
+on auth), then pushes Uptime Kuma `up` if they match, `down` with a
+diagnostic message otherwise.
+
+**Why this is needed even with the up-command in place:** the
+up-command (`qbit-update-port.sh`) exits 0 even after exhausting all
+retries — gluetun must keep running regardless. So the up-command
+covers the *moment-of-port-change* failure mode, but a stale
+listen_port (port granted long ago but qBit silently rejected the
+update, or qBit was reconfigured manually) only shows as
+"Firewalled" in qBit's status bar, with no alert.
+
+**One-off setup:**
+
+1. **Mint a Kuma push monitor** in the UI:
+   - Type: Push
+   - Name: `vpn-port-mismatch`
+   - Heartbeat interval: `1800` (30 min, matches cron)
+   - Retry interval: `3600`
+   - Save → copy the push URL.
+2. **Store the push URL** in PM under
+   `homelab/uptime-kuma/push-vpn-port-mismatch` and append it to
+   `/root/.backup-env` on the NAS as
+   `KUMA_URL_VPN_PORT_MISMATCH=<url>`. The probe sources
+   `/root/.backup-env` (same convention as the other backup-job
+   crons under `nas/backup-jobs/`).
+3. **Stage the script** on the NAS:
+   ```bash
+   scp nas/vpn-stack/scripts/qbit-port-probe.sh \
+     truenas_admin@192.168.1.65:/tmp/qbit-port-probe.sh
+   ssh -t truenas_admin@192.168.1.65 \
+     'sudo install -m 0755 -o root -g root /tmp/qbit-port-probe.sh \
+        /mnt/fast/databases/vpn-stack/scripts/qbit-port-probe.sh \
+      && rm /tmp/qbit-port-probe.sh'
+   ```
+   (Same `/scripts` bind mount as `qbit-update-port.sh` — keeps the
+   two NAT-PMP scripts colocated.)
+4. **Register the cron** (TrueNAS Web UI → Storage & Sharing → Cron
+   Jobs, OR via `midclt`):
+   ```bash
+   ssh truenas_admin@192.168.1.65 'midclt call -j cronjob.create '"'"'{
+     "user": "root",
+     "command": "/mnt/fast/databases/vpn-stack/scripts/qbit-port-probe.sh >>/var/log/qbit-port-probe.log 2>&1",
+     "schedule": {"minute": "*/30", "hour": "*", "dom": "*", "month": "*", "dow": "*"},
+     "enabled": true,
+     "description": "qBit↔gluetun NAT-PMP port-consistency probe (Kuma push)"
+   }'"'"
+   ```
+5. **First-run sanity check**:
+   ```bash
+   ssh -t truenas_admin@192.168.1.65 \
+     'sudo /mnt/fast/databases/vpn-stack/scripts/qbit-port-probe.sh'
+   #   Expect: "[qbit-port-probe] OK gluetun=qbit=<port>"
+   #   Kuma row goes green within ~10s.
+   ```
+
+**Failure modes the probe distinguishes** (via Kuma push `msg`):
+
+| msg | Meaning |
+|---|---|
+| `gluetun forwarded_port empty (NAT-PMP not granted)` | Tunnel up but Proton hasn't granted a port — usually means the WireGuard config wasn't regenerated with `+pmp` (see "One-off prereqs"). |
+| `qbit preferences unreadable (qBit down or auth-walled)` | qBit container down, OR localhost-auth-bypass got toggled off in the UI. |
+| `port drift gluetun=X qbit=Y` | NAT-PMP granted port `X`, but qBit is on port `Y` — up-command failed silently OR qBit's `random_port` was toggled back on. |
+| `ok gluetun=qbit=<port>` | Healthy. |
+
+## qBit subnet whitelist (Phase 7.x.6 — pending verification)
+
+Today qBit's `WebUI\AuthSubnetWhitelist` includes `192.168.1.0/24`
+plus the docker-bridge ranges. That means **any LAN device** can
+hit `/api/v2/torrents/add` directly (`http://192.168.1.65:30024/...`)
+without auth, bypassing the Caddy + Authelia 2FA chain entirely.
+
+Goal: drop `192.168.1.0/24` so the only auth-bypassed callers are:
+
+1. localhost (qbit-update-port + qbit-port-probe scripts, via the
+   separate `WebUI\LocalHostAuth=false` toggle — not affected by
+   this change).
+2. Docker bridge subnets (`172.16.0.0/12`, `10.0.0.0/8`) — for
+   Sonarr / Radarr → qBit calls.
+
+LAN-direct browser access to `http://192.168.1.65:30024` and ad-hoc
+curls from a laptop will then go through the qBit login form (or via
+Caddy → Authelia 2FA at `qbit.mati-lab.online`).
+
+### Pre-apply verification (REQUIRED — do not skip)
+
+The risk we're checking: **what source IP does Sonarr/Radarr actually
+present when calling `192.168.1.65:30024`?** TrueNAS app docker
+bridges typically MASQUERADE outbound traffic, but bridges contacting
+the host's own published port can behave differently (loopback short-
+circuit, hairpin NAT, or bridge-IP preserved). If qBit sees the host
+IP `192.168.1.65` rather than `172.16.x.x`, dropping `192.168.1.0/24`
+would lock Sonarr/Radarr out and break grabs silently.
+
+Run this before flipping the whitelist:
+
+```bash
+# On the NAS, enable qBit access logging temporarily:
+ssh -t truenas_admin@192.168.1.65 \
+  'sudo sed -i "s/^WebUI\\\\AccessLog=.*/WebUI\\\\AccessLog=true/; t; \\$aWebUI\\\\AccessLog=true" \
+     /mnt/fast/databases/qbittorrent-config/qBittorrent/qBittorrent.conf'
+
+# Restart qBit so the setting takes effect (whole vpn-stack share its netns,
+# but qBit itself can be restarted without dropping the tunnel):
+ssh truenas_admin@192.168.1.65 \
+  'midclt call -j app.redeploy vpn-stack'
+
+# Trigger a Sonarr → qBit call (Sonarr UI: Settings → Download Clients →
+# qBittorrent → Test, OR wait for the next 5-min RSS sync). Then read the
+# access log and look at the source IP for those requests:
+ssh -t truenas_admin@192.168.1.65 \
+  'sudo docker exec ix-vpn-stack-qbittorrent-1 \
+     tail -50 /config/qBittorrent/logs/qbittorrent.log | grep -E "(Sonarr|Radarr|api/v2)"'
+```
+
+Expected outcomes + decision:
+
+| Sonarr's apparent source IP | Decision |
+|---|---|
+| `172.16.x.x` (bridge IP preserved) | **Safe to tighten.** Drop `192.168.1.0/24`, keep `172.16.0.0/12,10.0.0.0/8`. |
+| `192.168.1.65` (host IP via SNAT/hairpin) | **Cannot tighten as planned.** Sonarr/Radarr would auth-fail. Either keep the LAN whitelist or migrate Sonarr/Radarr to use API-key auth on qBit (requires Sonarr config change in 4 places). |
+| Mixed / unexpected | Dig further — could indicate per-bridge masquerade differences. |
+
+### Apply (only if verification passed with `172.16.x.x`)
+
+```bash
+# Option A — via qBit UI (preferred):
+#   1. Browse to https://qbit.mati-lab.online (Authelia 2FA → qBit login).
+#   2. Tools → Options → Web UI → "Bypass authentication for clients in
+#      whitelisted IP subnets" → set value to `172.16.0.0/12,10.0.0.0/8`
+#      (drop `192.168.1.0/24`).
+#   3. Save.
+
+# Option B — direct conf edit (only if UI is unreachable):
+ssh -t truenas_admin@192.168.1.65 \
+  'sudo sed -i "s|^WebUI\\\\AuthSubnetWhitelist=.*|WebUI\\\\AuthSubnetWhitelist=172.16.0.0/12, 10.0.0.0/8|" \
+     /mnt/fast/databases/qbittorrent-config/qBittorrent/qBittorrent.conf'
+ssh truenas_admin@192.168.1.65 'midclt call -j app.redeploy vpn-stack'
+```
+
+### Post-apply checks
+
+1. Sonarr → Settings → Download Clients → qBittorrent → Test → green.
+2. Radarr → same.
+3. Browse `http://192.168.1.65:30024/` from a laptop on the LAN → should
+   now show qBit's login form (proves whitelist tightened).
+4. Browse `https://qbit.mati-lab.online/` → Authelia 2FA → qBit
+   shows the dashboard (proves Caddy path still works).
+5. Disable qBit access log (revert: `WebUI\AccessLog=false`).
+
+**Rollback**: re-add `192.168.1.0/24` to the whitelist via the UI
+or conf edit, redeploy. Reverts in ≤30 s.
+
+Closes followup [`7.x.6`](../../docs/followups.md) when applied.
 
 ## Admin tips
 

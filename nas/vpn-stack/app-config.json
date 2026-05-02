@@ -5,7 +5,7 @@
   "custom_compose_config": {
     "services": {
       "gluetun": {
-        "image": "qmcgaw/gluetun:latest",
+        "image": "qmcgaw/gluetun:v3.41.1",
         "restart": "unless-stopped",
         "cap_add": ["NET_ADMIN"],
         "devices": ["/dev/net/tun:/dev/net/tun"],
@@ -22,7 +22,8 @@
           "VPN_PORT_FORWARDING": "on",
           "VPN_PORT_FORWARDING_PROVIDER": "protonvpn",
           "VPN_PORT_FORWARDING_UP_COMMAND": "/scripts/qbit-update-port.sh {{PORTS}}",
-          "VPN_PORT_FORWARDING_STATUS_FILE": "/tmp/gluetun/forwarded_port"
+          "VPN_PORT_FORWARDING_STATUS_FILE": "/tmp/gluetun/forwarded_port",
+          "HTTP_CONTROL_SERVER_AUTH_CONFIG_FILEPATH": "/gluetun-auth/auth.toml"
         },
         "ports": [
           {"mode": "host", "protocol": "tcp", "published": 30024, "target": 30024},
@@ -31,7 +32,8 @@
           {"mode": "host", "protocol": "tcp", "published": 8000, "target": 8000}
         ],
         "volumes": [
-          {"type": "bind", "source": "/mnt/fast/databases/vpn-stack/scripts", "target": "/scripts", "read_only": true}
+          {"type": "bind", "source": "/mnt/fast/databases/vpn-stack/scripts", "target": "/scripts", "read_only": true},
+          {"type": "bind", "source": "/mnt/fast/databases/vpn-stack/gluetun-auth", "target": "/gluetun-auth", "read_only": true}
         ]
       },
       "qbittorrent": {

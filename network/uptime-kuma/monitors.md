@@ -36,9 +36,10 @@ Authelia, useless for probing).
 
 ## vpn-stack — ProtonVPN tunnel
 
-| ☐ | Name | Type | URL | Match |
+| ☑ | Name | Type | URL | Match |
 |---|---|---|---|---|
-| ☐ | gluetun-vpn-tunnel | HTTP-Keyword | `http://192.168.1.65:8000/v1/publicip/ip` | `public_ip` — Gluetun's control API exposes the tunnel-side public IP. If the container is up and tunnel is established, this returns 200 with a JSON body containing `public_ip` (a Swiss IP). If tunnel handshake fails or container is down, the endpoint either 503s or returns no body — Kuma flips red. (Bonus: visit the URL manually after a deploy to confirm `public_ip` is NOT your home IP — that would indicate killswitch failure.) |
+| ☑ | gluetun-vpn-tunnel | HTTP-Keyword | `http://192.168.1.65:8000/v1/publicip/ip` | `public_ip` — Gluetun's control API exposes the tunnel-side public IP. Auth on the control API is gated by `auth.toml` (allowlists this one route as `auth = "none"`); all mutating routes stay default-deny. Returns 200 with a JSON body containing `public_ip` (a Swiss IP) when the tunnel is up; 503/empty when handshake fails or container is down. **Bonus**: visit the URL manually after a deploy to confirm `public_ip` is NOT your home IP — that would indicate killswitch failure. |
+| ☐ | vpn-port-mismatch | Push | minted in Kuma UI; URL in PM (`homelab/uptime-kuma/push-vpn-port-mismatch`) and `/root/.backup-env` (`KUMA_URL_VPN_PORT_MISMATCH`) | every 30 min from `qbit-port-probe.sh` cron — pushes `down` when gluetun's `forwarded_port` and qBit's `listen_port` disagree, or when either is unreadable. See [`nas/vpn-stack/notes.md`](../../nas/vpn-stack/notes.md) "Port-consistency probe". (Heartbeat 1800s, retry 3600s.) |
 
 ## Phase 7 coverage gap list (to add)
 
