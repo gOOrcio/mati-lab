@@ -20,7 +20,7 @@ Originally TrueNAS Scale Apps catalog, `community` train. Installed
 - **Direct (LAN, auth bypassed):** `http://192.168.1.65:30024`
 - **Through Caddy + Authelia 2FA:** `https://qbit.mati-lab.online`
 - **No external exposure** (not in Cloudflared tunnel; stays LAN-only)
-- **BT listening port:** `51413/tcp+udp` — **not** port-forwarded on the router, so effectively download-only peering
+- **BT listening port:** dynamic, set by Gluetun's NAT-PMP up-command (since 2026-05-02 — see `../vpn-stack/notes.md` "VPN port forwarding (NAT-PMP)"). Pre-2026-05-02 it was `51413/tcp+udp` static and not router-forwarded (download-only peering)
 
 ## App details
 
@@ -95,12 +95,12 @@ Set via `POST /api/v2/app/setPreferences`:
 | `encryption` | `1` (Require) — no unencrypted peer connections |
 | `upnp` | `false` |
 | `random_port` | `false` |
-| `listen_port` | `51413` |
+| `listen_port` | dynamic — set by gluetun NAT-PMP (was `51413` pre-2026-05-02) |
 | `preallocate_all` | `true` (avoid fragmentation on SATA mirror) |
 | `incomplete_files_ext` | `true` (`.!qB` suffix while downloading) |
 
-No VPN. If that changes, the Gluetun sidecar pattern is documented at
-<https://www.raveen.ca/posts/2025-05-29-qbit-gluetun/>.
+qBit egresses through ProtonVPN (Switzerland) via the gluetun sidecar
+in vpn-stack — see `../vpn-stack/notes.md`.
 
 ## Reverse proxy
 

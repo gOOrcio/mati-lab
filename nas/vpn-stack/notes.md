@@ -229,16 +229,119 @@ indirect monitors above are sufficient for normal operation.
 6. Wait for Gluetun's healthcheck to pass.
 7. Verify per "Verification post-deploy" above.
 
-## Followups still open
+## VPN port forwarding (NAT-PMP)
 
-- **2.r.3** — qBit incoming peer port (51413) routed via VPN
-  port-forwarding (NAT-PMP). ProtonVPN supports this. Adding involves:
-  - Set `VPN_PORT_FORWARDING=on`, `VPN_PORT_FORWARDING_PROVIDER=protonvpn`
-    in Gluetun env
-  - Add a sidecar service that polls Gluetun's
-    `/v1/openvpn/portforwarded` and PUTs the port to qBit's
-    `/api/v2/app/setPreferences` `listen_port`
-  - Tag for "when joining a private tracker" — current trigger is empty.
+ProtonVPN supports NAT-PMP on its WireGuard servers and gluetun
+auto-detects the forwarded port. We wire that port into qBit's
+`listen_port` so qBit becomes connectable inside the tunnel — fixing
+the "Downloading metadata ∞" stalls on sparse swarms (which happen
+because passive peers can't accept inbound connections from us).
+
+Closes followup [`2.r.3`](../../docs/followups.md).
+
+### Architecture
+
+```
+gluetun
+  │   on tunnel up + every NAT-PMP renewal (~45s):
+  │     calls VPN_PORT_FORWARDING_UP_COMMAND
+  │     → /scripts/qbit-update-port.sh <port>
+  │       → wget POST localhost:30024/api/v2/app/setPreferences
+  │         {listen_port: <port>, random_port: false, upnp: false}
+  │
+  └── qbittorrent (same netns)
+        listen_port now matches the gluetun-forwarded port
+        → inbound peer connections succeed → not firewalled
+```
+
+The script runs inside gluetun's busybox shell. `localhost:30024`
+reaches qBit because they share the network namespace.
+
+### One-off prereqs
+
+1. **Regenerate the ProtonVPN WireGuard config with port-forwarding
+   enabled.** In Proton's web UI → VPN → WireGuard configuration →
+   delete the `vpn-stack-nas` config and create a new one with the
+   "NAT-PMP (Port Forwarding)" toggle **ON**. The generated config's
+   peer name will end with `+pmp` (e.g.
+   `vpn-stack-nas+pmp-...`). Copy the new `PrivateKey`. Without the
+   `+pmp` modifier, ProtonVPN rejects NAT-PMP requests at the gateway
+   and `VPN_PORT_FORWARDING` will log retry loops with no port granted.
+
+2. **Update PM** rows under `homelab/protonvpn/wireguard-config-vpn-stack-nas`
+   and `.../wireguard-private-key`. Stage the new key on the NAS (same
+   procedure as the rotation runbook above).
+
+3. **qBit: bypass auth on localhost.** The script POSTs to qBit's API
+   without credentials. Enable it once via qBit UI:
+   `Tools → Options → Web UI → [x] Bypass authentication for clients on localhost`
+   then **Save**. Verifiable in `qBittorrent.conf`:
+   `WebUI\LocalHostAuth=false`. Without this, the script's POST returns
+   401 and the listen_port stays stale.
+
+4. **Stage the script bind-mount target** on the NAS:
+   ```bash
+   ssh truenas_admin@192.168.1.65 \
+     'sudo install -d -m 0755 -o root -g root /mnt/fast/databases/vpn-stack/scripts'
+   scp nas/vpn-stack/scripts/qbit-update-port.sh \
+     truenas_admin@192.168.1.65:/tmp/qbit-update-port.sh
+   ssh -t truenas_admin@192.168.1.65 \
+     'sudo install -m 0755 -o root -g root /tmp/qbit-update-port.sh \
+        /mnt/fast/databases/vpn-stack/scripts/qbit-update-port.sh \
+      && rm /tmp/qbit-update-port.sh'
+   ```
+
+5. **Apply the new app-config.json** (`VPN_PORT_FORWARDING=on` +
+   script bind-mount):
+   ```bash
+   ssh truenas_admin@192.168.1.65 \
+     'midclt call -j app.update vpn-stack "$(cat /tmp/app-config-values.json)"'
+   ```
+   Or simpler: redeploy fully via `app.delete` + `app.create` if
+   `app.update` doesn't pick up the new `volumes` entry on gluetun
+   (TrueNAS sometimes gates compose-level changes through full
+   recreate). State is in bind mounts, so recreate is safe.
+
+### Verification
+
+```bash
+# 1. Gluetun got a forwarded port from Proton
+ssh truenas_admin@192.168.1.65 \
+  'docker exec ix-vpn-stack-gluetun-1 cat /tmp/gluetun/forwarded_port'
+#    Expect: a port number (e.g. 54321), not empty
+
+# 2. qBit's listen_port matches
+curl -s http://192.168.1.65:30024/api/v2/app/preferences \
+  | python3 -c 'import json,sys;p=json.load(sys.stdin);print("listen_port=",p["listen_port"])'
+#    Expect: same port as step 1
+
+# 3. qBit reports "Connection status: Connected" (not "Firewalled")
+#    Check qBit UI bottom-left corner. If still "Firewalled" 60s after
+#    deploy, gluetun container logs will show NAT-PMP retry errors.
+
+# 4. Stalled metadata torrents resume
+#    Re-add a fresh magnet → "Downloading metadata" should clear in
+#    seconds-to-minutes, not stall indefinitely.
+```
+
+### Operational notes
+
+- **Port changes on every NAT-PMP renewal** (Proton renews every ~45s
+  internally; the public-facing port itself rotates only when the
+  tunnel re-establishes or Proton's gateway cycles). Each change
+  re-runs the up-command, idempotently re-setting qBit's listen_port.
+- **Don't expose the forwarded port at the docker level.** Inbound
+  peer traffic arrives on gluetun's tunnel interface, which gluetun
+  iptables-forwards into the shared netns based on destination port —
+  no `published` port mapping needed (and adding one would only expose
+  the port on the NAS LAN, which we don't want).
+- **Killswitch interaction:** if the tunnel drops, qBit can't reach
+  peers (correct — that's the point). When the tunnel re-establishes
+  and a new port is granted, the up-command fires and qBit picks the
+  new port up automatically.
+- **Multiple-clients risk:** only qBit listens on the forwarded port.
+  Don't add a second peer-listening service to the namespace without
+  picking a different scheme (e.g. running its own NAT-PMP client).
 
 ## Admin tips
 

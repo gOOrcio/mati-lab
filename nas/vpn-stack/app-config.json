@@ -18,13 +18,20 @@
           "TZ": "Europe/Warsaw",
           "DOT_PROVIDERS": "cloudflare",
           "BLOCK_MALICIOUS": "off",
-          "HEALTH_VPN_DURATION_INITIAL": "30s"
+          "HEALTH_VPN_DURATION_INITIAL": "30s",
+          "VPN_PORT_FORWARDING": "on",
+          "VPN_PORT_FORWARDING_PROVIDER": "protonvpn",
+          "VPN_PORT_FORWARDING_UP_COMMAND": "/scripts/qbit-update-port.sh {{PORTS}}",
+          "VPN_PORT_FORWARDING_STATUS_FILE": "/tmp/gluetun/forwarded_port"
         },
         "ports": [
           {"mode": "host", "protocol": "tcp", "published": 30024, "target": 30024},
           {"mode": "host", "protocol": "tcp", "published": 30025, "target": 9696},
           {"mode": "host", "protocol": "tcp", "published": 30030, "target": 8191},
           {"mode": "host", "protocol": "tcp", "published": 8000, "target": 8000}
+        ],
+        "volumes": [
+          {"type": "bind", "source": "/mnt/fast/databases/vpn-stack/scripts", "target": "/scripts", "read_only": true}
         ]
       },
       "qbittorrent": {
