@@ -33,12 +33,26 @@
         src: ../templates/compose.yml.j2
         dest: /var/lib/gitea-runner/compose.yml
         mode: "0644"
+      notify: restart gitea-runner
 
     - name: Render runner config.yaml
       ansible.builtin.template:
         src: ../templates/runner-config.yaml.j2
         dest: /var/lib/gitea-runner/config.yaml
         mode: "0644"
+      notify: restart gitea-runner
+
+    # Bind-mounted at /home/rootless/.config/docker/daemon.json inside the
+    # runner container. Rootless dockerd reads it on startup; ownership must
+    # match the container's `rootless` user (uid 1000).
+    - name: Render rootless dockerd daemon.json (registry-mirror config)
+      ansible.builtin.template:
+        src: ../templates/daemon.json.j2
+        dest: /var/lib/gitea-runner/daemon.json
+        owner: "1000"
+        group: "1000"
+        mode: "0644"
+      notify: restart gitea-runner
 
     - name: Render systemd unit
       ansible.builtin.template:
@@ -56,3 +70,8 @@
     - name: reload systemd
       ansible.builtin.systemd:
         daemon_reload: true
+
+    - name: restart gitea-runner
+      ansible.builtin.systemd:
+        name: gitea-runner.service
+        state: restarted

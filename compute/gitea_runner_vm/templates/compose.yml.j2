@@ -11,6 +11,11 @@ services:
       - /var/lib/gitea-runner/data:/data
       - /var/lib/gitea-runner/config.yaml:/config/config.yaml:ro
       - /var/lib/gitea-runner/secrets/runner-token:/secrets/runner-token:ro
+      # Wire the inner DinD's rootless dockerd to the Pi pull-through cache
+      # (`network/registry-mirror/`). Without this, every build re-pulls the
+      # 1.79GB Hermes base from Docker Hub over WAN. Rootless dockerd reads
+      # ~/.config/docker/daemon.json by default.
+      - /var/lib/gitea-runner/daemon.json:/home/rootless/.config/docker/daemon.json:ro
     deploy:
       resources:
         limits:

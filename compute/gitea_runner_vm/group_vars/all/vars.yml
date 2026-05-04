@@ -28,3 +28,8 @@ vm_ssh_key_path: "~/.ssh/id_ed25519.pub"
 # act_runner
 act_runner_version: "0.2.13"   # pin; bump intentionally
 gitea_instance_url: "https://gitea.mati-lab.online"
+
+# Pull-through Docker Hub cache served from the Pi (network/registry-mirror/).
+# Wired into the inner rootless dockerd via /home/rootless/.config/docker/daemon.json.
+registry_mirror_host: "192.168.1.252"
+registry_mirror_port: 5000
