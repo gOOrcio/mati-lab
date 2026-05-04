@@ -162,6 +162,19 @@ See [`litellm/notes.md`](litellm/notes.md) for `/key/generate`, `/key/regenerate
 | **Syncthing GUI password** | Syncthing config (in-app) | `homelab/syncthing/gui` | Syncthing web UI (LAN bypass; Authelia 2FA externally). | UI → Settings → GUI → set password. | 2026-04-29 |
 | **Setup URI (per-device)** | Per device — pasted into obsidian-livesync settings | `homelab/obsidian/setup-uri-<device>` | The CouchDB `livesync` password is *embedded* in this URI. | Regenerate when livesync password rotates. | (continuous) |
 
+## Homebridge
+
+| Role | File on disk | PM label | Dependents | Procedure | Last rotated |
+|---|---|---|---|---|---|
+| **UI admin password** | Homebridge UI in-app users DB on Pi 4 (in the backup tar.gz as `auth.json`) | `homelab/homebridge/admin` | Homebridge UI login + the `homebridge-backup.sh` cron (uses these creds to mint a JWT and pull the backup endpoint). | (1) Homebridge UI → Users → Edit → set new password. (2) Update `HOMEBRIDGE_PASSWORD=` in NAS `/root/.backup-env`. (3) Verify with `midclt cronjob.run <id>` of the homebridge-backup cron. (4) PM. | 2026-05-04 (issued at install) |
+| **`HOMEBRIDGE_USERNAME` / `HOMEBRIDGE_PASSWORD` env** | NAS `/root/.backup-env` (root:root 0600) | (cleartext copies of the same `homelab/homebridge/admin` PM row) | `homebridge-backup.sh`. | Co-rotate with the UI password row above. | 2026-05-04 |
+
+## Dev PC
+
+| Role | File on disk | PM label | Dependents | Procedure | Last rotated |
+|---|---|---|---|---|---|
+| **Restic repo password** | Dev PC `~/.config/restic/repo-password` (0600) | `homelab/dev-pc/restic-repo-password` | Decrypts the entire dev-PC restic repo (`~/Projects`, `~/.claude`, `~/.ssh`, dotfiles). **Loss = unrecoverable backups** — same property as the NAS dump passphrase (intentional: the repo password is meaningful precisely because PM is the only holder). | Restic supports adding a second password to the repo before retiring the old one: (1) `restic key add` (paste new). (2) Replace contents of `~/.config/restic/repo-password`. (3) `restic key remove <old-id>`. (4) PM. | 2026-05-04 (issued at install) |
+
 ## Sentinel Trader (compute)
 
 | Role | File on disk | PM label | Dependents | Procedure | Last rotated |
@@ -185,6 +198,8 @@ See [`litellm/notes.md`](litellm/notes.md) for `/key/generate`, `/key/regenerate
 |---|---|---|---|---|---|
 | **Backup encryption passphrase** | NAS `/mnt/bulk/backups/.secrets/dump-passphrase` (root:root 600) | `homelab/backups/dump-passphrase` | Every cron under `nas/backup-jobs/*.sh` (`gpg --symmetric --passphrase-file ...`), now including `arr-config-backup.sh`. **Loss = unrecoverable backups (intentional security property — encryption is meaningful precisely because the only key holder is the password manager).** | (1) `openssl rand -base64 48` for new value. (2) **Decrypt + re-encrypt every existing dump under `bulk/backups/{gitea,litellm,hermes,arr}*` with the new passphrase** — they were written under the old one. (3) Re-stage via `bash nas/backup-jobs/stage-passphrase.sh` (silent prompt + stdin pipe). (4) Update PM. | 2026-04-30 (issued at Phase 8 install) |
 | **Kuma push URL — `arr-config-backup`** | NAS `/root/.backup-env` (`KUMA_URL_ARR_CONFIG=`, root:root 600) | `homelab/uptime-kuma/push-arr-config-backup` | `arr-config-backup.sh` weekly heartbeat. | Mint a new push monitor in Kuma UI; copy the bare URL (strip query string per `feedback_kuma_push_url_query_string`). Stage via `read -rs URL && ssh truenas_admin@nas "sudo tee -a /root/.backup-env <<<\"KUMA_URL_ARR_CONFIG=$URL\""`. PM. | 2026-05-01 (issued at install) |
+| **Kuma push URL — `homebridge-backup`** | NAS `/root/.backup-env` (`KUMA_URL_HOMEBRIDGE=`, root:root 600) | `homelab/uptime-kuma/push-homebridge-backup` | `homebridge-backup.sh` weekly heartbeat. | Same shape as `arr-config-backup`. | 2026-05-04 (issued at install) |
+| **Kuma push URL — `dev-pc-restic`** | Dev PC `~/.config/restic/kuma-push-url` (mode 0600) | `homelab/uptime-kuma/push-dev-pc-restic` | `restic-backup.sh` (dev PC, daily heartbeat). | Mint push monitor in Kuma UI (interval 86400s); paste bare URL into the file via `compute/dev_pc/backup/install.sh`. PM. | 2026-05-04 (issued at install) |
 
 ## Cross-references
 

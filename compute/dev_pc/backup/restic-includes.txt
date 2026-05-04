@@ -1,0 +1,12 @@
+# Paths to back up. Relative paths are resolved under $HOME.
+# Lines starting with `#` and blank lines are ignored.
+# Missing paths warn but don't fail the backup.
+
+Projects
+.claude
+.config
+.ssh
+.zshrc
+.bashrc
+.gitconfig
+.profile

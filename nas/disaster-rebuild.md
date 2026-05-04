@@ -16,15 +16,18 @@ of this document is honest about what survives and what doesn't.
 | `mati-lab` repo (this repo) | Gitea on NAS — *gone* if NAS is gone. **Fallback: GitHub push-mirror** at `github.com/<your-mirror>/mati-lab`. | Phase-4 mirror config |
 | Personal repos (sentinel-trader, smart-resume, restorate, dietly-scraper, madrale, etc.) | GitHub mirrors per-repo | Phase-4 mirror config; `~/.git-mirrors-status` on dev box has the inventory |
 | All long-lived secrets | Password manager | `nas/secrets-inventory.md` is the index — every PM label is `homelab/<service>/<role>` |
-| Phase docs + plans | `docs/superpowers/plans/*.md` are gitignored — local on dev box only | Dev box is a separate machine; survives unless it dies too |
-| Master plan (`docs/design/homelab-master-plan.md`) | Gitignored, dev-box-local | Same — separate machine |
-| Memory entries | `~/.claude/projects/-home-gooral-Projects-mati-lab/memory/*.md` on dev box | Separate machine |
+| Phase docs + plans | `docs/superpowers/plans/*.md` are gitignored — local on dev box only | Dev box is a separate machine; **also captured nightly to NAS via dev-PC restic backup** (`compute/dev_pc/backup/`) |
+| Master plan (`docs/design/homelab-master-plan.md`) | Gitignored, dev-box-local | Same — separate machine + dev-PC restic |
+| Memory entries | `~/.claude/projects/-home-gooral-Projects-mati-lab/memory/*.md` on dev box | Separate machine + dev-PC restic |
+| Pi 4 Homebridge state | NAS `bulk/backups/homebridge/homebridge-*.tar.gz.gpg` (weekly) | Survives Pi 4 SD card death; lost only if the NAS is also gone |
 
 If the dev box dies in the same incident (apartment fire), your last
 hope is: GitHub-mirrored repos + password manager (cloud-replicated).
-Memory + master plan + plan docs would be lost. That's an accepted
-gap; documenting it forces you to consider whether to push more of
-that to GitHub later.
+Memory + master plan + plan docs are captured to the NAS via the
+dev-PC restic job, but if the NAS is *also* gone in the same
+incident, those are lost too. That's the off-box gap (followup 8.1)
+— closing 8.1 with an off-box restic repo target would also fix the
+dev-PC-and-NAS-both-gone scenario in one move.
 
 ## What's gone forever
 
@@ -238,6 +241,31 @@ Prowlarr (Custom App) deploys.
 - vzdump destination = NAS NFS again (Phase 7 setup applies).
 - LiteLLM virtual keys re-issued per Phase 3 above.
 
+### Pi 4 — Homebridge
+
+- Reflash Homebridge OS to the Pi 4's SD card (or replacement Pi).
+- First-boot wizard: walk through with a placeholder admin password.
+- Decrypt the latest `bulk/backups/homebridge/homebridge-*.tar.gz.gpg`
+  from the dev box (NAS dataset survived per Phase 8 scope; if not,
+  Homebridge is gone — plugin list and accessory pairings are not
+  separately backed up).
+- Homebridge UI → Settings → Backup → Restore Backup → upload the
+  decrypted `.tar.gz`. UI restarts the bridge against the restored
+  data; original admin credentials from PM apply after restore.
+- See `nas/restore-drills/homebridge-restore.md` for the full flow.
+
+### Dev PC — restic restore
+
+- Install Ubuntu, then `apt install restic`.
+- Restore the repo password from PM
+  (`homelab/dev-pc/restic-repo-password`) into
+  `~/.config/restic/repo-password`.
+- `restic restore latest --target ~/_restore` against
+  `sftp:truenas_admin@192.168.1.65:/mnt/bulk/backups/dev-pc-restic`
+  (NAS must already be back per the steps above).
+- See `nas/restore-drills/dev-pc-restore.md` for the rsync-into-place
+  flow + verification checklist.
+
 ### Phase 8 — Backups (re-apply this document's own setup)
 
 - Re-stage backup encryption passphrase via `bash nas/backup-jobs/stage-passphrase.sh`.
@@ -277,4 +305,4 @@ accurate. Sweep this doc whenever:
 - The "what survives" list changes (e.g. adding off-box backup later
   flips the "what's gone forever" rows to "recoverable from X")
 
-Last sweep: 2026-04-30 (Phase 8 install).
+Last sweep: 2026-05-04 (Pi 4 Homebridge + dev PC restic added — followups 8.9 + 8.10).

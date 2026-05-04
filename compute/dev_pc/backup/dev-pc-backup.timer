@@ -1,0 +1,14 @@
+[Unit]
+Description=Daily dev PC restic backup to NAS
+Documentation=file://%h/Projects/mati-lab/compute/dev_pc/notes.md
+
+[Timer]
+# Daily at 02:30 local. If the PC was off, run on next boot
+# (Persistent=true) within the random delay.
+OnCalendar=*-*-* 02:30:00
+RandomizedDelaySec=20m
+Persistent=true
+Unit=dev-pc-backup.service
+
+[Install]
+WantedBy=timers.target

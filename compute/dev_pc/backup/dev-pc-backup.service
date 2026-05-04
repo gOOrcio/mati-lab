@@ -1,0 +1,17 @@
+[Unit]
+Description=Dev PC → NAS restic backup
+Documentation=file://%h/Projects/mati-lab/compute/dev_pc/notes.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+# Path to script — installed via compute/dev_pc/backup/install.sh.
+# %h = $HOME, expanded by systemd at run time.
+ExecStart=%h/Projects/mati-lab/compute/dev_pc/backup/restic-backup.sh
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7
+# Don't fail on a single transient SFTP hiccup — the missed Kuma
+# heartbeat is the alarm channel; let next day's run try again.
+SuccessExitStatus=0

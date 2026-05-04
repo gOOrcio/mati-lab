@@ -13,6 +13,7 @@ lives outside the repo per the secrets-inventory pattern.
 | `hermes-backup.sh` | nightly 04:15 UTC | `/mnt/bulk/backups/hermes/hermes-<ISO>.zip.gpg` | Hermes Agent Custom App (logical backup via `hermes backup` inside the container, encrypted on the host) |
 | `arr-config-backup.sh` | weekly Sun 04:15 UTC | `/mnt/bulk/backups/arr/arr-<ISO>.tar.gz.gpg` | Prowlarr/Sonarr/Radarr/Bazarr **API-issued backup ZIPs** (each *arr's `POST /system/command {"name":"Backup"}`) plus a tar of `jellyseerr/config` (Jellyseerr has no API backup endpoint), bundled and gpg-encrypted. 8-week retention. Cron id 17. Refactored from raw `tar` of config dirs on 2026-05-01 — API-issued ZIPs are SQLite-consistent and accepted by each *arr's "Restore from File" UI. |
 | `recyclarr-sync.sh` | weekly Sun 04:30 UTC | (no archive — stateless API sync; pushes Kuma heartbeat on success) | TRaSH-Guides curated quality profiles + custom formats → Sonarr/Radarr. Cron id 18. See [`recyclarr/notes.md`](../recyclarr/notes.md). |
+| `homebridge-backup.sh` | weekly Sun 04:45 UTC | `/mnt/bulk/backups/homebridge/homebridge-<ISO>.tar.gz.gpg` | Pi 4 Homebridge OS — pulls a UI-issued backup tar.gz via `POST /api/auth/login` + `GET /api/backup/download`, then encrypts. 8-week retention. Restore via the Homebridge UI's Settings → Backup → Restore Backup. |
 | `zfs-health-cron.sh` | daily 00:07 UTC | (no file — direct ntfy on non-OK) | `zpool`, `midclt`, ntfy |
 | `stage-passphrase.sh` | one-shot, run from dev box | NAS `/mnt/bulk/backups/.secrets/dump-passphrase` | password manager |
 
@@ -22,7 +23,7 @@ lives outside the repo per the secrets-inventory pattern.
 |---|---|---|---|
 | `/mnt/bulk/backups/.secrets/dump-passphrase` | `root:root` | `600` | Symmetric gpg passphrase. Loss = unrecoverable backups. PM label `homelab/backups/dump-passphrase`. Stage via `bash nas/backup-jobs/stage-passphrase.sh`. |
 | `/mnt/bulk/backups/.secrets/ntfy-token` | `root:root` | `600` | ntfy bearer token for the `homelab-alerts` topic. PM label `homelab/ntfy/homelab-alerts`. Optional — script falls back to anonymous post if missing. |
-| `/root/.backup-env` | `root:root` | `600` | sourced by every cron. Defines: `KUMA_URL_GITEA_DUMP`, `KUMA_URL_LITELLM_DUMP`, `KUMA_URL_HERMES_DUMP`, `KUMA_URL_ARR_CONFIG`, `KUMA_URL_RECYCLARR_SYNC`, `KUMA_URL_ZFS_HEALTH`, plus the four `*_API_KEY` cleartext copies (`SONARR_API_KEY`, `RADARR_API_KEY`, `PROWLARR_API_KEY`, `BAZARR_API_KEY` — used by `arr-config-backup.sh` for API calls and by `recyclarr-sync.sh` for sync), optionally `NTFY_URL`. PM label per push monitor: `homelab/uptime-kuma/push-<name>`. |
+| `/root/.backup-env` | `root:root` | `600` | sourced by every cron. Defines: `KUMA_URL_GITEA_DUMP`, `KUMA_URL_LITELLM_DUMP`, `KUMA_URL_HERMES_DUMP`, `KUMA_URL_ARR_CONFIG`, `KUMA_URL_RECYCLARR_SYNC`, `KUMA_URL_HOMEBRIDGE`, `KUMA_URL_ZFS_HEALTH`, plus the four `*_API_KEY` cleartext copies (`SONARR_API_KEY`, `RADARR_API_KEY`, `PROWLARR_API_KEY`, `BAZARR_API_KEY` — used by `arr-config-backup.sh` for API calls and by `recyclarr-sync.sh` for sync), `HOMEBRIDGE_USERNAME` + `HOMEBRIDGE_PASSWORD` for the Homebridge UI login, optionally `HOMEBRIDGE_HOST` (default `http://192.168.1.155:8581`), optionally `NTFY_URL`. PM label per push monitor: `homelab/uptime-kuma/push-<name>`. |
 
 ## Encryption posture
 
@@ -41,10 +42,13 @@ All three crons are TrueNAS `cronjob` entries (created via
 stagger:
 
 ```
-00:07  zfs-health-cron.sh
-03:15  gitea-pgdump.sh
-03:30  litellm-pgdump.sh
-04:15  hermes-backup.sh
+00:07  zfs-health-cron.sh         (daily)
+03:15  gitea-pgdump.sh            (daily)
+03:30  litellm-pgdump.sh          (daily)
+04:15  hermes-backup.sh           (daily)
+04:15  arr-config-backup.sh       (weekly Sun)
+04:30  recyclarr-sync.sh          (weekly Sun)
+04:45  homebridge-backup.sh       (weekly Sun)
 ```
 
 ZFS snapshots run hourly at minute 0; daily at 02:30. Dumps are

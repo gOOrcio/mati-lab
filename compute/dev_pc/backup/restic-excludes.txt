@@ -1,0 +1,61 @@
+# restic exclude patterns. Match against full paths.
+# Pattern syntax: https://restic.readthedocs.io/en/stable/040_backup.html#excluding-files
+
+# Build / dependency artefacts
+node_modules
+.venv
+venv
+__pycache__
+*.pyc
+*.pyo
+target
+dist
+build
+.next
+.nuxt
+.svelte-kit
+.turbo
+.parcel-cache
+.gradle
+.mvn
+
+# Caches
+.cache
+.npm
+.yarn/cache
+.pnpm-store
+.pip
+.uv
+.ruff_cache
+.pytest_cache
+.mypy_cache
+.tox
+*.egg-info
+
+# IDEs / editors
+.idea
+.vscode/settings.json.bak
+*.swp
+*.swo
+
+# Big stuff that's reproducible elsewhere
+.ollama
+.docker
+.local/share/Trash
+
+# Browser / chat / app state under .config we don't need to recover
+.config/google-chrome
+.config/chromium
+.config/Slack
+.config/discord
+.config/obsidian/Cache
+.config/Code/Cache
+.config/Code/CachedData
+.config/Code/logs
+
+# Random transient
+*.tmp
+*.log
+core
+core.*
+.DS_Store

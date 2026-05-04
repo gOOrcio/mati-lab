@@ -21,7 +21,7 @@ A single-pane index of every concrete piece of work that's been **intentionally 
 | Phase 5 (Obsidian sync) | 1 | ∞.3 — out-of-scope only; nothing real deferred |
 | Phase 6 (RAG pipeline) | 3 | 6.x.2, 6.x.3 (6.x.1 + 6.x.4 shipped) |
 | Phase 7 (hardening, in flight) | 1 stays + 6 new | 7.5 (madrale 17 manual ruff fixes); NEW 7.x.4 (verify other Kuma push monitors after Caddy fix), 7.x.5 (image-build CI workflows for both MCP servers), 7.x.6 (tighten qBit subnet bypass to docker-bridge only), 7.x.7 (revisit Hermes ${VAR} substitution in headers when upstream fixes), 7.x.8 (qbittorrent-mcp stale-torrent tools), 7.x.9 (arr-mcp server). 7.x.1 closed via Followups Plan A. |
-| Phase 8 (backups, in flight) | 2 stays open | 8.1 (off-box — accepted risk), 8.3 (Immich pg_dump pending Phase 2). 8.6 shipped via Followups Plan C. |
+| Phase 8 (backups, in flight) | 3 stay open | 8.1 (off-box — accepted risk), 8.3 (Immich pg_dump pending Phase 2), 8.11 (MacBook Time Machine — recommended USB-drive path). 8.6 shipped via Followups Plan C; 8.9 (Homebridge) + 8.10 (dev PC restic) shipped 2026-05-04. |
 | (its own future plan) | 1 | Phase 6.2 — code-repo embedding |
 
 ## Phase 7 territory — Hardening & Polish
@@ -47,6 +47,9 @@ A single-pane index of every concrete piece of work that's been **intentionally 
 | 8.6 | ~~**OpenClaw backup recipe**~~ → shipped via Followups Plan Task C, retargeted from OpenClaw to Hermes. Nightly `hermes backup` zip via `docker exec`, gpg AES256 → `bulk/backups/hermes/hermes-<ISO>.zip.gpg`, 14-day retention, Kuma push monitor `backup-hermes-dump`, decrypt-roundtrip verified 2026-05-01, `nas/restore-drills/hermes-restore.md` runbook drafted. | Phase 3 | `nas/backup-jobs/notes.md` |
 | 8.7 | ~~**Hermes `memory.db` backup**~~ — superseded by 8.6 closure (Hermes shipped 2026-05-01; logical-zip backup covers `state.db` plus everything else under `/opt/data`). | Phase 3 | (closed) |
 | 8.8 | ~~**Hermes `/ping` health probe**~~ — superseded by 8.6 + Kuma HTTP-Keyword monitor on the Hermes dashboard sidecar at `192.168.1.65:30262/`. | Phase 3 | (closed) |
+| 8.9 | ~~**Pi 4 / Homebridge backup**~~ → shipped 2026-05-04. NAS-side cron `nas/backup-jobs/homebridge-backup.sh` pulls UI-issued tar.gz weekly Sun 04:45 UTC, gpg AES256 → `bulk/backups/homebridge/homebridge-<ISO>.tar.gz.gpg`, 56-day retention, Kuma push `backup-homebridge-dump`. Restore runbook at `nas/restore-drills/homebridge-restore.md`. | Phase 2 (Pi 4) | `nas/backup-jobs/notes.md` |
+| 8.10 | ~~**Dev PC restic to NAS**~~ → shipped 2026-05-04. systemd user timer on dev PC runs `compute/dev_pc/backup/restic-backup.sh` daily 02:30 local; restic SFTP repo at `sftp:truenas_admin@192.168.1.65:/mnt/bulk/backups/dev-pc-restic`; backs up `~/Projects`, `~/.claude`, `~/.config`, `~/.ssh`, dotfiles; AES-256 native; weekly `forget --keep-daily 14 --keep-weekly 8 --keep-monthly 6 --prune`. Closes the "memory + plan docs + uncommitted work live only on dev PC" gap surfaced by `nas/disaster-rebuild.md`. Restore runbook at `nas/restore-drills/dev-pc-restore.md`. | Phase 2 (dev PC) | `compute/dev_pc/notes.md` |
+| 8.11 | **MacBook backup.** Recommended path: Apple Time Machine to a dedicated USB drive (Apple-native, doesn't add homelab plumbing, recovery story is well-trodden). The Obsidian vault is already covered via LiveSync + Syncthing → NAS; the rest of `~` (downloads, dev WIP, signing certs) is what'd hurt. SMB Time Machine via TrueNAS works but historically flaky and the recovery flow is worse than a USB drive plugged into the Mac. | Phase 2 (MacBook) | (this followup) |
 
 ## Phase 7.x — Hardening followups
 
