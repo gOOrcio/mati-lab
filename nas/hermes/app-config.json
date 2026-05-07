@@ -5,7 +5,7 @@
   "custom_compose_config": {
     "services": {
       "hermes": {
-        "image": "nousresearch/hermes-agent:v2026.4.23",
+        "image": "gitea.mati-lab.online/gooral/hermes-agent-investor:dev",
         "restart": "unless-stopped",
         "user": "0:0",
         "cap_add": ["CHOWN", "FOWNER", "SETUID", "SETGID", "DAC_OVERRIDE"],
@@ -14,7 +14,9 @@
         "environment": {
           "HERMES_UID": "568",
           "HERMES_GID": "568",
-          "HERMES_HOME": "/opt/data"
+          "HERMES_HOME": "/opt/data",
+          "HERMES_INVESTOR_DISCOVERY_UNIVERSE_PATH": "/opt/hermes-investor/data-template/discovery_universe.json",
+          "HERMES_INVESTOR_DISCOVERY_SNAPSHOT_PATH": "/opt/data/hermes-investor/candidates.snapshot.json"
         },
         "env_file": ["/mnt/fast/databases/hermes/.env"],
         "volumes": [
@@ -22,16 +24,20 @@
         ]
       },
       "hermes-dashboard": {
-        "image": "nousresearch/hermes-agent:v2026.4.23",
+        "image": "gitea.mati-lab.online/gooral/hermes-agent-investor:dev",
         "restart": "unless-stopped",
         "user": "0:0",
         "cap_add": ["CHOWN", "FOWNER", "SETUID", "SETGID", "DAC_OVERRIDE"],
         "shm_size": "256m",
-        "command": ["hermes", "dashboard", "--port", "9119", "--host", "0.0.0.0", "--no-open", "--insecure"],
+        "command": ["hermes", "dashboard", "--port", "9119", "--host", "0.0.0.0", "--no-open", "--insecure", "--tui"],
         "environment": {
           "HERMES_UID": "568",
           "HERMES_GID": "568",
-          "HERMES_HOME": "/opt/data"
+          "HERMES_HOME": "/opt/data",
+          "HERMES_INVESTOR_DISCOVERY_UNIVERSE_PATH": "/opt/hermes-investor/data-template/discovery_universe.json",
+          "HERMES_INVESTOR_DISCOVERY_SNAPSHOT_PATH": "/opt/data/hermes-investor/candidates.snapshot.json",
+          "TELEGRAM_BOT_TOKEN": "",
+          "HERMES_DASHBOARD_CHAT_TRUST_ALL_HOSTS": "1"
         },
         "env_file": ["/mnt/fast/databases/hermes/.env"],
         "volumes": [
