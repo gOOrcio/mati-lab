@@ -14,7 +14,10 @@ services:
     environment:
       - HOMEPAGE_ALLOWED_HOSTS=home.mati-lab.online
       - PUID=1000
-      - PGID=1000
+      # PGID 988 = docker group on the Pi (verify with `getent group docker`).
+      # Homepage needs read access to /var/run/docker.sock for label-driven
+      # auto-discovery of Pi services; the socket is mode 660 root:docker.
+      - PGID=988
       # Widget credentials (sourced from network/.env on the Pi):
       - HOMEPAGE_VAR_PROXMOX_TOKEN_ID=${PROXMOX_HOMEPAGE_TOKEN_ID:-}
       - HOMEPAGE_VAR_PROXMOX_TOKEN_SECRET=${PROXMOX_HOMEPAGE_TOKEN_SECRET:-}
