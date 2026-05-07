@@ -16,3 +16,7 @@ services:
     labels:
       - "com.docker.compose.project=grafana-ntfy-bridge"
       - "com.docker.compose.service=grafana-ntfy-bridge"
+      - "homepage.group=Other"
+      - "homepage.name=Grafana → ntfy bridge"
+      - "homepage.icon=mdi-bridge"
+      - "homepage.description=Forwards Grafana alerts to ntfy"

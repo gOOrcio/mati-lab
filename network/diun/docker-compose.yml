@@ -35,3 +35,7 @@ services:
       - "com.docker.compose.project=diun"
       - "com.docker.compose.service=diun"
       - "diun.enable=true"
+      - "homepage.group=Other"
+      - "homepage.name=Diun"
+      - "homepage.icon=mdi-update"
+      - "homepage.description=Container image update watcher"

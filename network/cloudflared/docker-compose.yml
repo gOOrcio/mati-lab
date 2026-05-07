@@ -7,3 +7,8 @@ services:
     security_opt: [no-new-privileges:true]
     environment:
       - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
+    labels:
+      - "homepage.group=Network"
+      - "homepage.name=Cloudflared"
+      - "homepage.icon=cloudflare.png"
+      - "homepage.description=Cloudflare tunnel connector"

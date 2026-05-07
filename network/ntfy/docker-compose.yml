@@ -39,4 +39,9 @@ services:
     labels:
       - "com.docker.compose.project=ntfy"
       - "com.docker.compose.service=ntfy"
+      - "homepage.group=Network"
+      - "homepage.name=ntfy"
+      - "homepage.icon=ntfy.png"
+      - "homepage.href=https://ntfy.mati-lab.online"
+      - "homepage.description=Push notifications"
 

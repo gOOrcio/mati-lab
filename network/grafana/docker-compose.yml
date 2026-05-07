@@ -21,3 +21,12 @@ services:
     labels:
       - "com.docker.compose.project=grafana"
       - "com.docker.compose.service=grafana"
+      - "homepage.group=Observability"
+      - "homepage.name=Grafana"
+      - "homepage.icon=grafana.png"
+      - "homepage.href=https://grafana.mati-lab.online"
+      - "homepage.description=Dashboards"
+      - "homepage.widget.type=grafana"
+      - "homepage.widget.url=http://grafana:3000"
+      - "homepage.widget.username=admin"
+      - "homepage.widget.password=${GRAFANA_VIEWER_PASSWORD}"

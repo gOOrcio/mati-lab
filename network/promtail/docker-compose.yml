@@ -40,3 +40,7 @@ services:
     labels:
       - "com.docker.compose.project=promtail"
       - "com.docker.compose.service=promtail"
+      - "homepage.group=Observability"
+      - "homepage.name=Promtail (Pi)"
+      - "homepage.icon=mdi-script-text-outline"
+      - "homepage.description=Pi log shipper → Loki"

@@ -22,3 +22,7 @@ services:
     labels:
       - "com.docker.compose.project=loki"
       - "com.docker.compose.service=loki"
+      - "homepage.group=Observability"
+      - "homepage.name=Loki"
+      - "homepage.icon=loki.png"
+      - "homepage.description=Log aggregation"

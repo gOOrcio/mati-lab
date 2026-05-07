@@ -34,5 +34,14 @@ services:
       - "com.docker.compose.service=pihole"
       - NET_ADMIN
       - NET_BROADCAST
+      - "homepage.group=Network"
+      - "homepage.name=Pi-hole"
+      - "homepage.icon=pi-hole.png"
+      - "homepage.href=https://pihole.mati-lab.online/admin"
+      - "homepage.description=DNS sinkhole + local DNS"
+      - "homepage.widget.type=pihole"
+      - "homepage.widget.url=http://pihole:8080"
+      - "homepage.widget.key=${PIHOLE_API_KEY}"
+      - "homepage.widget.version=6"
     networks:
       - pihole-net

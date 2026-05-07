@@ -21,6 +21,11 @@ services:
       - /sys:/host/sys:ro
       - /:/rootfs:ro
       - node_textfile:/var/lib/node_exporter/textfile_collector:rw
+    labels:
+      - "homepage.group=Observability"
+      - "homepage.name=Pi node-exporter"
+      - "homepage.icon=mdi-raspberry-pi"
+      - "homepage.description=Pi host metrics for Prometheus"
 
   cadvisor:
     image: gcr.io/cadvisor/cadvisor:v0.52.1

@@ -36,3 +36,10 @@ services:
     labels:
       - "com.docker.compose.project=authelia"
       - "com.docker.compose.service=authelia"
+      - "homepage.group=Network"
+      - "homepage.name=Authelia"
+      - "homepage.icon=authelia.png"
+      - "homepage.href=https://auth.mati-lab.online"
+      - "homepage.description=Forward-auth (2FA SSO)"
+      - "homepage.widget.type=authelia"
+      - "homepage.widget.url=http://authelia:9091"
