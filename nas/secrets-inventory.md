@@ -66,6 +66,7 @@ See [`litellm/notes.md`](litellm/notes.md) for `/key/generate`, `/key/regenerate
 | Role | File on disk | PM label | Dependents | Procedure | Last rotated |
 |---|---|---|---|---|---|
 | **Admin password** | `network/pihole/.env` (`PIHOLE_ADMIN_PASS=`) | `homelab/pihole/admin` | Pi-hole web UI login. Rotation requires next deploy. | (1) Pick new value. (2) Edit `.env`. (3) `make deploy-pihole`. (4) PM. | (install) |
+| **App password (Homepage widget)** | `network/pihole/.env` (`PIHOLE_API_KEY=`) — referenced by `homepage.widget.key` label on the pihole compose | `homelab/pihole/homepage-app-password` | Homepage Pi-hole widget. Without it: widget shows auth error; the rest of the dashboard is unaffected. Pi-hole 6 uses an "app password" (in UI: Settings → API → Generate app password). | (1) Pi-hole UI → Settings → API → Configure app passwords → Add. (2) Edit `network/.env` on Pi (`PIHOLE_API_KEY=`). (3) `make deploy-homepage`. (4) PM. | pending mint (afternoon 2026-05-06) |
 
 ## Grafana
 
@@ -73,6 +74,7 @@ See [`litellm/notes.md`](litellm/notes.md) for `/key/generate`, `/key/regenerate
 |---|---|---|---|---|---|
 | **Admin password** | `network/grafana/.env` (`GF_SECURITY_ADMIN_PASSWORD=`) | `homelab/grafana/admin` | Grafana web login + dashboard-export scripts. | (1) Pick new value. (2) Edit `.env`. (3) `make deploy-grafana`. (4) PM. | (install) |
 | **Service-account / API token** | NA (Grafana DB) | `homelab/grafana/api-token` | Dashboard sync scripts (Phase 7 Tasks 14–15). | Grafana UI → Admin → Service accounts → create / rotate. | (Phase 7 Task 14 issuance) |
+| **Viewer user password (Homepage widget)** | `network/.env` on Pi (`GRAFANA_VIEWER_PASSWORD=`) — referenced by `homepage.widget.password` label on the grafana compose | `homelab/grafana/homepage-viewer` | Homepage Grafana widget. Read-only `Viewer` role, used to display dashboard counts. Without it: widget shows auth error. | (1) Grafana UI → Server admin → Users → New user (role: Viewer, username: `homepage`). (2) Edit `network/.env` on Pi. (3) `make deploy-homepage`. (4) PM. | pending mint (afternoon 2026-05-06) |
 
 ## ntfy
 
@@ -104,6 +106,7 @@ See [`litellm/notes.md`](litellm/notes.md) for `/key/generate`, `/key/regenerate
 | **API token id + secret** | Vault (`compute/*_vm/group_vars/all/vault.yml`) — encrypted | `homelab/proxmox/api-token` | Ansible playbooks for VM/LXC lifecycle (`compute/{ollama_vm,gitea_runner_vm,...}/`). | (1) Proxmox UI → Datacenter → Permissions → API Tokens → roll. (2) `ansible-vault edit vault.yml`. (3) PM. | (install) |
 | **root@pam password** | NA | `homelab/proxmox/root` | Web UI break-glass when API tokens fail. | UI → root → Change password. | (install) |
 | **OIDC realm `client-key`** | `/etc/pve/domains.cfg` on Proxmox (line `client-key <hex>` under `openid: authelia`) | `homelab/authelia/oidc-proxmox-clientsecret` (paired w/ Authelia row above — they MUST match) | Proxmox web SSO via Authelia OIDC. Mismatch → 401 on login. | See [`compute/proxmox_host/notes.md`](../compute/proxmox_host/notes.md) "OIDC integration" — rotate Authelia + `domains.cfg` together, then `make deploy-authelia` + `systemctl reload pveproxy`. | (install — Phase 4) |
+| **Read-only API token (Homepage)** | `network/.env` on Pi (`PROXMOX_HOMEPAGE_TOKEN_ID=` and `PROXMOX_HOMEPAGE_TOKEN_SECRET=`); referenced by `widgets.yaml` proxmox block via `HOMEPAGE_VAR_PROXMOX_TOKEN_*` | `homelab/proxmox/homepage-readonly` | Homepage Proxmox widget (VM/LXC counts + node CPU/memory). Separate from the Ansible/`pve-exporter` token for cleaner audit + independent revocation. Token user `homepage@pve`, token id `dashboard`, role `PVEAuditor` at path `/`. | (1) Proxmox UI → Datacenter → Permissions → API Tokens → roll. (2) Edit `network/.env` on Pi. (3) `make deploy-homepage`. (4) PM. | pending mint (afternoon 2026-05-06) |
 
 ## Hermes Agent
 
@@ -168,6 +171,7 @@ See [`litellm/notes.md`](litellm/notes.md) for `/key/generate`, `/key/regenerate
 |---|---|---|---|---|---|
 | **UI admin password** | Homebridge UI in-app users DB on Pi 4 (in the backup tar.gz as `auth.json`) | `homelab/homebridge/admin` | Homebridge UI login + the `homebridge-backup.sh` cron (uses these creds to mint a JWT and pull the backup endpoint). | (1) Homebridge UI → Users → Edit → set new password. (2) Update `HOMEBRIDGE_PASSWORD=` in NAS `/root/.backup-env`. (3) Verify with `midclt cronjob.run <id>` of the homebridge-backup cron. (4) PM. | 2026-05-04 (issued at install) |
 | **`HOMEBRIDGE_USERNAME` / `HOMEBRIDGE_PASSWORD` env** | NAS `/root/.backup-env` (root:root 0600) | (cleartext copies of the same `homelab/homebridge/admin` PM row) | `homebridge-backup.sh`. | Co-rotate with the UI password row above. | 2026-05-04 |
+| **Homepage dashboard user** | `network/.env` on Pi (`HOMEBRIDGE_USERNAME=` / `HOMEBRIDGE_PASSWORD=`); referenced by `widgets.yaml` homebridge block via `HOMEPAGE_VAR_HOMEBRIDGE_*` | `homelab/homebridge/homepage` | Homepage Homebridge widget (accessory state). Separate from the admin/backup user above to keep blast radius minimal. Read-only role if Homebridge supports it; standard user otherwise. | (1) Homebridge UI → Manage Users → Add `homepage` user. (2) Edit `network/.env` on Pi. (3) `make deploy-homepage`. (4) PM. | pending mint (afternoon 2026-05-06) |
 
 ## Dev PC
 
@@ -224,3 +228,4 @@ When you ship a new service, before its first `make deploy` runs:
 5. Reference this row from the service's `notes.md`.
 
 If step 5 is hard to phrase, the secret probably doesn't need to exist.
+
