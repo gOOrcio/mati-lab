@@ -1,0 +1,66 @@
+# Auto-discovered services (Docker labels) populate alongside these manual entries.
+# Manual entries are for things that aren't Docker containers we control:
+# network gear, raw nodes, NAS catalogue apps without label support.
+# NAS catalogue apps with chart-level "Extra Labels" support are added via the
+# TrueNAS UI in the afternoon deploy pass, not here.
+
+- Network:
+    - Pi LAN gateway:
+        href: http://192.168.1.1
+        description: Router admin
+        icon: mdi-router-network
+    - TrueNAS UI:
+        href: https://truenas.mati-lab.online
+        siteMonitor: https://truenas.mati-lab.online
+        description: NAS web admin (192.168.1.65)
+        icon: truenas.png
+    - Proxmox UI:
+        href: https://proxmox.mati-lab.online
+        siteMonitor: https://proxmox.mati-lab.online
+        description: PVE manager (192.168.1.184)
+        icon: proxmox.png
+    - Homebridge UI:
+        href: https://homebridge.mati-lab.online
+        siteMonitor: https://homebridge.mati-lab.online
+        description: HomeKit bridge (192.168.1.155)
+        icon: homebridge.png
+
+- NAS:
+    # Catalogue apps without docker label support — populated as fallback during
+    # the afternoon UI sweep. Apps where chart "Extra Labels" worked will be
+    # auto-discovered via the docker-socket-proxy and won't need entries here.
+    - Jellyfin:
+        href: https://jellyfin.mati-lab.online
+        siteMonitor: https://jellyfin.mati-lab.online
+        description: Media server
+        icon: jellyfin.png
+    - Gitea:
+        href: https://gitea.mati-lab.online
+        siteMonitor: https://gitea.mati-lab.online
+        description: Self-hosted Git
+        icon: gitea.png
+    - Obsidian LiveSync:
+        href: https://obsidian.mati-lab.online
+        description: CouchDB sync endpoint
+        icon: obsidian.png
+    - LiteLLM:
+        href: https://litellm.mati-lab.online
+        siteMonitor: https://litellm.mati-lab.online
+        description: LLM gateway
+        icon: mdi-brain
+    - Prowlarr:
+        href: https://prowlarr.mati-lab.online
+        siteMonitor: https://prowlarr.mati-lab.online
+        description: Indexer manager
+        icon: prowlarr.png
+    - qBittorrent:
+        href: https://qbit.mati-lab.online
+        siteMonitor: https://qbit.mati-lab.online
+        description: Torrent client (via gluetun)
+        icon: qbittorrent.png
+
+- Other:
+    - Dev PC:
+        href: http://192.168.1.173
+        description: Workstation (Linux desktop)
+        icon: mdi-desktop-tower-monitor

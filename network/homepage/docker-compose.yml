@@ -1,0 +1,35 @@
+networks:
+  pihole-net:
+    external: true
+
+services:
+  homepage:
+    image: ghcr.io/gethomepage/homepage:latest
+    container_name: homepage
+    restart: unless-stopped
+    security_opt: [no-new-privileges:true]
+    dns:
+      - 1.1.1.1
+      - 1.0.0.1
+    environment:
+      - HOMEPAGE_ALLOWED_HOSTS=home.mati-lab.online
+      - PUID=1000
+      - PGID=1000
+      # Widget credentials (sourced from network/.env on the Pi):
+      - HOMEPAGE_VAR_PROXMOX_TOKEN_ID=${PROXMOX_HOMEPAGE_TOKEN_ID:-}
+      - HOMEPAGE_VAR_PROXMOX_TOKEN_SECRET=${PROXMOX_HOMEPAGE_TOKEN_SECRET:-}
+      - HOMEPAGE_VAR_HOMEBRIDGE_USERNAME=${HOMEBRIDGE_USERNAME:-}
+      - HOMEPAGE_VAR_HOMEBRIDGE_PASSWORD=${HOMEBRIDGE_PASSWORD:-}
+    volumes:
+      - ./config:/app/config
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - pihole-net
+    labels:
+      - "com.docker.compose.project=homepage"
+      - "com.docker.compose.service=homepage"
+      - homepage.group=Network
+      - homepage.name=Homepage
+      - homepage.icon=mdi-view-dashboard
+      - homepage.href=https://home.mati-lab.online
+      - homepage.description=This dashboard

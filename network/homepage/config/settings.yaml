@@ -1,0 +1,28 @@
+title: mati-lab
+theme: dark
+color: slate
+headerStyle: clean
+language: en
+target: _self
+
+layout:
+  Network:
+    style: row
+    columns: 4
+  Observability:
+    style: row
+    columns: 4
+  NAS:
+    style: row
+    columns: 4
+  Proxmox:
+    style: row
+    columns: 4
+  Other:
+    style: row
+    columns: 4
+
+quicklaunch:
+  searchDescriptions: true
+  hideInternetSearch: false
+  hideVisitURL: false

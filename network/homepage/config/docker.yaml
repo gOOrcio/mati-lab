@@ -1,0 +1,12 @@
+# Docker hosts for label-driven auto-discovery.
+# Pi: local socket bind-mounted into the Homepage container (read-only).
+# NAS: remote read-only Docker API exposed by tecnativa/docker-socket-proxy
+#      (see nas/docker-socket-proxy/), bound to 192.168.1.65:2375 and
+#      source-IP-allowlisted to the Pi only.
+
+pi:
+  socket: /var/run/docker.sock
+
+nas:
+  host: 192.168.1.65
+  port: 2375
