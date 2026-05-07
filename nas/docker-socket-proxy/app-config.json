@@ -10,7 +10,7 @@
         "restart": "unless-stopped",
         "user": "0:999",
         "read_only": true,
-        "tmpfs": ["/run"],
+        "tmpfs": ["/run", "/tmp"],
         "environment": {
           "CONTAINERS": "1",
           "IMAGES": "1",
