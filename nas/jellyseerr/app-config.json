@@ -17,6 +17,13 @@
         ],
         "ports": [
           {"mode": "host", "protocol": "tcp", "published": 30029, "target": 5055}
+        ],
+        "labels": [
+          "homepage.group=NAS",
+          "homepage.name=Jellyseerr",
+          "homepage.icon=jellyseerr.png",
+          "homepage.href=https://requests.mati-lab.online",
+          "homepage.description=Media requests"
         ]
       }
     }

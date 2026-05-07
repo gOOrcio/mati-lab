@@ -19,6 +19,13 @@
         ],
         "ports": [
           {"mode": "host", "protocol": "tcp", "published": 30027, "target": 7878}
+        ],
+        "labels": [
+          "homepage.group=NAS",
+          "homepage.name=Radarr",
+          "homepage.icon=radarr.png",
+          "homepage.href=https://radarr.mati-lab.online",
+          "homepage.description=Movie automation"
         ]
       }
     }

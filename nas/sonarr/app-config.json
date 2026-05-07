@@ -19,6 +19,13 @@
         ],
         "ports": [
           {"mode": "host", "protocol": "tcp", "published": 30026, "target": 8989}
+        ],
+        "labels": [
+          "homepage.group=NAS",
+          "homepage.name=Sonarr",
+          "homepage.icon=sonarr.png",
+          "homepage.href=https://sonarr.mati-lab.online",
+          "homepage.description=TV series automation"
         ]
       }
     }

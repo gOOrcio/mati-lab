@@ -34,6 +34,12 @@
         "volumes": [
           {"type": "bind", "source": "/mnt/fast/databases/vpn-stack/scripts", "target": "/scripts", "read_only": true},
           {"type": "bind", "source": "/mnt/fast/databases/vpn-stack/gluetun-auth", "target": "/gluetun-auth", "read_only": true}
+        ],
+        "labels": [
+          "homepage.group=NAS",
+          "homepage.name=VPN stack",
+          "homepage.icon=mdi-shield-lock-outline",
+          "homepage.description=Gluetun gateway + monitors"
         ]
       },
       "qbittorrent": {
