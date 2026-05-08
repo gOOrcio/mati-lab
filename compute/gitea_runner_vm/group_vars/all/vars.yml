@@ -14,6 +14,13 @@ vm_cores: 2
 vm_memory_mb: 3072    # no balloon — DinD hates memory squeeze mid-build
 vm_disk_size: "64G"
 vm_storage: "local-lvm"
+# CPU model passthrough (set 2026-05-08): the Proxmox default kvm64 model
+# masks SSE4.1/SSE4.2/SSSE3/POPCNT — features required by x86-64-v2-baseline
+# binaries that pip-installed pandas 2.x ships with. Numpy/pandas refused to
+# load on the runner pre-fix. `host` exposes the underlying Ryzen 7 3700X
+# directly (Zen 2 = x86-64-v3 capable). See docs/ci-runner-cpu-issue.md in
+# hermes-investor for the original incident.
+vm_cpu_type: "host"
 
 # Network (static)
 vm_ip: "192.168.1.49"

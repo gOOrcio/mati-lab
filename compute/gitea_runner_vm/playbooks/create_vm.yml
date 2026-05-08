@@ -32,6 +32,7 @@
         node: "{{ proxmox_node }}"
         vmid: "{{ vm_id }}"
         cores: "{{ vm_cores }}"
+        cpu: "{{ vm_cpu_type | default('host') }}"
         memory: "{{ vm_memory_mb }}"
         balloon: 0
         cipassword: "{{ vault_vm_root_password | default(omit) }}"
