@@ -149,23 +149,18 @@
 		}
 	}
 
-	@homarr host homarr.mati-lab.online
-	handle @homarr {
-		@homarr_health path /favicon.ico
-		handle @homarr_health {
-			reverse_proxy http://homarr:7575
+	@homepage host home.mati-lab.online
+	handle @homepage {
+		# Kuma probes Authelia's 401 as the up signal (no health-path bypass needed —
+		# the dashboard isn't worth a public-facing healthcheck).
+		forward_auth http://authelia:9091 {
+			uri /api/authz/forward-auth
+			copy_headers Remote-User Remote-Groups Remote-Name Remote-Email
 		}
-
-		handle {
-			forward_auth http://authelia:9091 {
-				uri /api/authz/forward-auth
-				copy_headers Remote-User Remote-Groups Remote-Name Remote-Email
-			}
-			reverse_proxy http://homarr:7575 {
-				header_up Host {host}
-				header_up X-Forwarded-Proto https
-				header_up X-Forwarded-Ssl on
-			}
+		reverse_proxy http://homepage:3000 {
+			header_up Host {host}
+			header_up X-Forwarded-Proto https
+			header_up X-Forwarded-Ssl on
 		}
 	}
 

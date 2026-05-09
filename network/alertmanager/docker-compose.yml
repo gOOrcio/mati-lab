@@ -22,3 +22,8 @@ services:
     labels:
       - "com.docker.compose.project=alertmanager"
       - "com.docker.compose.service=alertmanager"
+      - "homepage.group=Observability"
+      - "homepage.name=Alertmanager"
+      - "homepage.icon=alertmanager.png"
+      - "homepage.href=https://alertmanager.mati-lab.online"
+      - "homepage.description=Alert routing"

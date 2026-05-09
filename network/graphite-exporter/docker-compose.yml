@@ -24,3 +24,7 @@ services:
     labels:
       - "com.docker.compose.project=graphite-exporter"
       - "com.docker.compose.service=graphite-exporter"
+      - "homepage.group=Other"
+      - "homepage.name=Graphite exporter"
+      - "homepage.icon=mdi-graph-outline"
+      - "homepage.description=Graphite-to-Prometheus exporter"

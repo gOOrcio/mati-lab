@@ -17,6 +17,12 @@
         },
         "ports": [
           {"mode": "host", "protocol": "tcp", "published": 30020, "target": 8080}
+        ],
+        "labels": [
+          "homepage.group=NAS",
+          "homepage.name=qBittorrent MCP",
+          "homepage.icon=mdi-magnet",
+          "homepage.description=MCP server for qBittorrent ops"
         ]
       }
     }

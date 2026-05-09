@@ -21,6 +21,13 @@
         "env_file": ["/mnt/fast/databases/hermes/.env"],
         "volumes": [
           {"type": "bind", "source": "/mnt/.ix-apps/app_mounts/hermes/data", "target": "/opt/data"}
+        ],
+        "labels": [
+          "homepage.group=NAS",
+          "homepage.name=Hermes",
+          "homepage.icon=mdi-robot",
+          "homepage.href=https://hermes.mati-lab.online",
+          "homepage.description=Investor agent gateway"
         ]
       },
       "hermes-dashboard": {

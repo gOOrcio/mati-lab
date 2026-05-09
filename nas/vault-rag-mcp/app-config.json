@@ -20,6 +20,12 @@
         },
         "ports": [
           {"mode": "host", "protocol": "tcp", "published": 30019, "target": 8080}
+        ],
+        "labels": [
+          "homepage.group=NAS",
+          "homepage.name=Vault RAG MCP",
+          "homepage.icon=mdi-database-search",
+          "homepage.description=Read-only MCP server over Obsidian RAG"
         ]
       }
     }

@@ -27,3 +27,7 @@ services:
     labels:
       - "com.docker.compose.project=caddy"
       - "com.docker.compose.service=caddy"
+      - "homepage.group=Network"
+      - "homepage.name=Caddy"
+      - "homepage.icon=caddy.png"
+      - "homepage.description=Reverse proxy + TLS"

@@ -1,0 +1,40 @@
+# Header strip: Pi resources, search, datetime.
+
+- resources:
+    label: Pi
+    cpu: true
+    memory: true
+    cputemp: true
+    uptime: true
+
+- search:
+    provider: duckduckgo
+    target: _blank
+
+- datetime:
+    text_size: xl
+    format:
+      timeStyle: short
+      dateStyle: short
+
+# Service-integration widgets — credentials sourced from network/.env on the Pi
+# via HOMEPAGE_VAR_* env vars. Tokens are minted in the afternoon deploy pass;
+# until then these widgets render with auth errors but the rest of the
+# dashboard is unaffected.
+
+- proxmox:
+    url: https://192.168.1.184:8006
+    username: '{{HOMEPAGE_VAR_PROXMOX_TOKEN_ID}}'
+    password: '{{HOMEPAGE_VAR_PROXMOX_TOKEN_SECRET}}'
+    # Set `node:` to the actual PVE node name during deploy
+    # (find with `pvesh get /nodes --output-format json | jq -r '.[0].node'`).
+    node: pve
+
+- homebridge:
+    url: http://192.168.1.155:8581
+    username: '{{HOMEPAGE_VAR_HOMEBRIDGE_USERNAME}}'
+    password: '{{HOMEPAGE_VAR_HOMEBRIDGE_PASSWORD}}'
+
+- uptimekuma:
+    url: http://uptime-kuma:3001
+    slug: mati-lab

@@ -18,6 +18,13 @@
         ],
         "ports": [
           {"mode": "host", "protocol": "tcp", "published": 30028, "target": 6767}
+        ],
+        "labels": [
+          "homepage.group=NAS",
+          "homepage.name=Bazarr",
+          "homepage.icon=bazarr.png",
+          "homepage.href=https://bazarr.mati-lab.online",
+          "homepage.description=Subtitle automation"
         ]
       }
     }

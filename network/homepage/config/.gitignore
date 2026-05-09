@@ -1,0 +1,7 @@
+# Runtime files Homepage writes into its config dir.
+# These get wiped by `git clean -fd` during `sync_from_gitea` if untracked,
+# which churns the dashboard on every deploy.
+custom.js
+custom.css
+*.local.yaml
+logs/

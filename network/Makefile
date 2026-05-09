@@ -5,7 +5,7 @@
 
 # Service definitions — ordered for dependency-safe deploys
 # pihole (DNS) → registry-mirror (Docker registry) → caddy (TLS reverse proxy) → rest
-SERVICES := pihole registry-mirror caddy authelia cloudflared uptime-kuma homarr prometheus grafana ntfy diun loki network-pi-metrics pve-exporter promtail grafana-ntfy-bridge graphite-exporter alertmanager
+SERVICES := pihole registry-mirror caddy authelia cloudflared uptime-kuma homepage prometheus grafana ntfy diun loki network-pi-metrics pve-exporter promtail grafana-ntfy-bridge graphite-exporter alertmanager
 OPERATIONS := deploy update restart status logs stop start push save
 BRANCH ?= main
 
@@ -23,7 +23,7 @@ help:
 	@echo "  stop      - Stop all services"
 	@echo "  start     - Start all services"
 	@echo "  push      - Push all service changes to Gitea"
-	@echo "  save      - Save configs (Uptime Kuma, Grafana, homarr) and push to Gitea"
+	@echo "  save      - Save configs (Uptime Kuma, Grafana) and push to Gitea"
 	@echo "  clean     - Clean up old files"
 	@echo "  setup     - Setup scripts permissions"
 	@echo "  env       - Create .env from template"

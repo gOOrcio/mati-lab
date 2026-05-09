@@ -22,6 +22,11 @@ services:
       REGISTRY_STORAGE_CACHE_BLOBDESCRIPTOR: inmemory
     volumes:
       - registry-mirror-data:/var/lib/registry
+    labels:
+      - "homepage.group=Other"
+      - "homepage.name=Registry mirror"
+      - "homepage.icon=mdi-package-variant-closed"
+      - "homepage.description=Local Docker Hub mirror cache"
 
 volumes:
   registry-mirror-data: {}

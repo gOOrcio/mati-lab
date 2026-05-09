@@ -20,3 +20,11 @@ services:
     labels:
       - "com.docker.compose.project=uptime-kuma"
       - "com.docker.compose.service=uptime-kuma"
+      - "homepage.group=Observability"
+      - "homepage.name=Uptime-Kuma"
+      - "homepage.icon=uptime-kuma.png"
+      - "homepage.href=https://kuma.mati-lab.online"
+      - "homepage.description=Active probe + alerting"
+      - "homepage.widget.type=uptimekuma"
+      - "homepage.widget.url=http://uptime-kuma:3001"
+      - "homepage.widget.slug=mati-lab"

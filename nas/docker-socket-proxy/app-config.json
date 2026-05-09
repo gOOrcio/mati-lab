@@ -1,0 +1,47 @@
+{
+  "app_name": "docker-socket-proxy",
+  "custom_app": true,
+  "values": {"ix_context": {}},
+  "custom_compose_config": {
+    "services": {
+      "proxy": {
+        "image": "tecnativa/docker-socket-proxy:latest",
+        "container_name": "docker-socket-proxy",
+        "restart": "unless-stopped",
+        "user": "0:999",
+        "read_only": true,
+        "tmpfs": ["/run", "/tmp"],
+        "environment": {
+          "CONTAINERS": "1",
+          "IMAGES": "1",
+          "INFO": "1",
+          "NETWORKS": "1",
+          "VERSION": "1",
+          "POST": "0",
+          "EXEC": "0",
+          "VOLUMES": "0",
+          "BUILD": "0",
+          "COMMIT": "0",
+          "IMAGES_DELETE": "0",
+          "SWARM": "0",
+          "SECRETS": "0",
+          "SERVICES": "0",
+          "TASKS": "0",
+          "PLUGINS": "0",
+          "NODES": "0",
+          "SESSION": "0",
+          "DISTRIBUTION": "0",
+          "SYSTEM": "0",
+          "AUTH": "0",
+          "CONFIGS": "0"
+        },
+        "volumes": [
+          {"type": "bind", "source": "/var/run/docker.sock", "target": "/var/run/docker.sock", "read_only": true}
+        ],
+        "ports": [
+          {"target": 2375, "published": 2375, "host_ip": "192.168.1.65", "protocol": "tcp"}
+        ]
+      }
+    }
+  }
+}

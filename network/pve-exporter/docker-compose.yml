@@ -19,3 +19,7 @@ services:
     labels:
       - "com.docker.compose.project=pve-exporter"
       - "com.docker.compose.service=pve-exporter"
+      - "homepage.group=Observability"
+      - "homepage.name=PVE exporter"
+      - "homepage.icon=proxmox.png"
+      - "homepage.description=Proxmox metrics for Prometheus"

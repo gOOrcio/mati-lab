@@ -17,6 +17,13 @@ services:
     labels:
       - "com.docker.compose.project=prometheus"
       - "com.docker.compose.service=prometheus"
+      - "homepage.group=Observability"
+      - "homepage.name=Prometheus"
+      - "homepage.icon=prometheus.png"
+      - "homepage.href=https://prometheus.mati-lab.online"
+      - "homepage.description=Time-series DB + scrape jobs"
+      - "homepage.widget.type=prometheus"
+      - "homepage.widget.url=http://prometheus:9090"
 
 volumes:
   prometheus-data: {}
