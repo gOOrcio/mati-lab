@@ -4,6 +4,15 @@
 
 server:
   address: 'tcp://:9091'
+  # Pi-hole v6's query log embeds the entire DataTables state (filters,
+  # paging, ordering) into the request path. Behind forward_auth that
+  # path travels in the headers Authelia inspects, and the default
+  # 4096-byte read buffer trips a 431 on the query-log XHRs. Doubling
+  # both buffers (Authelia recommends keeping read/write equal) clears
+  # it. https://www.reddit.com/r/pihole/comments/1ivb2b9/
+  buffers:
+    read: 8192
+    write: 8192
 
 log:
   level: info
