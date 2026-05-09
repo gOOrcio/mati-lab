@@ -25,8 +25,10 @@ vm_cidr: 24
 vm_ssh_user: "gitea-runner"
 vm_ssh_key_path: "~/.ssh/id_ed25519.pub"
 
-# act_runner
-act_runner_version: "0.2.13"   # pin; bump intentionally
+# gitea-runner (formerly act_runner — image moved gitea/act_runner → gitea/runner
+# at the 0.5/0.6 line; binary, metrics, and S3 release paths renamed too. Config
+# YAML, env vars, and labels are unchanged, so the migration is a tag swap.)
+gitea_runner_version: "0.6.1"   # pin; bump intentionally
 gitea_instance_url: "https://gitea.mati-lab.online"
 
 # Pull-through Docker Hub cache served from the Pi (network/registry-mirror/).

@@ -1,5 +1,5 @@
 ---
-- name: Deploy act_runner on gitea-runner VM
+- name: Deploy gitea-runner (act_runner) on gitea-runner VM
   hosts: gitea_runner
   become: true
   vars_files:
@@ -61,9 +61,9 @@
         mode: "0644"
       notify: reload systemd
 
-    - name: Pull act_runner image
+    - name: Pull gitea-runner image
       ansible.builtin.command:
-        cmd: "docker pull gitea/act_runner:{{ act_runner_version }}-dind-rootless"
+        cmd: "docker pull gitea/runner:{{ gitea_runner_version }}-dind-rootless"
       changed_when: true
 
   handlers:

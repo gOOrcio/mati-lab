@@ -1,6 +1,6 @@
 services:
   runner:
-    image: gitea/act_runner:{{ act_runner_version }}-dind-rootless
+    image: gitea/runner:{{ gitea_runner_version }}-dind-rootless
     restart: unless-stopped
     privileged: true
     environment:
