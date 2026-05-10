@@ -11,15 +11,41 @@ Could not find the file /var/run/act/ in container <hash>
 
 **Notable:** the same code on the `pull_request` trigger passes. Only `push` triggers exhibit the race so far.
 
-## Action taken (2026-05-09 — pending verification)
+## Actions taken
 
-Bumped image `gitea/act_runner:0.2.13-dind-rootless` → `gitea/runner:0.6.1-dind-rootless`.
+### 2026-05-09 — image bump (did NOT fix it)
+
+Bumped `gitea/act_runner:0.2.13-dind-rootless` → `gitea/runner:0.6.1-dind-rootless`.
 The `act_runner` repo on Docker Hub is deprecated; upstream renamed to `gitea/runner`
-at the 0.5/0.6 line. YAML config + env vars + labels unchanged, so this is a tag swap.
-Newer `nektos/act` bundled with 0.6.x is expected to fix the cleanup race.
+at the 0.5/0.6 line. YAML config + env vars + labels unchanged, so this was a tag swap.
+**Race recurred** on hermes-investor build 2026-05-10 10:00 UTC.
 
-Re-deploy: `cd compute/gitea_runner_vm && make deploy` then watch the next `push`
-build on `hermes-investor`. If it still races, the next steps are below.
+### 2026-05-10 — rootless → rootful DinD (root cause)
+
+Smoking gun in the runner logs:
+
+```
+WARNING: Running in rootless-mode without cgroups. Systemd is required
+         to enable cgroups in rootless-mode.
+```
+
+The inner dockerd was silently degrading to a no-cgroups mode because rootless
+dockerd needs systemd-delegated cgroupv2 to enable them, and our runner container
+isn't a systemd PID-1 environment. With no cgroups, dockerd can't subscribe to
+container lifecycle events (`failed to add inotify watch for memory.events: no
+such file or directory`), so the cleanup path races itself (`removal of container
+... is already in progress`) and act's docker-cp during Post-actions hits a
+container that's already been reaped (`Could not find the file /var/run/act/`).
+
+Fix: switch image variant `gitea/runner:0.6.1-dind-rootless` → `gitea/runner:0.6.1-dind`
+and bind-mount daemon.json at `/etc/docker/daemon.json` instead of
+`/home/rootless/.config/docker/daemon.json`. The runner container is already
+`privileged: true` and lives on its own dedicated VM, so the rootless security
+delta was minimal anyway.
+
+Re-deploy: `cd compute/gitea_runner_vm && make deploy` then watch the next
+`push` build on `hermes-investor`. The cgroup warning should be gone from the
+runner logs.
 
 ## Where the runner actually lives
 

@@ -1,6 +1,6 @@
 services:
   runner:
-    image: gitea/runner:{{ gitea_runner_version }}-dind-rootless
+    image: gitea/runner:{{ gitea_runner_version }}-dind
     restart: unless-stopped
     privileged: true
     environment:
@@ -11,11 +11,15 @@ services:
       - /var/lib/gitea-runner/data:/data
       - /var/lib/gitea-runner/config.yaml:/config/config.yaml:ro
       - /var/lib/gitea-runner/secrets/runner-token:/secrets/runner-token:ro
-      # Wire the inner DinD's rootless dockerd to the Pi pull-through cache
+      # Wire the inner DinD to the Pi pull-through cache
       # (`network/registry-mirror/`). Without this, every build re-pulls the
-      # 1.79GB Hermes base from Docker Hub over WAN. Rootless dockerd reads
-      # ~/.config/docker/daemon.json by default.
-      - /var/lib/gitea-runner/daemon.json:/home/rootless/.config/docker/daemon.json:ro
+      # 1.79GB Hermes base from Docker Hub over WAN.
+      #
+      # Rootful variant: the inner dockerd is the upstream dind one and reads
+      # /etc/docker/daemon.json. Rootful is required here — rootless silently
+      # disables cgroups inside a non-systemd container, which produced the
+      # cleanup-race documented in KNOWN_FLAKE_act_runner_cleanup_race.md.
+      - /var/lib/gitea-runner/daemon.json:/etc/docker/daemon.json:ro
     deploy:
       resources:
         limits:

@@ -6,9 +6,11 @@
     - ../group_vars/all/vars.yml
 
   tasks:
-    # Container runs DinD-rootless as uid 1000. /data and /secrets are bind-mounted
-    # without user-namespace remapping, so dirs must be owned by 1000:1000 on the
-    # host or the runner can't read its registration token or persist its identity.
+    # Container runs DinD as root (rootful). /data and /secrets are bind-mounted
+    # without user-namespace remapping, so root inside == root on host. The
+    # rootless variant was abandoned because nested rootless dockerd silently
+    # disables cgroups in a non-systemd container, producing the cleanup race
+    # documented in KNOWN_FLAKE_act_runner_cleanup_race.md.
     - name: Create runner state root
       ansible.builtin.file:
         path: /var/lib/gitea-runner
@@ -17,16 +19,27 @@
         group: root
         mode: "0755"
 
-    - name: Create runner state dirs (uid 1000 for rootless container)
+    - name: Create runner state dirs
       ansible.builtin.file:
         path: "{{ item }}"
         state: directory
-        owner: "1000"
-        group: "1000"
+        owner: root
+        group: root
         mode: "0700"
       loop:
         - /var/lib/gitea-runner/data
         - /var/lib/gitea-runner/secrets
+
+    # When migrating from the rootless variant, /var/lib/gitea-runner/data is
+    # owned by uid 1000 (the in-container `rootless` user). Reclaim it so the
+    # rootful daemon writes its state cleanly. Idempotent on subsequent runs.
+    - name: Reclaim runner state from previous rootless deploys
+      ansible.builtin.file:
+        path: /var/lib/gitea-runner/data
+        state: directory
+        owner: root
+        group: root
+        recurse: true
 
     - name: Render compose.yml
       ansible.builtin.template:
@@ -42,15 +55,15 @@
         mode: "0644"
       notify: restart gitea-runner
 
-    # Bind-mounted at /home/rootless/.config/docker/daemon.json inside the
-    # runner container. Rootless dockerd reads it on startup; ownership must
-    # match the container's `rootless` user (uid 1000).
-    - name: Render rootless dockerd daemon.json (registry-mirror config)
+    # Bind-mounted at /etc/docker/daemon.json inside the runner container.
+    # Rootful dockerd reads it on startup; root in the container reads any
+    # ownership on the host since the mount is read-only.
+    - name: Render dockerd daemon.json (registry-mirror config)
       ansible.builtin.template:
         src: ../templates/daemon.json.j2
         dest: /var/lib/gitea-runner/daemon.json
-        owner: "1000"
-        group: "1000"
+        owner: root
+        group: root
         mode: "0644"
       notify: restart gitea-runner
 
@@ -63,7 +76,7 @@
 
     - name: Pull gitea-runner image
       ansible.builtin.command:
-        cmd: "docker pull gitea/runner:{{ gitea_runner_version }}-dind-rootless"
+        cmd: "docker pull gitea/runner:{{ gitea_runner_version }}-dind"
       changed_when: true
 
   handlers:
