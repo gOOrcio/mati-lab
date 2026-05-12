@@ -56,14 +56,16 @@
 
 	@mortgage host mortgage.mati-lab.online
 	handle @mortgage {
-		# Personal mortgage snowball tool — image lives in private Gitea
-		# registry, container deployed alongside Caddy on pihole-net.
-		# Contains loan-state PII (principal, anchor) → Authelia 2FA.
-		# Kuma probes /healthz which returns "ok" plaintext; bypass auth
-		# on that path so the probe doesn't hit the 302 login redirect.
+		# Personal mortgage snowball tool — TrueNAS Custom App at
+		# 192.168.1.65:30030 (see mati-lab/nas/mortgage/). Image lives in
+		# the private Gitea registry, published by the mortgage-calc
+		# repo's release workflow. Holds loan-state PII (principal,
+		# anchor) → Authelia 2FA. Kuma probes /healthz which returns "ok"
+		# plaintext; bypass auth on that path so the probe doesn't hit
+		# the 302 login redirect.
 		@mortgage_health path /healthz
 		handle @mortgage_health {
-			reverse_proxy http://mortgage:8000
+			reverse_proxy http://192.168.1.65:30030
 		}
 
 		handle {
@@ -71,7 +73,7 @@
 				uri /api/authz/forward-auth
 				copy_headers Remote-User Remote-Groups Remote-Name Remote-Email
 			}
-			reverse_proxy http://mortgage:8000 {
+			reverse_proxy http://192.168.1.65:30030 {
 				header_up Host {host}
 				header_up X-Forwarded-Proto https
 				header_up X-Forwarded-Ssl on

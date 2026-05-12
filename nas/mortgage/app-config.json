@@ -1,0 +1,31 @@
+{
+  "app_name": "mortgage",
+  "custom_app": true,
+  "values": {"ix_context": {}},
+  "custom_compose_config": {
+    "services": {
+      "mortgage": {
+        "image": "gitea.mati-lab.online/gooral/mortgage-calc:latest",
+        "restart": "unless-stopped",
+        "user": "568:568",
+        "environment": {
+          "TZ": "Europe/Warsaw",
+          "MORTGAGE_DATA_DIR": "/data"
+        },
+        "volumes": [
+          {"type": "bind", "source": "/mnt/fast/databases/mortgage/data", "target": "/data"}
+        ],
+        "ports": [
+          {"mode": "host", "protocol": "tcp", "published": 30030, "target": 8000}
+        ],
+        "labels": [
+          "homepage.group=NAS",
+          "homepage.name=Mortgage",
+          "homepage.icon=mdi-calculator",
+          "homepage.href=https://mortgage.mati-lab.online",
+          "homepage.description=Snowball prepayment calculator"
+        ]
+      }
+    }
+  }
+}
