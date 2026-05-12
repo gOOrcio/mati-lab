@@ -43,8 +43,7 @@
           "HERMES_HOME": "/opt/data",
           "HERMES_INVESTOR_DISCOVERY_UNIVERSE_PATH": "/opt/hermes-investor/data-template/discovery_universe.json",
           "HERMES_INVESTOR_DISCOVERY_SNAPSHOT_PATH": "/opt/data/hermes-investor/candidates.snapshot.json",
-          "TELEGRAM_BOT_TOKEN": "",
-          "HERMES_DASHBOARD_CHAT_TRUST_ALL_HOSTS": "1"
+          "TELEGRAM_BOT_TOKEN": ""
         },
         "env_file": ["/mnt/fast/databases/hermes/.env"],
         "volumes": [
