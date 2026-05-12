@@ -83,3 +83,49 @@
       loop:
         - docker
         - qemu-binfmt
+
+    # ─ act_runner reusable-workflow cache prune ────────────────────────────
+    # act_runner caches reusable-workflow checkouts at
+    # /root/.cache/act/<owner>-<repo>@<ref> inside the DinD container, keyed
+    # by ref. When upstream (e.g. gooral/ci-workflows@main) moves, the runner
+    # keeps using the cached clone until the entry is gone — caused a real
+    # outage on 2026-05-12 where mati-lab CI kept running an old shell-quality
+    # workflow for ~30 min after the fix had merged. SHA-keyed entries
+    # (actions like actions/checkout@<sha>) are immutable and stay cached.
+    - name: Install act_runner cache-prune oneshot service
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/act-workflow-cache-prune.service
+        mode: "0644"
+        content: |
+          [Unit]
+          Description=Prune act_runner ref-keyed workflow cache to force @<ref> re-fetch
+
+          [Service]
+          Type=oneshot
+          # `*@*` matches ref-keyed entries (gooral-ci-workflows@main); SHA-keyed
+          # action checkouts have no `@` in their dirname and are left alone.
+          ExecStart=/usr/bin/docker exec gitea-runner-runner-1 sh -c 'find /root/.cache/act -mindepth 1 -maxdepth 1 -type d -name "*@*" -exec rm -rf {} +'
+
+    - name: Install act_runner cache-prune timer (every 30 min)
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/act-workflow-cache-prune.timer
+        mode: "0644"
+        content: |
+          [Unit]
+          Description=Prune act_runner ref-keyed workflow cache every 30 min
+
+          [Timer]
+          OnBootSec=2min
+          OnUnitActiveSec=30min
+          Unit=act-workflow-cache-prune.service
+          AccuracySec=10s
+
+          [Install]
+          WantedBy=timers.target
+
+    - name: Enable act_runner cache-prune timer
+      ansible.builtin.systemd:
+        name: act-workflow-cache-prune.timer
+        enabled: true
+        state: started
+        daemon_reload: true
