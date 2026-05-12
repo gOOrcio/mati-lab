@@ -16,7 +16,7 @@
           {"type": "bind", "source": "/mnt/fast/databases/mortgage/data", "target": "/data"}
         ],
         "ports": [
-          {"mode": "host", "protocol": "tcp", "published": 30030, "target": 8000}
+          {"mode": "host", "protocol": "tcp", "published": 30031, "target": 8000}
         ],
         "labels": [
           "homepage.group=NAS",

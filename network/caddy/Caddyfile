@@ -65,7 +65,7 @@
 		# the 302 login redirect.
 		@mortgage_health path /healthz
 		handle @mortgage_health {
-			reverse_proxy http://192.168.1.65:30030
+			reverse_proxy http://192.168.1.65:30031
 		}
 
 		handle {
@@ -73,7 +73,7 @@
 				uri /api/authz/forward-auth
 				copy_headers Remote-User Remote-Groups Remote-Name Remote-Email
 			}
-			reverse_proxy http://192.168.1.65:30030 {
+			reverse_proxy http://192.168.1.65:30031 {
 				header_up Host {host}
 				header_up X-Forwarded-Proto https
 				header_up X-Forwarded-Ssl on

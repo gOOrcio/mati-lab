@@ -10,7 +10,7 @@ plus an estimated prorated-interest charge for the prepayment day.
 
 ## Endpoints
 
-- **Direct (LAN):** `http://192.168.1.65:30030`
+- **Direct (LAN):** `http://192.168.1.65:30031`
 - **Through Caddy:** `https://mortgage.mati-lab.online` (Authelia 2FA)
 - **No external exposure** (LAN + Tailscale/WireGuard only).
 
@@ -28,7 +28,7 @@ homelab.
   - Architecture: linux/amd64 only.
 - Container UID/GID: `568:568` (matches the TrueNAS apps user; required
   for write access to the bind-mounted `/data` directory).
-- Internal port: 8000 → NodePort 30030.
+- Internal port: 8000 → NodePort 30031 (30030 was taken by flaresolverr).
 - Resource limits: TrueNAS Custom App default (1 CPU / 512 MB) — generous;
   the app idles near zero, peaks under 200 MB while running a projection.
 
@@ -89,7 +89,7 @@ tar czf "$STAGE/mortgage.tar.gz" -C /mnt/fast/databases/mortgage data
 
 ## Monitoring
 
-- Uptime Kuma: HTTP-Keyword on `http://192.168.1.65:30030/healthz`,
+- Uptime Kuma: HTTP-Keyword on `http://192.168.1.65:30031/healthz`,
   keyword `ok`. The endpoint returns `ok` plaintext with 200 — the
   Caddyfile bypasses Authelia for that path so the probe doesn't hit
   the 2FA wall.
