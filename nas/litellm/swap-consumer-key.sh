@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC2029  # client-side variable expansion is intentional in ssh "..." calls.
 # Phase 7 Tasks 7-8 — swap an existing consumer's LITELLM_API_KEY in its
 # .env on the NAS for the freshly-issued virtual key.
 #

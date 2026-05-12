@@ -42,9 +42,9 @@
       ansible.builtin.apt:
         name: "{{ nvidia_driver_package }}"
         state: present
-      # Driver installation triggers a kernel module build — reboot required after this task
-      # if running for the first time. The play continues; reboot manually if nvidia-smi fails.
 
+    # Driver installation triggers a kernel module build — reboot required after this task
+    # if running for the first time. The play continues; reboot manually if nvidia-smi fails.
     - name: Configure UFW — allow SSH from LAN
       community.general.ufw:
         rule: allow

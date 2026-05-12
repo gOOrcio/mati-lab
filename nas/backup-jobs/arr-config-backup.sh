@@ -53,8 +53,8 @@ backup_arr() {
     -H "X-Api-Key: $key" -H 'Content-Type: application/json' \
     -d '{"name":"Backup"}' | python3 -c 'import json,sys;print(json.load(sys.stdin)["id"])')
 
-  local i status=""
-  for i in $(seq 1 60); do
+  local status=""
+  for _ in $(seq 1 60); do
     status=$(curl -fsS "$base/command/$cmd_id" -H "X-Api-Key: $key" \
       | python3 -c 'import json,sys;print(json.load(sys.stdin)["status"])')
     [ "$status" = "completed" ] && break
@@ -86,8 +86,8 @@ backup_bazarr() {
   curl -fsS -X POST "http://192.168.1.65:30028/api/system/backups" \
     -H "X-Api-Key: $key" >/dev/null
 
-  local i after new=""
-  for i in $(seq 1 30); do
+  local after new=""
+  for _ in $(seq 1 30); do
     after=$(ls -1 "$backups_dir" 2>/dev/null | sort) || true
     new=$(comm -13 <(printf '%s\n' "$before") <(printf '%s\n' "$after"))
     [ -n "$new" ] && break
@@ -116,6 +116,7 @@ tar -C /mnt/fast/databases -czf "$WORK/jellyseerr-config.tar.gz" \
     echo "  (jellyseerr/config not yet present — skipped)"
 
 OUT="$DEST/arr-$DATE.tar.gz.gpg"
+# shellcheck disable=SC2046  # $WORK contents are our own short filenames; word-split is fine.
 tar -C "$WORK" -czf - $(ls "$WORK") \
   | gpg --batch --yes --symmetric --cipher-algo AES256 \
         --passphrase-file "$PASSF" --output "$OUT"

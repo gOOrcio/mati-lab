@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC2029  # client-side variable expansion is intentional in ssh "..." calls.
 # Phase 8 Task 7 — stage Kuma push-monitor URLs for the backup crons.
 #
 # Run once on the dev box. Each URL gets read silently and piped to
