@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC2029  # client-side variable expansion is intentional in ssh "..." calls.
 set -Eeuo pipefail
 
 # ---- CONFIG ----
@@ -141,9 +142,16 @@ fi
 echo "[INFO] Done: $img"
 ls -lh "$img" "$meta"
 
-# Rotation
+# Rotation — keep last N by mtime. find -printf+sort handles non-alnum safely.
 echo "[INFO] Rotating to keep last $KEEP_LAST..."
-ls -1t "$OUTDIR"/pi-*.img.zst 2>/dev/null | tail -n +$((KEEP_LAST+1)) | xargs -r rm -f
-ls -1t "$OUTDIR"/pi-*.meta.txt 2>/dev/null | tail -n +$((KEEP_LAST+1)) | xargs -r rm -f
+rotate_keep_last() {
+  local pattern="$1"
+  find "$OUTDIR" -maxdepth 1 -name "$pattern" -printf '%T@ %p\0' 2>/dev/null \
+    | sort -rzn \
+    | awk -v RS='\0' -v keep="$KEEP_LAST" 'NR>keep{print $2}' \
+    | xargs -r rm -f
+}
+rotate_keep_last 'pi-*.img.zst'
+rotate_keep_last 'pi-*.meta.txt'
 
 echo "[OK] Backup complete."

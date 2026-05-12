@@ -3,6 +3,7 @@ FROM python:3.12-slim
 # Hermes (and any other MCP client) talks to this server over streamable-http.
 # Stdio is the dev/local transport; this image is for the streamable-http path.
 
+# hadolint ignore=DL3008  # curl + ca-certificates only; pinning these breaks on Debian point releases.
 RUN useradd -u 568 -m -s /bin/bash mcp && \
     apt-get update && \
     apt-get install -y --no-install-recommends curl ca-certificates && \
