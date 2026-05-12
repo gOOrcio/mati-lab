@@ -1,13 +1,17 @@
-.PHONY: help install create-vm configure deploy site smoke
+.PHONY: help install create-vm configure deploy site smoke flush-cache
 
 help:
 	@echo "Targets:"
-	@echo "  install     - install Ansible collections"
-	@echo "  create-vm   - provision the VM via Proxmox API"
-	@echo "  configure   - install OS deps + docker + qemu binfmt"
-	@echo "  deploy      - deploy act_runner container"
-	@echo "  site        - run all of the above"
-	@echo "  smoke       - run a hello-world workflow against Gitea"
+	@echo "  install      - install Ansible collections"
+	@echo "  create-vm    - provision the VM via Proxmox API"
+	@echo "  configure    - install OS deps + docker + qemu binfmt"
+	@echo "  deploy       - deploy act_runner container"
+	@echo "  site         - run all of the above"
+	@echo "  smoke        - run a hello-world workflow against Gitea"
+	@echo "  flush-cache  - force-prune the act_runner reusable-workflow cache"
+	@echo "                 (use after a gooral/ci-workflows push when you want"
+	@echo "                  downstream CI to pick up the new ref NOW; otherwise"
+	@echo "                  the 1h systemd timer covers it)"
 
 install:
 	ansible-galaxy collection install -r requirements.yml
@@ -26,3 +30,7 @@ site:
 
 smoke:
 	@echo "Push the test workflow in compute/gitea_runner_vm/smoke-test/ to a Gitea repo and watch Actions."
+
+flush-cache:
+	@ssh gitea-runner@192.168.1.49 'sudo systemctl start act-workflow-cache-prune.service'
+	@echo "flushed; next CI run will re-fetch ref-keyed reusable workflows"
