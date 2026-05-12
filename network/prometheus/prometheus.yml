@@ -44,10 +44,10 @@ scrape_configs:
     static_configs:
       - targets: ['caddy:2019']
 
-  - job_name: sentinel-trader
-    scrape_interval: 30s
-    static_configs:
-      - targets: ['192.168.1.202:9090']   # sentinel-trader VM on LAN
+  # sentinel-trader scrape removed 2026-05-12: VM at 192.168.1.202 is not
+  # currently provisioned (host unreachable). Provisioning ansible still
+  # lives at compute/sentinel_trader_vm/ — re-add this job_name when the
+  # VM comes back. Removing avoids spurious "instance down" alerts.
 
   - job_name: proxmox
     scrape_interval: 30s
