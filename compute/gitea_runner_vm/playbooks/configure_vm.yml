@@ -106,17 +106,17 @@
           # action checkouts have no `@` in their dirname and are left alone.
           ExecStart=/usr/bin/docker exec gitea-runner-runner-1 sh -c 'find /root/.cache/act -mindepth 1 -maxdepth 1 -type d -name "*@*" -exec rm -rf {} +'
 
-    - name: Install act_runner cache-prune timer (every 5 min)
+    - name: Install act_runner cache-prune timer (every 30 min)
       ansible.builtin.copy:
         dest: /etc/systemd/system/act-workflow-cache-prune.timer
         mode: "0644"
         content: |
           [Unit]
-          Description=Prune act_runner ref-keyed workflow cache every 5 min
+          Description=Prune act_runner ref-keyed workflow cache every 30 min
 
           [Timer]
           OnBootSec=2min
-          OnUnitActiveSec=5min
+          OnUnitActiveSec=30min
           Unit=act-workflow-cache-prune.service
           AccuracySec=10s
 
