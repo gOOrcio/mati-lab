@@ -1,0 +1,8 @@
+[Login]
+# Ignore short KEY_POWER events from the Pi 5 PMIC. Brownouts and other
+# supply transients inject KEY_POWER into the input subsystem; the default
+# `poweroff` handler then shuts down a headless network host that nobody
+# is there to power-cycle. See network/ansible/notes.md "Power resilience"
+# for the May 2026 postmortem.
+HandlePowerKey={{ logind_handle_power_key }}
+HandlePowerKeyLongPress={{ logind_handle_power_key_long_press }}

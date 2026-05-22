@@ -1,4 +1,4 @@
-.PHONY: configure deploy security docker check backup backup-check
+.PHONY: configure deploy security docker power check backup backup-check
 
 # Full setup: security + docker + all config
 configure:
@@ -11,6 +11,10 @@ security:
 # Docker only: install, daemon.json, registry mirror
 docker:
 	ansible-playbook playbooks/configure.yml --tags docker
+
+# Power resilience: rpi-eeprom config + systemd watchdog
+power:
+	ansible-playbook playbooks/configure.yml --tags power
 
 # Dry run: show what would change
 check:

@@ -12,6 +12,30 @@ pi_gateway: "192.168.1.1"
 pi_nameservers: ["192.168.1.252", "1.1.1.3"]
 pi_dns_search: "mati-lab.online"
 
+# Power & boot resilience (Pi 4/5 EEPROM + kernel watchdog)
+# POWER_OFF_ON_HALT=0 makes sure `shutdown -h` doesn't trap the Pi in a
+# low-power state that ignores AC-restore — the Pi will boot whenever power
+# is applied. BOOT_ORDER 0xf416 = NVMe → USB-MSD → SD → restart, so a flaky
+# NVMe falls back instead of stalling the bootloader. PSU_MAX_CURRENT=5000
+# silences the under-voltage check on the 27W USB-C PD supply (Pi 5).
+rpi_power_off_on_halt: 0
+rpi_boot_order: "0xf416"
+rpi_psu_max_current: 5000
+
+# systemd hardware watchdog (bcm2835_wdt). If userspace hangs (e.g. NVMe
+# I/O stall) systemd stops pinging /dev/watchdog and the SoC self-reboots
+# after RuntimeWatchdogSec. RebootWatchdogSec catches a wedged shutdown
+# (e.g. fsck waiting on input) and forces a reboot instead of staying down.
+systemd_runtime_watchdog_sec: "30s"
+systemd_reboot_watchdog_sec: "2min"
+
+# Ignore short KEY_POWER events from the Pi 5 PMIC. Spurious power-key
+# events from brownouts caused 2026-05-22 outage (see notes.md). A long
+# press (handled in PMIC hardware) still cuts power, so this only
+# disables the *software* honoring of the short-press event.
+logind_handle_power_key: ignore
+logind_handle_power_key_long_press: poweroff
+
 # Docker
 docker_registry_mirror: "http://192.168.1.252:5000"
 docker_log_max_size: "10m"

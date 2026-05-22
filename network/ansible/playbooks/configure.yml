@@ -38,6 +38,85 @@
         state: present
       tags: [base]
 
+    # ── Power & boot resilience ───────────────────────────────────────────
+    # Drives the Pi 4/5 bootloader behaviour after a power blip and adds a
+    # kernel watchdog so a wedged boot self-recovers instead of staying down.
+    # Pi has no Wake-on-LAN (ethernet PHY doesn't support magic packets), so
+    # this is the only software-side answer to "Pi didn't come back after the
+    # power outage" — a smart plug remains the fallback. See `notes.md` in
+    # this repo for the Pi-5-specific operations.
+    - name: Check whether rpi-eeprom-config is available
+      ansible.builtin.command: which rpi-eeprom-config
+      register: rpi_eeprom_bin
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      tags: [base, power]
+
+    - name: Ensure rpi-eeprom config directory exists
+      ansible.builtin.file:
+        path: /etc/rpi-eeprom
+        state: directory
+        mode: "0755"
+        owner: root
+        group: root
+      when: rpi_eeprom_bin.rc == 0
+      tags: [base, power]
+
+    - name: Stage rpi-eeprom config
+      ansible.builtin.template:
+        src: ../templates/rpi-eeprom.conf.j2
+        dest: /etc/rpi-eeprom/boot.conf
+        mode: "0644"
+        owner: root
+        group: root
+      when: rpi_eeprom_bin.rc == 0
+      register: rpi_eeprom_config
+      tags: [base, power]
+
+    - name: Apply rpi-eeprom config (takes effect on next reboot)
+      ansible.builtin.command: rpi-eeprom-config --apply /etc/rpi-eeprom/boot.conf
+      when: rpi_eeprom_bin.rc == 0 and rpi_eeprom_config.changed
+      changed_when: true
+      tags: [base, power]
+
+    - name: Ensure systemd conf.d directories exist
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: "0755"
+        owner: root
+        group: root
+      loop:
+        - /etc/systemd/system.conf.d
+        - /etc/systemd/logind.conf.d
+      tags: [base, power]
+
+    - name: Configure systemd hardware watchdog
+      ansible.builtin.template:
+        src: ../templates/systemd-watchdog.conf.j2
+        dest: /etc/systemd/system.conf.d/watchdog.conf
+        mode: "0644"
+        owner: root
+        group: root
+      notify: Reload systemd
+      tags: [base, power]
+
+    # The 2026-05-22 outage: PMIC injected a KEY_POWER event (likely a
+    # supply transient during a brownout); logind honoured it with the
+    # default `poweroff` action; the Pi halted, kept the red LED on, and
+    # took its ethernet PHY down — looked "alive" but was off-net for
+    # 1h12min until physical power-cycle.
+    - name: Ignore short power-key events in systemd-logind
+      ansible.builtin.template:
+        src: ../templates/logind-no-spurious-poweroff.conf.j2
+        dest: /etc/systemd/logind.conf.d/no-spurious-poweroff.conf
+        mode: "0644"
+        owner: root
+        group: root
+      notify: Restart systemd-logind
+      tags: [base, power]
+
     # ── Sudoers (NOPASSWD for Ansible) ────────────────────────────────────
     - name: Allow passwordless sudo for pi user
       ansible.builtin.copy:
@@ -359,6 +438,15 @@
     - name: Restart systemd-resolved
       ansible.builtin.systemd:
         name: systemd-resolved
+        state: restarted
+
+    - name: Reload systemd
+      ansible.builtin.systemd:
+        daemon_reload: true
+
+    - name: Restart systemd-logind
+      ansible.builtin.systemd:
+        name: systemd-logind
         state: restarted
 
     # `netplan apply` can momentarily drop the SSH session when links flap.

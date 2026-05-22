@@ -120,6 +120,61 @@ Storage-level pruning runs after every job that targets it, regardless of the jo
 
 Phase 8 will add a Prometheus scrape of Proxmox's own `/metrics` (the `pve-exporter` already running per `network/pve-exporter/`) for free-space alerting.
 
+## Power resilience
+
+Goal: the host comes back on its own after a power outage, and can be woken
+remotely when it doesn't.
+
+### BIOS (one-time, not ansible-able)
+
+Set on the next physical visit:
+
+- **Restore on AC Power Loss = Last State** (or **Always On** if you'd rather
+  not depend on the previous state). Without this the host stays off after
+  any AC blip.
+- **Wake on LAN / PME = Enabled**. The OS-side `ethtool wol g` won't take
+  effect if the NIC isn't armed in firmware first.
+
+### OS-side WoL
+
+`make wol` (in this directory) runs `playbooks/wol.yml`, which:
+- installs `ethtool`,
+- verifies the configured NIC supports magic-packet (`Supports Wake-on: pumbg`),
+- installs `wol-enable.service` that runs `ethtool -s <nic> wol g` on every
+  boot (most NICs forget the setting across cold boots).
+
+The interface name lives in `inventory/hosts.yml` as `wol_interface` on the
+`proxmox` host (default `eno1`). Override if the NIC name changes.
+
+### Sending a magic packet
+
+`scripts/wake.sh` is a zero-dependency wake helper — pure Python stdlib, so
+it runs from anywhere: the NAS, the dev box, a phone over WG (SSH'd to NAS).
+
+```bash
+# Save the MAC once (read it from `ip link show eno1` on the host, or from
+# the playbook's debug output the first time you run `make wol`).
+export PROXMOX_MAC=aa:bb:cc:dd:ee:ff
+export PROXMOX_BROADCAST=192.168.1.255
+
+make wake                          # via Makefile
+scripts/wake.sh                    # equivalent
+scripts/wake.sh aa:bb:cc:dd:ee:ff  # explicit MAC, ignoring env
+```
+
+Why `192.168.1.255` and not the all-ones broadcast: directed broadcasts
+work cleanly across the WG segment too. The UDR will deliver them onto
+the LAN.
+
+### Operational caveat — VPN-only access
+
+Today the only remote entry into the LAN is WireGuard on the UDR. The UDR
+itself doesn't depend on the Proxmox host, so a magic packet sent from a
+WG client will reach `eno1` even when everything inside the host is off.
+But if the Pi (Caddy + Pi-hole) is also offline, `proxmox.mati-lab.online`
+won't resolve over WG until you hit the host by IP first. Have the
+`192.168.1.184:8006` URL bookmarked separately.
+
 ## Lessons
 
 - **`local` (i.e. `/var/lib/vz`) is on the small root volume, not the big thin pool.** Default Proxmox installs put dumps there; this is a footgun. Phase 7 moved them to NAS NFS; do the same on any future Proxmox host.

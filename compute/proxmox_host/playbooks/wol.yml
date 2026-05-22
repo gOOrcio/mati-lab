@@ -1,0 +1,58 @@
+- name: Enable Wake-on-LAN on Proxmox host
+  hosts: proxmox
+  become: true
+  vars_files:
+    - ../group_vars/all/vars.yml
+
+  tasks:
+    - name: Ensure ethtool is installed
+      ansible.builtin.apt:
+        name: ethtool
+        state: present
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Verify NIC supports magic-packet WoL
+      ansible.builtin.shell: |
+        set -o pipefail
+        ethtool {{ wol_interface }} | awk '/Supports Wake-on/ {print $NF}'
+      args:
+        executable: /bin/bash
+      register: wol_supported
+      changed_when: false
+      failed_when: "'g' not in (wol_supported.stdout | default(''))"
+
+    - name: Install persistent WoL-enable systemd unit
+      ansible.builtin.template:
+        src: ../templates/wol-enable.service.j2
+        dest: /etc/systemd/system/wol-enable.service
+        mode: "0644"
+      notify: Reload systemd
+
+    - name: Enable and start WoL service
+      ansible.builtin.systemd:
+        name: wol-enable.service
+        enabled: true
+        state: started
+        daemon_reload: true
+
+    - name: Capture NIC MAC for the wake helper
+      ansible.builtin.set_fact:
+        wol_mac: "{{ ansible_facts[wol_interface | replace('-', '_')]['macaddress'] }}"
+
+    - name: Remind about BIOS setting and how to wake
+      ansible.builtin.debug:
+        msg: |
+          WoL is now enabled at the OS layer on {{ wol_interface }} ({{ wol_mac }}).
+          One-time BIOS step (not ansible-able):
+            BIOS → Power → "Wake on LAN / PME" = Enabled
+            BIOS → Power → "Restore on AC Power Loss" = Last State (or Always On)
+
+          To wake from any LAN/VPN host:
+            scripts/wake.sh                   # uses {{ wol_mac }} from inventory
+            scripts/wake.sh {{ wol_mac }}     # explicit MAC
+
+  handlers:
+    - name: Reload systemd
+      ansible.builtin.systemd:
+        daemon_reload: true
