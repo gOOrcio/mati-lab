@@ -96,6 +96,54 @@ yet.
   physical access. Keep a known-good SD card with the current image as a
   break-glass swap; see `nas/disaster-rebuild.md`.
 
+## Postmortem — 2026-06-06 outage (NVMe death)
+
+**Not** a repeat of May — a different root cause that happened to look the same
+from outside (Pi off the wire, LAN DNS down). This time it was **hardware death
+of the NVMe SSD** (Argon NEO 5 M.2 carrier).
+
+**Timeline (from persistent journal, boot `-3`):**
+
+| Time | Event |
+|------|---|
+| Jun 04 21:15 / Jun 05 21:43 | `EXT4-fs (nvme0n1p1): error count since last fsck: 1` — the NVMe filesystem was already throwing errors. |
+| Jun 04–05 | Nightly `backup-services.sh` logs repeated `file has vanished` on `/mnt/nvme/docker/volumes/...` — files disappearing mid-read = the SSD disintegrating. |
+| Jun 06 19:37:45 | Journal **stops dead mid-line.** No shutdown sequence, no `KEY_POWER` event. A failing NVMe controller hard-hung the kernel. |
+| Jun 06 evening | On restart the Pi ran **abnormally hot and wouldn't POST / no HDMI** — the dead SSD was dragging the PCIe/power rail. Pulling the M.2 out of the carrier let it POST again. |
+| Jun 06–07 | Every POST then dropped to **emergency mode**: the `/mnt/nvme` fstab entry had no `nofail`, so the missing/failed drive blocked `local-fs.target` → no network. Recovered by commenting the line, then booting clean from the SD. |
+| Now | `NO /dev/nvme*` — the SSD won't enumerate on PCIe at all. Dead. |
+
+**Two independent failures stacked:**
+1. The SSD died (hardware — wear and/or accelerated by the repeated unclean
+   power events). Root is on the SD, so this should have been survivable.
+2. **The `fstab` mount had no `nofail`**, which turned a dead *data* drive into
+   an unbootable host. This is the part we control, and the fix landed here:
+   `opts: defaults,noatime,nofail,x-systemd.device-timeout=10` in
+   `playbooks/configure.yml`. With `nofail`, a missing NVMe is logged and
+   skipped; the host boots and networks normally.
+
+**Recovery state (2026-06-07):** host boots from SD; the running `/etc/fstab`
+has the NVMe line commented by hand. Docker's `data-root` is still
+`/mnt/nvme/docker`, which currently resolves to a directory **on the SD** (the
+mount is absent) — so the network/DNS/access stack was redeployed there and
+runs fine, but **all named volumes that lived on the NVMe are gone**
+(Prometheus / Loki / Grafana / Uptime-Kuma). NAS has Jun-05 rsync backups of
+the first three.
+
+**Open follow-ups (deferred with the user 2026-06-07):**
+- **Replace the M.2 SSD.** On reinstall: stop docker, mount the new NVMe at
+  `/mnt/nvme` *before* docker starts (so `data-root` lands on it, not the SD),
+  re-run `make power`/`make configure` (regenerates the fstab line with the new
+  UUID + `nofail`), then restore Prometheus/Loki/Grafana volumes from the NAS
+  Jun-05 backup and bring the monitoring stack back up.
+- **Data-root landmine:** until the NVMe is back, do NOT mount anything at
+  `/mnt/nvme` — it would shadow the live docker data now sitting on the SD.
+- Not chosen this round (still available): deploy PR #98 `make power` (still
+  never applied), and an off-Pi heartbeat so the Pi can't die blind.
+- Unrelated pre-existing breakage seen while in here: `fail2ban.service` fails
+  with `No module named 'asynchat'` (removed in Python 3.12) — needs a
+  fail2ban version bump, independent of this outage.
+
 ## Files
 
 - `playbooks/configure.yml` — full host bringup; tags split sections.
