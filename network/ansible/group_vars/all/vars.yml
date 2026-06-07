@@ -78,6 +78,10 @@ nas_mount_point: "/mnt/nas/backups"
 backup_time: "02:00:00"
 backup_keep_days: 30
 
-# NVMe data drive
-nvme_uuid: "00d76170-7940-4e9e-8ebb-382eb461e3ff"
+# Docker data drive. Mount point kept as /mnt/nvme for continuity (daemon.json
+# data-root + cadvisor bind reference it), but as of 2026-06-07 this is a USB
+# SATA SSD (Samsung 870 EVO), NOT the M.2 NVMe — the Argon NEO 5 M.2 carrier /
+# PCIe path failed (killed POST with *any* drive attached; two drives reproduced
+# it). See notes.md "Postmortem — 2026-06-06". USB bridge passes TRIM.
+nvme_uuid: "8e6eed31-52db-4707-a8bf-a1b574399c1a"
 nvme_mount_point: "/mnt/nvme"

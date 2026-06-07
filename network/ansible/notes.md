@@ -96,11 +96,23 @@ yet.
   physical access. Keep a known-good SD card with the current image as a
   break-glass swap; see `nas/disaster-rebuild.md`.
 
-## Postmortem — 2026-06-06 outage (NVMe death)
+## Postmortem — 2026-06-06 outage (M.2 carrier / PCIe failure)
 
 **Not** a repeat of May — a different root cause that happened to look the same
-from outside (Pi off the wire, LAN DNS down). This time it was **hardware death
-of the NVMe SSD** (Argon NEO 5 M.2 carrier).
+from outside (Pi off the wire, LAN DNS down).
+
+> **Correction (2026-06-07):** initially diagnosed as NVMe SSD death. It is
+> **not the drive** — it's the **Argon NEO 5 M.2 carrier / PCIe path**. Proof:
+> a *second, identical* NVMe reproduced the exact failure (solid green, no POST,
+> fan full, hot) — with the drive **removed**, the Pi POSTs and boots fine every
+> time. So the carrier (or its FFC, or the Pi 5 PCIe connector) shorts/drags the
+> rail whenever a drive is attached. Both SSDs are probably fine. **Resolution:**
+> abandoned the M.2 carrier; the Docker data drive is now a **USB SATA SSD**
+> (Samsung 870 EVO) mounted at `/mnt/nvme`. TODO: confirm carrier-vs-Pi with a
+> USB-NVMe enclosure / spare HAT before reusing the M.2 path.
+
+The original (now-superseded) drive-centric reading follows; the carrier theory
+explains all of it plus the second-drive reproduction:
 
 **Timeline (from persistent journal, boot `-3`):**
 
