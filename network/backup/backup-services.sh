@@ -42,7 +42,10 @@ while IFS=: read -r service type source; do
       src="$NETWORK_DIR/$source"
       if [[ -e "$src" ]]; then
         log "[$service] rsync bind: $src -> $dest/"
-        rsync -a --delete "$src" "$dest/" || { log "WARN: rsync failed for $service:$source"; ERRORS=$((ERRORS+1)); }
+        if rsync -a --delete "$src" "$dest/"; then :; else rc=$?
+          if (( rc == 24 )); then log "[$service] note: source files vanished mid-copy (rc=24, benign)"
+          else log "WARN: rsync failed (rc=$rc) for $service:$source"; ERRORS=$((ERRORS+1)); fi
+        fi
       else
         log "WARN: [$service] bind path not found: $src (skipping)"
       fi
@@ -52,7 +55,10 @@ while IFS=: read -r service type source; do
       vol_path="$(docker volume inspect --format '{{ .Mountpoint }}' "$source" 2>/dev/null || true)"
       if [[ -n "$vol_path" && -d "$vol_path" ]]; then
         log "[$service] rsync volume: $vol_path -> $dest/"
-        rsync -a --delete "$vol_path/" "$dest/volume-$(basename "$source")/" || { log "WARN: rsync failed for $service:$source"; ERRORS=$((ERRORS+1)); }
+        if rsync -a --delete "$vol_path/" "$dest/volume-$(basename "$source")/"; then :; else rc=$?
+          if (( rc == 24 )); then log "[$service] note: source files vanished mid-copy (rc=24, benign for live data)"
+          else log "WARN: rsync failed (rc=$rc) for $service:$source"; ERRORS=$((ERRORS+1)); fi
+        fi
       else
         log "WARN: [$service] volume not found: $source (skipping)"
       fi
