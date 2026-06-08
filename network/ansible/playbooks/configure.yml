@@ -186,12 +186,19 @@
         mode: "0755"
       tags: [base, nvme]
 
+    # `nofail` + a short device-timeout are load-bearing: the NVMe is a *data*
+    # drive (root is on the SD), so if it dies or is pulled the host must still
+    # boot. Without these, a missing/failed NVMe makes the mount a hard
+    # dependency of local-fs.target → boot drops to emergency mode with no
+    # network. That is exactly the 2026-06-06 outage: the SSD failed, and every
+    # recovery boot stuck in emergency mode until the fstab line was commented
+    # out by hand. See network/ansible/notes.md "Postmortem — 2026-06-06".
     - name: Mount NVMe data drive via fstab
       ansible.posix.mount:
         src: "UUID={{ nvme_uuid }}"
         path: "{{ nvme_mount_point }}"
         fstype: ext4
-        opts: "defaults,noatime"
+        opts: "defaults,noatime,nofail,x-systemd.device-timeout=10"
         state: mounted
       tags: [base, nvme]
 

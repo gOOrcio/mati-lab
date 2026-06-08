@@ -1,5 +1,7 @@
 global:
-  scrape_interval: 15s
+  # 30s (was 15s) halves TSDB write volume — SSD-longevity tuning after the
+  # 2026-06-06 storage failure. 30s resolution is ample for this homelab.
+  scrape_interval: 30s
 
 # Phase 8: load alert rules from rules/*.yml + push firing alerts to
 # Alertmanager (running in pihole-net at alertmanager:9093, fronted at
