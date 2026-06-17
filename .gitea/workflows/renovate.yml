@@ -35,6 +35,9 @@ jobs:
           RENOVATE_ENDPOINT: https://gitea.mati-lab.online/api/v1
           RENOVATE_TOKEN: ${{ secrets.RENOVATE_TOKEN }}
           RENOVATE_AUTODISCOVER: "true"
+          # Onboard real projects only — exclude scratch/sandbox repos.
+          # Regex (wrapped in //): all gooral/* except the listed throwaways.
+          RENOVATE_AUTODISCOVER_FILTER: '/^gooral\/(?!(scratch|sonarqube-sandbox|leet-code)$)[^/]+$/'
           RENOVATE_GIT_AUTHOR: Renovate Bot <renovate@mati-lab.online>
           RENOVATE_ONBOARDING: "true"
           RENOVATE_ONBOARDING_CONFIG: '{"$schema":"https://docs.renovatebot.com/renovate-schema.json","extends":["config:recommended"]}'
