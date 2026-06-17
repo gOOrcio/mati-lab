@@ -1,0 +1,46 @@
+name: renovate
+
+# Centralised self-hosted Renovate for the whole Gitea instance.
+# Replaces GitHub Dependabot (removed when CI moved to Gitea). Runs the official
+# renovate image and autodiscovers every repo the bot token can see, opening
+# dependency-update PRs (each repo first gets a "Configure Renovate" onboarding PR).
+#
+# One-time setup (see docs): create a Gitea PAT for a renovate bot account with
+# repository read/write, then add it as the `RENOVATE_TOKEN` Actions secret on
+# this repo. Until that secret exists the scheduled run is a no-op failure.
+
+on:
+  schedule:
+    - cron: "0 6 * * 1" # weekly, Monday 06:00 UTC
+  workflow_dispatch:
+    inputs:
+      logLevel:
+        description: Renovate log level (debug for troubleshooting)
+        type: string
+        default: info
+      dryRun:
+        description: Dry run — log what it would do, open no PRs ("full" or "")
+        type: string
+        default: ""
+
+jobs:
+  renovate:
+    runs-on: ubuntu-latest
+    container:
+      image: renovate/renovate:latest
+    steps:
+      - name: Run Renovate (autodiscover)
+        env:
+          RENOVATE_PLATFORM: gitea
+          RENOVATE_ENDPOINT: https://gitea.mati-lab.online/api/v1
+          RENOVATE_TOKEN: ${{ secrets.RENOVATE_TOKEN }}
+          RENOVATE_AUTODISCOVER: "true"
+          RENOVATE_GIT_AUTHOR: Renovate Bot <renovate@mati-lab.online>
+          RENOVATE_ONBOARDING: "true"
+          RENOVATE_ONBOARDING_CONFIG: '{"$schema":"https://docs.renovatebot.com/renovate-schema.json","extends":["config:recommended"]}'
+          # Optional: a github.com PAT (read-only) avoids rate limits when
+          # Renovate fetches changelogs/release notes. Safe to leave unset.
+          GITHUB_COM_TOKEN: ${{ secrets.RENOVATE_GITHUB_COM_TOKEN }}
+          LOG_LEVEL: ${{ inputs.logLevel || 'info' }}
+          RENOVATE_DRY_RUN: ${{ inputs.dryRun }}
+        run: renovate
