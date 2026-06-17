@@ -36,7 +36,7 @@
         "user": "0:0",
         "cap_add": ["CHOWN", "FOWNER", "SETUID", "SETGID", "DAC_OVERRIDE"],
         "shm_size": "256m",
-        "command": ["hermes", "dashboard", "--port", "9119", "--host", "0.0.0.0", "--no-open", "--insecure", "--tui"],
+        "command": ["hermes", "dashboard", "--port", "9119", "--host", "0.0.0.0", "--no-open", "--insecure"],
         "environment": {
           "HERMES_UID": "568",
           "HERMES_GID": "568",
