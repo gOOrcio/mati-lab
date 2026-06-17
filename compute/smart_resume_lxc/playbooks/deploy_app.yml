@@ -58,6 +58,11 @@
           - "--no-owner"
           - "--no-group"
           - "--chown=www-data:www-data"
+      # The API loads the RAG index (chunks.json/index.index) and CV PDF into
+      # memory at startup, so any change to API source, the rebuilt rag_store,
+      # or the CV must restart the service — otherwise the running process keeps
+      # serving the stale in-memory index.
+      notify: Restart API
 
     - name: Rsync Astro static files
       ansible.posix.synchronize:
@@ -76,6 +81,7 @@
       environment:
         UV_PYTHON_INSTALL_DIR: /opt/uv/python
       changed_when: true
+      notify: Restart API
 
     - name: Fix API ownership
       ansible.builtin.file:
