@@ -24,7 +24,7 @@
 
     - name: Build Astro static site
       ansible.builtin.command:
-        cmd: yarn build
+        cmd: pnpm build
         chdir: "{{ app_repo_path }}/apps/web"
       delegate_to: localhost
       run_once: true
