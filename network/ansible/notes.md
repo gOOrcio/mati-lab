@@ -13,6 +13,7 @@ make configure   # full run (idempotent)
 make security    # ufw + ssh + fail2ban only
 make docker      # docker engine + daemon.json + cron pruning
 make power       # rpi-eeprom (boot/halt behaviour) + systemd watchdog
+make netheal     # eth0 connectivity self-heal timer (Pi 5 macb wedge)
 make check       # dry-run (--check --diff)
 ```
 
@@ -155,6 +156,56 @@ the first three.
 - Unrelated pre-existing breakage seen while in here: `fail2ban.service` fails
   with `No module named 'asynchat'` (removed in Python 3.12) — needs a
   fail2ban version bump, independent of this outage.
+
+## Postmortem — 2026-06-19 (UDR scheduled reboot → eth0 macb wedge)
+
+**Symptom:** the Pi was off the LAN from ~08:14 until a manual power-cycle at
+18:49 (~10.5 h). Lights on, green ACT LED blinking idle, OS fully alive — the
+persistent journal shows it was logging `nfs: server 192.168.1.65 not
+responding` and Docker DNS timeouts *the entire time*. It was shouting into a
+network it could not reach. ARP for `192.168.1.252` failed from another LAN
+host even though both ends reported the link "up".
+
+**Root cause — two layers:**
+
+1. **Trigger (UDR side):** the UDR (Dream-Router) reboots on a **scheduled
+   03:00 job**, and applies firmware updates out of band. SSH'd into the UDR
+   (`mt753x gsw@0` MediaTek switch) and confirmed from its `kern.log`: every
+   "outage" is **all five switch ports dropping link at the same second**
+   (`Port 0/1/2/3 Down` at `03:26:03` and `08:14:56`), bracketed by UDR kernel
+   boot messages — i.e. the router itself restarting, not a Pi-side fault and
+   not a cable. Reboot reasons in the UDR log: `do_reboot ... status: firmware`
+   (03:24) and `mcad ace_reporter [reboot] ... status: controller` (08:12).
+2. **Why only this Pi wedges:** the same blip hit the Pi 4 (Port 1, `bcmgenet`)
+   and the TrueNAS (x86 NIC) — both re-linked cleanly. The network Pi is a
+   **Pi 5**, whose **`macb` (Cadence GEM, RP1)** NIC came back **carrier-up but
+   DMA-wedged** — interface online, zero packets. Only a power-cycle cleared it
+   that day.
+
+**Why the existing resilience layers missed it:** the hardware watchdog
+(`RuntimeWatchdogSec=30s`) only fires when *userspace* stops petting
+`/dev/watchdog`. Here userspace was perfectly healthy — only the NIC was dead —
+so the watchdog kept being pet and never tripped. `HandlePowerKey=ignore` and
+the NVMe `nofail` fix are for entirely different failure modes.
+
+**Fix landed in this PR — a 4th resilience layer (`make netheal`):**
+- `eth0-selfheal.sh` (templated to `/usr/local/sbin/`) driven by a 60 s
+  systemd timer. Probes `pi_gateway`; on `netheal_linkreset_fails` (4)
+  consecutive misses it resets the NIC (`ip link down/up` + reconfigure), and
+  on `netheal_reboot_fails` (7) it reboots — the only recovery confirmed to
+  clear a wedged `macb`. A `MIN_UPTIME` guard prevents boot-loops; a
+  `SELFHEAL_DRYRUN=1` mode validates escalation without acting.
+- Thresholds are deliberately above the UDR's ~2 min reboot window, so the
+  nightly 03:00 reboot blips the Pi but **never** escalates to a link-reset or
+  reboot. Only an indefinite wedge does.
+
+**What this does NOT solve:**
+- **Off-Pi alerting.** The healer is journal-only (→ Loki); it sends no ntfy,
+  because ntfy runs *on this Pi* and can't deliver during the outage. Uptime
+  Kuma already flags "Pi down". A proper "Pi self-healed/rebooted" push belongs
+  in a Loki→Alertmanager rule (off the critical path) — deferred.
+- **The UDR reboots themselves.** They're intentional (scheduled 03:00); left
+  as-is. We recover from the blip rather than removing it.
 
 ## Files
 

@@ -117,6 +117,51 @@
       notify: Restart systemd-logind
       tags: [base, power]
 
+    # ── Network connectivity self-heal (Pi 5 macb NIC wedge) ──────────────
+    # The Pi 5's macb NIC can return from a link bounce with carrier "up" but
+    # DMA wedged — online-looking, zero traffic. The hardware watchdog above
+    # misses it (userspace is healthy, so /dev/watchdog keeps being pet). The
+    # trigger is the UDR's scheduled 03:00 reboot, which blips every LAN port;
+    # the Pi 4 (bcmgenet) and x86 NAS re-link fine, only the Pi 5 wedges. This
+    # timer probes the gateway and resets the NIC / reboots if it stays off-net.
+    # See notes.md "Postmortem — 2026-06-19".
+    - name: Install eth0 self-heal script
+      ansible.builtin.template:
+        src: ../templates/eth0-selfheal.sh.j2
+        dest: /usr/local/sbin/eth0-selfheal.sh
+        mode: "0755"
+        owner: root
+        group: root
+      tags: [power, netheal]
+
+    - name: Install eth0 self-heal systemd service
+      ansible.builtin.template:
+        src: ../templates/eth0-selfheal.service.j2
+        dest: /etc/systemd/system/eth0-selfheal.service
+        mode: "0644"
+        owner: root
+        group: root
+      notify: Reload systemd
+      tags: [power, netheal]
+
+    - name: Install eth0 self-heal systemd timer
+      ansible.builtin.template:
+        src: ../templates/eth0-selfheal.timer.j2
+        dest: /etc/systemd/system/eth0-selfheal.timer
+        mode: "0644"
+        owner: root
+        group: root
+      notify: Reload systemd
+      tags: [power, netheal]
+
+    - name: Enable and start eth0 self-heal timer
+      ansible.builtin.systemd:
+        name: eth0-selfheal.timer
+        enabled: true
+        state: started
+        daemon_reload: true
+      tags: [power, netheal]
+
     # ── Sudoers (NOPASSWD for Ansible) ────────────────────────────────────
     - name: Allow passwordless sudo for pi user
       ansible.builtin.copy:

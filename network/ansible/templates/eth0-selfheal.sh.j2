@@ -1,0 +1,82 @@
+#!/usr/bin/env bash
+# {{ ansible_managed }}
+# eth0 / LAN connectivity self-heal.
+#
+# Why this exists: the Pi 5's `macb` (Cadence GEM, in the RP1 southbridge) NIC
+# can return from a link bounce with carrier "up" but its DMA wedged — the
+# interface looks online and passes zero traffic. The systemd hardware
+# watchdog does NOT catch this: userspace stays healthy, so /dev/watchdog
+# keeps getting pet and never fires. The canonical trigger is the UDR's
+# scheduled 03:00 reboot (and firmware updates), which blip every LAN port at
+# once; the Pi 4 (bcmgenet) and the x86 NAS re-link cleanly, but the Pi 5
+# sometimes wedges and sits off-net for hours until a manual power-cycle.
+# See network/ansible/notes.md "Postmortem — 2026-06-19".
+#
+# Strategy: a systemd timer runs this every NETHEAL_INTERVAL. We probe the
+# gateway and count consecutive failures in a tmpfs state file, escalating:
+#   >= LINKRESET_FAILS : reset the NIC (down/up + reconfigure) — gentle fix
+#   >= REBOOT_FAILS    : reboot — the proven fix
+# Thresholds are tuned so the UDR's ~2 min reboot clears well before the
+# link-reset stage, so the nightly reboot never escalates.
+#
+# Set SELFHEAL_DRYRUN=1 to log what it *would* do without touching the NIC or
+# rebooting — used to validate the escalation logic safely.
+set -uo pipefail
+
+IFACE="${NETHEAL_IFACE:-eth0}"
+GATEWAY="${NETHEAL_GATEWAY:-192.168.1.1}"
+LINKRESET_FAILS="${NETHEAL_LINKRESET_FAILS:-4}"
+REBOOT_FAILS="${NETHEAL_REBOOT_FAILS:-7}"
+MIN_UPTIME_FOR_REBOOT="${NETHEAL_MIN_UPTIME:-900}"
+DRYRUN="${SELFHEAL_DRYRUN:-0}"
+STATE="/run/eth0-selfheal.fails"
+
+log() { logger -t eth0-selfheal -- "$*"; echo "eth0-selfheal: $*"; }
+
+act() {  # run a command, or just log it under dry-run
+  if [ "$DRYRUN" = "1" ]; then
+    log "DRYRUN: would run: $*"
+  else
+    "$@"
+  fi
+}
+
+read_fails() { cat "$STATE" 2>/dev/null || echo 0; }
+
+# ── Probe ────────────────────────────────────────────────────────────────
+# Two pings, 2 s timeout each. A reachable gateway means we are actually on
+# the LAN (a wedged macb passes nothing, so this fails even with carrier up).
+if ping -c 2 -W 2 "$GATEWAY" >/dev/null 2>&1; then
+  [ "$(read_fails)" != "0" ] && log "gateway $GATEWAY reachable again; clearing counter"
+  echo 0 > "$STATE"
+  exit 0
+fi
+
+fails=$(( $(read_fails) + 1 ))
+echo "$fails" > "$STATE"
+log "gateway $GATEWAY unreachable (consecutive failures: $fails)"
+
+# ── Stage 2: reboot (checked first; a persistent wedge must reboot even if
+# the gentle link reset already ran and didn't take) ──────────────────────
+if [ "$fails" -ge "$REBOOT_FAILS" ]; then
+  uptime_s=$(cut -d. -f1 /proc/uptime)
+  if [ "$uptime_s" -lt "$MIN_UPTIME_FOR_REBOOT" ]; then
+    log "would reboot, but uptime ${uptime_s}s < ${MIN_UPTIME_FOR_REBOOT}s — holding off to avoid a boot loop"
+    exit 0
+  fi
+  log "still off-net after ${fails} probes and a link reset — rebooting to recover (the proven fix)"
+  act systemctl reboot
+  exit 0
+fi
+
+# ── Stage 1: NIC reset (gentle) ──────────────────────────────────────────
+if [ "$fails" -ge "$LINKRESET_FAILS" ]; then
+  log "resetting $IFACE (down/up + reconfigure) after ${fails} failed probes"
+  act ip link set "$IFACE" down
+  sleep 3
+  act ip link set "$IFACE" up
+  act networkctl reconfigure "$IFACE"
+  exit 0
+fi
+
+exit 0
