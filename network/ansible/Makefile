@@ -1,4 +1,4 @@
-.PHONY: configure deploy security docker power check backup backup-check
+.PHONY: configure deploy security docker power netheal check backup backup-check
 
 # Full setup: security + docker + all config
 configure:
@@ -15,6 +15,10 @@ docker:
 # Power resilience: rpi-eeprom config + systemd watchdog
 power:
 	ansible-playbook playbooks/configure.yml --tags power
+
+# Network self-heal: eth0 gateway probe + NIC reset/reboot timer (Pi 5 macb wedge)
+netheal:
+	ansible-playbook playbooks/configure.yml --tags netheal
 
 # Dry run: show what would change
 check:

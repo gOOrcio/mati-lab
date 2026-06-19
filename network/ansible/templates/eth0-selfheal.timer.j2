@@ -1,0 +1,12 @@
+# {{ ansible_managed }}
+[Unit]
+Description=Run eth0 connectivity self-heal probe every {{ netheal_interval }}
+
+[Timer]
+# First probe 2 min after boot (let the network settle), then every interval.
+OnBootSec=2min
+OnUnitActiveSec={{ netheal_interval }}
+AccuracySec=10s
+
+[Install]
+WantedBy=timers.target

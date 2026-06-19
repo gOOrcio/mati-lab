@@ -36,6 +36,20 @@ systemd_reboot_watchdog_sec: "2min"
 logind_handle_power_key: ignore
 logind_handle_power_key_long_press: poweroff
 
+# Network connectivity self-heal (Pi 5 `macb` NIC wedge — see notes.md
+# "Postmortem — 2026-06-19"). A timer probes pi_gateway every
+# netheal_interval; after netheal_linkreset_fails consecutive misses it
+# resets the NIC (down/up), and after netheal_reboot_fails it reboots — the
+# only recovery confirmed to clear a wedged macb. The hardware watchdog above
+# can't catch this case because userspace stays healthy. Thresholds are tuned
+# so the UDR's ~2 min scheduled 03:00 reboot (which blips every LAN port)
+# clears well before the link-reset stage and never escalates.
+netheal_iface: "eth0"
+netheal_interval: "60s"
+netheal_linkreset_fails: 4
+netheal_reboot_fails: 7
+netheal_min_uptime: 900
+
 # Docker
 docker_registry_mirror: "http://192.168.1.252:5000"
 docker_log_max_size: "10m"

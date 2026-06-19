@@ -1,0 +1,16 @@
+# {{ ansible_managed }}
+[Unit]
+Description=eth0 / LAN connectivity self-heal (probe gateway, reset NIC, reboot if wedged)
+Documentation=https://gitea.mati-lab.online/gooral/mati-lab/src/branch/main/network/ansible/notes.md
+After=network.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/eth0-selfheal.sh
+Environment=NETHEAL_IFACE={{ netheal_iface }}
+Environment=NETHEAL_GATEWAY={{ pi_gateway }}
+Environment=NETHEAL_LINKRESET_FAILS={{ netheal_linkreset_fails }}
+Environment=NETHEAL_REBOOT_FAILS={{ netheal_reboot_fails }}
+Environment=NETHEAL_MIN_UPTIME={{ netheal_min_uptime }}
+StandardOutput=journal
+StandardError=journal
