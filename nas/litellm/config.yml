@@ -155,6 +155,11 @@ general_settings:
 # network/prometheus/prometheus.yml. Without this the endpoint 404s.
 litellm_settings:
   callbacks: ["prometheus"]
+  # Drop provider-unsupported params instead of erroring. Claude Code sends
+  # Anthropic-specific params (e.g. context_management) that the local ollama
+  # models (coding/agent-default fallbacks) don't accept — without this, a CC
+  # request that routes to a local model 400s. Campaign #2.
+  drop_params: true
   # Scope client-header forwarding to ONLY the Claude Code subscription
   # aliases. Claude Code (via claude-gw) sends its Max OAuth in Authorization
   # and its virtual key in x-litellm-api-key; LiteLLM authenticates on the
