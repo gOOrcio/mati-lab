@@ -135,8 +135,24 @@ general_settings:
   background_health_checks: true
   health_check_interval: 30
   enable_health_check_routing: true
+  # Admit a forwarded LLM-provider auth header (Claude Code's subscription
+  # OAuth) to the upstream. Only takes effect for aliases in the
+  # model_group_settings forward list below, so Hermes/RAG/dev-pc-tools
+  # (other aliases) are unaffected; the proxy's own Authorization (their
+  # virtual key) is never forwarded upstream. Campaign #2 Step #2.
+  forward_llm_provider_auth_headers: true
 
 # Enable Prometheus metrics at /metrics for the scrape job in
 # network/prometheus/prometheus.yml. Without this the endpoint 404s.
 litellm_settings:
   callbacks: ["prometheus"]
+  # Scope client-header forwarding to ONLY the Claude Code subscription
+  # aliases. Claude Code (via claude-gw) sends its Max OAuth in Authorization
+  # and its virtual key in x-litellm-api-key; LiteLLM authenticates on the
+  # virtual key and forwards the OAuth to Anthropic for these aliases → the
+  # Max subscription is billed instead of ANTHROPIC_API_KEY. Campaign #2 Step #2.
+  model_group_settings:
+    forward_client_headers_to_llm_api:
+      - claude-opus-4-8
+      - claude-sonnet-5
+      - claude-haiku-4-5

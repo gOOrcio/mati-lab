@@ -135,8 +135,9 @@ Code's large, stable system prompt is cached at ~10% read cost even when
 the client doesn't set the breakpoint. `router_settings.optional_pre_call_checks:
 ["prompt_caching"]` pins cached calls to the writing deployment.
 
-**Step #2 (pending — needs the CC client):** add subscription-OAuth
-forwarding scoped to the CC aliases only:
+**Step #2 (SHIPPED 2026-07-16):** subscription-OAuth forwarding scoped to
+the CC aliases only, deployed live (regression-verified: agent-default /
+embeddings / coding all still work — the scoping protects them):
 
 ```yaml
 general_settings:
@@ -146,15 +147,21 @@ litellm_settings:
     forward_client_headers_to_llm_api:          # scope: CC aliases ONLY
       - claude-opus-4-8
       - claude-sonnet-5
+      - claude-haiku-4-5
 ```
 
 Why scoped, not global: LiteLLM never forwards the proxy's own
 `Authorization` header (the virtual key) upstream, and only the aliases
 listed above forward *any* client headers — so Hermes / RAG / dev-pc-tools
-(different aliases) are untouched. Step #2 also splits each Claude alias
-into a subscription tier (no `api_key`, forwards the OAuth) and an
-`-api` fallback tier (`api_key`, not forwarded), wired via
-`router_settings.fallbacks`, and must resolve empirically whether a
+(different aliases) are untouched.
+
+**Not done (deferred):** the sub/api tier split + `router_settings.fallbacks`
+(subscription→API on 5-hour-cap). The `claude-*` aliases keep `api_key`, so
+today: a forwarded CC OAuth bills the Max subscription; if no OAuth is
+forwarded, they fall back to `ANTHROPIC_API_KEY` (graceful). A Max cap-hit
+currently errors rather than auto-falling-back to API — add the sub/api split
+if that becomes a real pain point. Original design had also planned to resolve
+empirically whether a
 forwarded OAuth overrides a deployment key and how background health
 checks treat credential-less deployments.
 
