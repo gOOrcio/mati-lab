@@ -78,6 +78,7 @@ LiteLLM admin operations use the **master key** (`LITELLM_MASTER_KEY` in `.env`)
 | `rag-watcher` | rag-watcher Custom App | `embeddings` | $1 / 30d | `/mnt/fast/databases/rag-watcher/.env` |
 | `openclaw` | OpenClaw Custom App | `agent-default`, `agent-smart`, `coding`, `embeddings` | $20 / 30d | OpenClaw in-app config (LLM provider wizard) |
 | `dev-pc-tools` | Local CLI tooling on dev box (Claude Code MCP `vault-rag`, OpenCode, ad-hoc curl) | `agent-default`, `agent-smart`, `coding`, `embeddings` | $30 / 30d | Dev-box `~/.claude/mcp.json` env block + shell env |
+| `claude-code` | Claude Code / opencode / codex via the gateway (token-efficiency campaign) | `claude-opus-4-8`, `claude-sonnet-5`, `claude-haiku-4-5` | $30 / 30d | Dev-box shell env + PM `homelab/litellm/claude-code` |
 
 PM labels follow `homelab/litellm/<alias>`.
 
@@ -119,6 +120,55 @@ unset LITELLM_MASTER_KEY
 ```
 
 Or use the LiteLLM dashboard at `litellm.mati-lab.online/ui` (Authelia 2FA in front).
+
+## Claude Code gateway (token-efficiency campaign)
+
+Goal: make LiteLLM the gate for Claude Code / opencode / codex, with
+**subscription-primary, API-fallback** billing and prompt-cache injection.
+Delivered in two steps because subscription-OAuth forwarding can only be
+validated safely with the real Claude Code client.
+
+**Step #1 (shipped):** three Claude **API-key** aliases —
+`claude-opus-4-8`, `claude-sonnet-5`, `claude-haiku-4-5` — each with
+`cache_control_injection_points` (system-message breakpoint) so Claude
+Code's large, stable system prompt is cached at ~10% read cost even when
+the client doesn't set the breakpoint. `router_settings.optional_pre_call_checks:
+["prompt_caching"]` pins cached calls to the writing deployment.
+
+**Step #2 (pending — needs the CC client):** add subscription-OAuth
+forwarding scoped to the CC aliases only:
+
+```yaml
+general_settings:
+  forward_llm_provider_auth_headers: true      # admit forwarded provider auth
+litellm_settings:
+  model_group_settings:
+    forward_client_headers_to_llm_api:          # scope: CC aliases ONLY
+      - claude-opus-4-8
+      - claude-sonnet-5
+```
+
+Why scoped, not global: LiteLLM never forwards the proxy's own
+`Authorization` header (the virtual key) upstream, and only the aliases
+listed above forward *any* client headers — so Hermes / RAG / dev-pc-tools
+(different aliases) are untouched. Step #2 also splits each Claude alias
+into a subscription tier (no `api_key`, forwards the OAuth) and an
+`-api` fallback tier (`api_key`, not forwarded), wired via
+`router_settings.fallbacks`, and must resolve empirically whether a
+forwarded OAuth overrides a deployment key and how background health
+checks treat credential-less deployments.
+
+**Claude Code client env (Step #2):**
+
+```bash
+export ANTHROPIC_BASE_URL=http://192.168.1.65:4000
+export ANTHROPIC_CUSTOM_HEADERS="x-litellm-api-key: Bearer sk-<claude-code key>"
+# Claude Code keeps its own subscription OAuth in Authorization; LiteLLM
+# authenticates the client on x-litellm-api-key and forwards the OAuth.
+```
+
+Apply as an isolated profile/wrapper, never globally — an interactive
+session stays on direct Anthropic auth until deliberately cut over.
 
 ## Install trace (reproducibility)
 
