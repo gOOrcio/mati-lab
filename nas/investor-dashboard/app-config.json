@@ -1,0 +1,45 @@
+{
+  "app_name": "investor-dashboard",
+  "custom_app": true,
+  "values": {"ix_context": {}},
+  "custom_compose_config": {
+    "services": {
+      "investor-dashboard": {
+        "image": "gitea.mati-lab.online/gooral/investor-dashboard:dev",
+        "restart": "unless-stopped",
+        "user": "10000:10000",
+        "environment": {
+          "TZ": "Europe/Warsaw",
+          "DASHBOARD_DB_PATH": "/data/dashboard.sqlite",
+          "DASHBOARD_HERMES_DB_PATH": "/opt/data/hermes-investor/db.sqlite",
+          "DASHBOARD_PORTFOLIO_PATH": "/opt/data/hermes-investor/portfolio.json",
+          "DASHBOARD_STATIC_DIR": "/app/static",
+          "DASHBOARD_TAX_RATE": "0.19",
+          "DASHBOARD_REFRESH_INTERVAL_SECONDS": "86400"
+        },
+        "volumes": [
+          {
+            "type": "bind",
+            "source": "/mnt/fast/databases/investor-dashboard/data",
+            "target": "/data"
+          },
+          {
+            "type": "bind",
+            "source": "/mnt/.ix-apps/app_mounts/hermes/data/hermes-investor",
+            "target": "/opt/data/hermes-investor"
+          }
+        ],
+        "ports": [
+          {"mode": "host", "protocol": "tcp", "published": 30032, "target": 8000}
+        ],
+        "labels": [
+          "homepage.group=NAS",
+          "homepage.name=Invest",
+          "homepage.icon=mdi-chart-line",
+          "homepage.href=https://invest.mati-lab.online",
+          "homepage.description=Portfolio dashboard (IKE/IKZE/Standard)"
+        ]
+      }
+    }
+  }
+}
