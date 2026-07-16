@@ -28,3 +28,7 @@ automated.
 
 - [`ollama-setup.md`](ollama-setup.md) — Ollama install + config + model
   pulls. Re-run after an Ubuntu reinstall.
+- [`rtk-setup.md`](rtk-setup.md) — rtk (Rust Token Killer) install +
+  per-agent wiring (Claude Code / opencode / codex) + safety config.
+  Client-side shell-output token compression; orthogonal to the LiteLLM
+  gateway. Re-run after an Ubuntu reinstall.
