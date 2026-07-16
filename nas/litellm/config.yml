@@ -100,6 +100,14 @@ model_list:
   # Subscription-OAuth forwarding (subscription-primary, API fallback) is added
   # in campaign #2, where the real CC client can validate that a forwarded OAuth
   # overrides the deployment key and that health-checks don't mis-route.
+  # claude-* are billed to the Max subscription via forwarded OAuth (verified
+  # 2026-07-16 against Anthropic Console → Cost: real ~$0.10/day vs LiteLLM's
+  # phantom ~$13 estimate). Their real marginal cost is $0, so mark them
+  # zero-cost — otherwise LiteLLM's phantom list-price "spend" inflates BOTH the
+  # claude-code key cap AND the anthropic provider budget (which Hermes shares),
+  # eventually budget-blocking Hermes + claude-gw for $0 of real spend. Hermes's
+  # own Claude fallback rides agent-default→claude-sonnet-4-6, which keeps its
+  # real-cost tracking (different alias, uses the API key).
   - model_name: claude-opus-4-8
     litellm_params:
       model: anthropic/claude-opus-4-8
@@ -107,6 +115,9 @@ model_list:
       cache_control_injection_points:
         - location: message
           role: system
+    model_info:
+      input_cost_per_token: 0
+      output_cost_per_token: 0
 
   - model_name: claude-sonnet-5
     litellm_params:
@@ -115,6 +126,9 @@ model_list:
       cache_control_injection_points:
         - location: message
           role: system
+    model_info:
+      input_cost_per_token: 0
+      output_cost_per_token: 0
 
   - model_name: claude-haiku-4-5
     litellm_params:
@@ -123,6 +137,9 @@ model_list:
       cache_control_injection_points:
         - location: message
           role: system
+    model_info:
+      input_cost_per_token: 0
+      output_cost_per_token: 0
 
 router_settings:
   routing_strategy: "simple-shuffle"
