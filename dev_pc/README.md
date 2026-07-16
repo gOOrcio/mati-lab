@@ -32,3 +32,6 @@ automated.
   per-agent wiring (Claude Code / opencode / codex) + safety config.
   Client-side shell-output token compression; orthogonal to the LiteLLM
   gateway. Re-run after an Ubuntu reinstall.
+- [`litellm-clients.md`](litellm-clients.md) — routing the dev-PC CLI
+  clients (opencode / codex / Claude Code) through the LiteLLM gateway.
+  Client config lives in `~/.config/...`; this is the runbook.
