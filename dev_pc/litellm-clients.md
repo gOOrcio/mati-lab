@@ -74,7 +74,7 @@ would bill DeepSeek/local/Claude-API instead of that sub. Use on demand:
 name = "LiteLLM homelab gateway"
 base_url = "http://192.168.1.65:4000/v1"
 env_key = "LITELLM_API_KEY"
-wire_api = "chat"          # LiteLLM speaks /chat/completions, not /responses
+wire_api = "responses"     # current codex REQUIRES "responses" (rejects "chat")
 
 [profiles.gateway]
 model = "agent-default"
@@ -82,14 +82,16 @@ model_provider = "litellm"
 ```
 
 ```bash
-export LITELLM_API_KEY=<dev-pc-tools key>
-codex --profile gateway              # routes this run through the gateway
+export LITELLM_API_KEY=<dev-pc-tools or claude-code key>
+codex exec -p gateway "reply: gateway ok"    # verified: returns "gateway ok"
 ```
 
 To make the gateway codex's **default** (abandoning the ChatGPT sub for
 codex), add top-level `model_provider = "litellm"` + `model = "..."`.
-`wire_api = "chat"` is mandatory — without it codex POSTs to `/responses`
-and errors against LiteLLM.
+**`wire_api = "responses"` is mandatory** — current codex rejects `"chat"`
+at startup (`wire_api = "chat" is no longer supported`). LiteLLM serves the
+Responses API at `/v1/responses` (verified), so codex works against it with
+`"responses"`. (An earlier draft used `"chat"`, which newer codex refuses.)
 
 ## Claude Code 🟡 staged (launcher ready; needs a key + Step #2 forwarding)
 
