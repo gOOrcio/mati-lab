@@ -62,24 +62,51 @@ Default model is `agent-default` (DeepSeek — a validated path). Switch to
 `litellm/coding` (local gpt-oss:20b first) once the reasoning-model
 content-through-gateway check passes.
 
-## codex ⏳ pending
+## codex ✅ configured (opt-in profile)
 
-Codex reads `~/.codex/config.toml`. Add a `model_providers` entry for the
-gateway (OpenAI-compatible, `base_url = "http://192.168.1.65:4000/v1"`,
-env-key), then select a gateway model. To document when wired.
+`~/.codex/config.toml` defines a `litellm` provider + a `gateway` profile.
+Kept **opt-in** rather than default because codex's own ChatGPT/Codex
+subscription login is otherwise intact — making the gateway the default
+would bill DeepSeek/local/Claude-API instead of that sub. Use on demand:
 
-## Claude Code ⏳ pending (campaign #2 subscription forwarding)
+```toml
+[model_providers.litellm]
+name = "LiteLLM homelab gateway"
+base_url = "http://192.168.1.65:4000/v1"
+env_key = "LITELLM_API_KEY"
+wire_api = "chat"          # LiteLLM speaks /chat/completions, not /responses
 
-CC keeps its own **subscription OAuth** login (now **Max**) and points at
-the gateway, which forwards the OAuth upstream:
-
-```bash
-export ANTHROPIC_BASE_URL=http://192.168.1.65:4000
-export ANTHROPIC_CUSTOM_HEADERS="x-litellm-api-key: Bearer <claude-code key>"
+[profiles.gateway]
+model = "agent-default"
+model_provider = "litellm"
 ```
 
-Apply via an isolated wrapper (`~/.local/bin/claude-gw`), **not** globally —
-the running session stays on direct auth until deliberately cut over.
-Blocked on: server-side scoped OAuth-forwarding config (documented in
-`nas/litellm/notes.md` "Step #2") + master-key validation + a throwaway-CC
-end-to-end test. See `docs/superpowers/specs/2026-07-16-litellm-cc-subscription-cutover-design.md`.
+```bash
+export LITELLM_API_KEY=<dev-pc-tools key>
+codex --profile gateway              # routes this run through the gateway
+```
+
+To make the gateway codex's **default** (abandoning the ChatGPT sub for
+codex), add top-level `model_provider = "litellm"` + `model = "..."`.
+`wire_api = "chat"` is mandatory — without it codex POSTs to `/responses`
+and errors against LiteLLM.
+
+## Claude Code 🟡 staged (launcher ready; needs a key + Step #2 forwarding)
+
+CC keeps its own **subscription OAuth** login (now **Max**); the gateway
+authenticates it on `x-litellm-api-key` and forwards the OAuth upstream so
+the Max sub is billed. An **isolated launcher `~/.local/bin/claude-gw`** is
+in place — run `claude-gw` to use the gateway; a plain `claude` is
+untouched. It refuses to start without a key, so it can't misbehave:
+
+```bash
+export CLAUDE_CODE_GW_KEY=<a LiteLLM 'claude-code' virtual key>   # add to ~/.zshrc
+claude-gw            # launches Claude Code pointed at the gateway
+```
+
+Remaining to fully cut over (all need the master key):
+1. **Issue the `claude-code` virtual key** (scoped to `claude-*`) — `nas/litellm/notes.md` "Virtual keys".
+2. **Deploy the Step #2 scoped OAuth-forwarding config** (`nas/litellm/notes.md` "Step #2") so the **Max subscription** is billed rather than the API key. Before this, `claude-gw` still works but bills the Anthropic API key (the `claude-*` aliases carry `ANTHROPIC_API_KEY`).
+3. **Validate** with a throwaway `claude-gw` in a scratch dir — check `/spend/logs` to confirm the turn billed the subscription (forwarded OAuth), not the API key.
+
+Design: `docs/superpowers/specs/2026-07-16-litellm-cc-subscription-cutover-design.md`.
