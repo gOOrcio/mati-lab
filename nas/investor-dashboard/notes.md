@@ -43,7 +43,7 @@ homelab.
 | Role | Type | Path (host → container) |
 |---|---|---|
 | Dashboard DB (`dashboard.sqlite`) | Bind | `/mnt/fast/databases/investor-dashboard/data` → `/data` |
-| Hermes investor data (shared) | Bind | `/mnt/.ix-apps/app_mounts/hermes/data/hermes-investor` → `/opt/data/hermes-investor` |
+| Hermes investor data (shared) | Bind | `/mnt/fast/databases/hermes/data/hermes-investor` → `/opt/data/hermes-investor` |
 
 The shared mount provides read-only access to `db.sqlite` (analysis widgets)
 and read/write access to `portfolio.json` (atomic writes for the plugin).

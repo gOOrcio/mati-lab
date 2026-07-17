@@ -1,22 +1,22 @@
 {
   "app_name": "hermes",
   "custom_app": true,
+  "_comment": "ROLLBACK-ONLY: the CURRENTLY-LIVE bespoke Custom App (stock hermes-agent image + PYTHONPATH plugin bundle inside /opt/data, native UID 10000). Superseded by nas/hermes-agent/ (catalogue app) once the 2026-07-16 migration cuts over. Kept as the accurate rollback recipe. Secrets come from env_file on the NAS; TELEGRAM_BOT_TOKEN is intentionally empty here.",
   "values": {"ix_context": {}},
   "custom_compose_config": {
     "services": {
       "hermes": {
-        "image": "gitea.mati-lab.online/gooral/hermes-agent-investor:dev",
+        "image": "nousresearch/hermes-agent:v2026.6.5",
         "restart": "unless-stopped",
         "user": "0:0",
         "cap_add": ["CHOWN", "FOWNER", "SETUID", "SETGID", "DAC_OVERRIDE"],
         "shm_size": "1gb",
         "command": ["hermes", "gateway"],
         "environment": {
-          "HERMES_UID": "568",
-          "HERMES_GID": "568",
           "HERMES_HOME": "/opt/data",
-          "HERMES_INVESTOR_DISCOVERY_UNIVERSE_PATH": "/opt/hermes-investor/data-template/discovery_universe.json",
-          "HERMES_INVESTOR_DISCOVERY_SNAPSHOT_PATH": "/opt/data/hermes-investor/candidates.snapshot.json"
+          "PYTHONPATH": "/opt/data/investor-sp",
+          "HERMES_INVESTOR_DISCOVERY_SNAPSHOT_PATH": "/opt/data/hermes-investor/candidates.snapshot.json",
+          "HERMES_INVESTOR_SEC_USER_AGENT": "hermes-investor mateusz.goral92@gmail.com"
         },
         "env_file": ["/mnt/fast/databases/hermes/.env"],
         "volumes": [
@@ -31,18 +31,18 @@
         ]
       },
       "hermes-dashboard": {
-        "image": "gitea.mati-lab.online/gooral/hermes-agent-investor:dev",
+        "image": "nousresearch/hermes-agent:v2026.6.5",
         "restart": "unless-stopped",
         "user": "0:0",
         "cap_add": ["CHOWN", "FOWNER", "SETUID", "SETGID", "DAC_OVERRIDE"],
         "shm_size": "256m",
-        "command": ["hermes", "dashboard", "--port", "9119", "--host", "0.0.0.0", "--no-open", "--insecure"],
+        "command": ["hermes", "dashboard", "--port", "9119", "--host", "0.0.0.0", "--no-open", "--insecure", "--skip-build"],
         "environment": {
-          "HERMES_UID": "568",
-          "HERMES_GID": "568",
           "HERMES_HOME": "/opt/data",
-          "HERMES_INVESTOR_DISCOVERY_UNIVERSE_PATH": "/opt/hermes-investor/data-template/discovery_universe.json",
+          "PYTHONPATH": "/opt/data/investor-sp",
+          "HERMES_DASHBOARD_CHAT_TRUST_ALL_HOSTS": "1",
           "HERMES_INVESTOR_DISCOVERY_SNAPSHOT_PATH": "/opt/data/hermes-investor/candidates.snapshot.json",
+          "HERMES_INVESTOR_SEC_USER_AGENT": "hermes-investor mateusz.goral92@gmail.com",
           "TELEGRAM_BOT_TOKEN": ""
         },
         "env_file": ["/mnt/fast/databases/hermes/.env"],

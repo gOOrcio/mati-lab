@@ -25,7 +25,7 @@
           },
           {
             "type": "bind",
-            "source": "/mnt/.ix-apps/app_mounts/hermes/data/hermes-investor",
+            "source": "/mnt/fast/databases/hermes/data/hermes-investor",
             "target": "/opt/data/hermes-investor"
           }
         ],

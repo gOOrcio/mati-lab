@@ -1,0 +1,43 @@
+{
+  "app_name": "hermes",
+  "catalog_app": "hermes-agent",
+  "train": "community",
+  "version": "1.0.5",
+  "values": {
+    "hermes_agent": {
+      "gateway_key": "__FROM_PM__homelab/hermes/gateway-key",
+      "allow_all_users_access": false,
+      "enable_insecure_dashboard_access": true,
+      "shm_size_mb": 1024,
+      "additional_envs": [
+        {"name": "TZ", "value": "Europe/Warsaw"},
+        {"name": "PYTHONPATH", "value": "/opt/investor-sp"},
+        {"name": "HERMES_INVESTOR_DISCOVERY_SNAPSHOT_PATH", "value": "/opt/data/hermes-investor/candidates.snapshot.json"},
+        {"name": "HERMES_INVESTOR_SEC_USER_AGENT", "value": "hermes-investor mateusz.goral92@gmail.com"},
+        {"name": "OPENAI_API_KEY", "value": "__FROM_PM__homelab/litellm/hermes"},
+        {"name": "OPENAI_BASE_URL", "value": "http://192.168.1.65:4000/v1"},
+        {"name": "TELEGRAM_BOT_TOKEN", "value": "__FROM_PM__homelab/openclaw/telegram-bot"},
+        {"name": "TELEGRAM_ALLOWED_USERS", "value": "__FROM_PM__homelab/hermes/telegram-allowed-users"}
+      ]
+    },
+    "network": {
+      "dashboard_port": {"bind_mode": "published", "port_number": 30262},
+      "host_network": false
+    },
+    "storage": {
+      "data": {
+        "type": "host_path",
+        "host_path_config": {"path": "/mnt/fast/databases/hermes/data"}
+      },
+      "additional_storage": [
+        {
+          "type": "host_path",
+          "read_only": true,
+          "mount_path": "/opt/investor-sp",
+          "host_path_config": {"path": "/mnt/fast/databases/hermes-investor-bundle/investor-sp"}
+        }
+      ]
+    },
+    "resources": {"limits": {"cpus": 2, "memory": 4096}}
+  }
+}
