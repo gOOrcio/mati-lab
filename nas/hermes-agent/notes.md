@@ -1,9 +1,10 @@
 # Hermes Agent (NAS) — catalogue app
 
 TrueNAS Scale **catalogue app** `hermes-agent` (train `community`, chart
-version `1.0.5`, image `nousresearch/hermes-agent:v2026.6.19`). Replaces the
-bespoke Custom App at `nas/hermes/` (kept as a stop-not-delete rollback — see
-`nas/hermes/notes.md`). Single `gateway run` container; no separate dashboard
+version `1.0.9`, image `nousresearch/hermes-agent:v2026.7.20`). Replaces the
+bespoke Custom App formerly at `nas/hermes/`, which was **deleted via the UI
+on 2026-07-31** (no longer a rollback target — see `nas/hermes/notes.md`).
+Single `gateway run` container; no separate dashboard
 sidecar service — the catalogue chart serves the dashboard from the same
 container on its own published port.
 
@@ -41,6 +42,24 @@ at its **native UID 10000** — all host paths below must be pre-owned
 writes to the shared `hermes-investor/` subtree (also expects 10000:10000).
 This mirrors the rule already in force for `investor-dashboard` — see
 `nas/investor-dashboard/notes.md`.
+
+## ⚠️ Upgrade trap: `gateway_key` must be ≥16 chars before `app.upgrade`
+
+Chart **1.0.9** added a validation rule: `hermes_agent.gateway_key` must be at
+least 16 characters. `midclt call -j app.upgrade hermes-agent` **stops the
+container first, then runs validation** — so if `gateway_key` is shorter, the
+upgrade aborts with `[EINVAL] hermes_agent.gateway_key: String should have at
+least 16 characters` and leaves the app **STOPPED** (catalogue apps do not
+auto-restart from stopped). This is exactly what caused the **2026-07-21 →
+2026-07-31 outage** (10 days down, which also failed every nightly
+`hermes-backup` cron → the repeating cron alerts).
+
+**Before any `app.upgrade`, ensure `gateway_key` is ≥16 chars.** Rotating it
+is a `midclt call -j app.update hermes-agent` on the full `hermes_agent` values
+group (remember: `app.update` **replaces** the nested group — include every
+sibling field or they zero out). `gateway_key` is a secret; changing it affects
+anything authenticating to the Hermes gateway. Resolved 2026-07-31 by rotating
+14 → 32 chars, then upgrading cleanly to 1.0.9.
 
 ## Storage
 
