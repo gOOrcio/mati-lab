@@ -1,5 +1,23 @@
 # Hermes Agent (NAS)
 
+> **⚠️ RETIRED — this bespoke Custom App was DELETED via the UI on 2026-07-31.**
+> Superseded by `nas/hermes-agent/` (catalogue app) as of 2026-07-16; the app
+> object itself is now gone (it had been the stop-not-delete rollback until the
+> 2026-07-21→07-31 outage was root-caused and closed out). The live `hermes`
+> deployment on the NAS is the TrueNAS catalogue app `hermes-agent` — see
+> `nas/hermes-agent/notes.md` for the current deployment, and
+> `hermes-investor/docs/superpowers/plans/2026-07-16-decouple-hermes-catalogue-migration.md`
+> for the migration runbook.
+>
+> Its pre-migration data (~115 MiB, dominated by `state.db`) still sat on disk
+> at `/mnt/.ix-apps/app_mounts/hermes/data` after the app was deleted. That
+> path is **not** mounted by the catalogue app (verified 2026-07-31 — the
+> catalogue app uses `/mnt/fast/databases/hermes/data` and the read-only
+> investor bundle only), so removing it is safe; it is deleted as the final
+> migration-cleanup step (root-owned mode-700 dir → requires `sudo rm -rf` on
+> the NAS). Nothing below this banner has been edited or re-verified as part of
+> the catalogue migration.
+
 TrueNAS Scale Apps, **Custom App**, image `nousresearch/hermes-agent:v2026.4.23`.
 Installed 2026-04-30 / 2026-05-01 as the replacement for OpenClaw (which
 wedged during the Phase 7 paste-token cutover; see `docs/followups.md`

@@ -81,6 +81,29 @@
 		}
 	}
 
+	@invest host invest.mati-lab.online
+	handle @invest {
+		# Investment dashboard — TrueNAS Custom App at 192.168.1.65:30032
+		# (see mati-lab/nas/investor-dashboard/). Authelia 2FA. Kuma probes
+		# /api/health without auth so the 302 login redirect does not fake uptime.
+		@invest_health path /api/health
+		handle @invest_health {
+			reverse_proxy http://192.168.1.65:30032
+		}
+
+		handle {
+			forward_auth http://authelia:9091 {
+				uri /api/authz/forward-auth
+				copy_headers Remote-User Remote-Groups Remote-Name Remote-Email
+			}
+			reverse_proxy http://192.168.1.65:30032 {
+				header_up Host {host}
+				header_up X-Forwarded-Proto https
+				header_up X-Forwarded-Ssl on
+			}
+		}
+	}
+
 	@proxmox host proxmox.mati-lab.online
 	handle @proxmox {
 		@proxmox_health path /api2/json/version
