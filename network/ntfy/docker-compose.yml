@@ -4,7 +4,7 @@ networks:
 
 services:
   ntfy:
-    image: binwiederhier/ntfy:v2.26
+    image: binwiederhier/ntfy:v2.27
     container_name: ntfy
     command:
       - serve
