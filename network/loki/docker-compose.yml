@@ -7,7 +7,7 @@ volumes:
 
 services:
   loki:
-    image: grafana/loki:3.7.4
+    image: grafana/loki:3.7.6
     container_name: loki
     restart: always
     security_opt: [no-new-privileges:true]
