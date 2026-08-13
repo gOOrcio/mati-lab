@@ -1,0 +1,26 @@
+networks:
+  pihole-net:
+    external: true
+
+services:
+  nebula-sync:
+    image: ghcr.io/lovelaze/nebula-sync:v0.11.2
+    container_name: nebula-sync
+    restart: always
+    environment:
+      # Primary is reached over the internal pihole-net bridge, so the Pi's
+      # Pi-hole API never has to be published to the LAN or exposed past
+      # Authelia. Replica is the NAS instance on its published admin port.
+      - PRIMARY=http://pihole:8080|${PIHOLE_PRIMARY_PASSWORD}
+      - REPLICAS=http://192.168.1.65:30053|${PIHOLE_REPLICA_PASSWORD}
+      - FULL_SYNC=true
+      - RUN_GRAVITY=true
+      - CRON=17 * * * *
+      - TZ=Europe/Warsaw
+    networks:
+      - pihole-net
+    labels:
+      - "homepage.group=Network"
+      - "homepage.name=Nebula Sync"
+      - "homepage.icon=mdi-sync"
+      - "homepage.description=Replicates Pi-hole config to the NAS secondary"
