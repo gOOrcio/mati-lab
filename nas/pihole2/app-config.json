@@ -1,0 +1,42 @@
+{
+  "app_name": "pihole2",
+  "custom_app": true,
+  "values": {"ix_context": {}},
+  "custom_compose_config": {
+    "services": {
+      "pihole2": {
+        "image": "pihole/pihole:2025.11.1",
+        "restart": "unless-stopped",
+        "env_file": ["/mnt/fast/databases/pihole2/.env"],
+        "environment": {
+          "TZ": "Europe/Warsaw",
+          "FTLCONF_dns_listeningMode": "all",
+          "FTLCONF_dns_upstreams": "1.1.1.1;1.0.0.1;8.8.4.4",
+          "FTLCONF_webserver_port": "8080",
+          "FTLCONF_dhcp_enabled": "false",
+          "FTLCONF_webserver_use_https": "false",
+          "FTLCONF_dns_specialDomains_iCloudPrivateRelay": "false",
+          "FTLCONF_misc_etc_dnsmasq_d": "true",
+          "DNSMASQ_USER": "root"
+        },
+        "volumes": [
+          {"type": "bind", "source": "/mnt/fast/databases/pihole2/etc-pihole", "target": "/etc/pihole"},
+          {"type": "bind", "source": "/mnt/fast/databases/pihole2/etc-dnsmasq.d", "target": "/etc/dnsmasq.d"}
+        ],
+        "ports": [
+          {"mode": "host", "protocol": "tcp", "host_ip": "192.168.1.65", "published": 53, "target": 53},
+          {"mode": "host", "protocol": "udp", "host_ip": "192.168.1.65", "published": 53, "target": 53},
+          {"mode": "host", "protocol": "tcp", "published": 30053, "target": 8080}
+        ],
+        "cap_add": ["NET_ADMIN", "NET_RAW", "SETFCAP", "CHOWN", "SETGID", "SETUID", "DAC_OVERRIDE"],
+        "cap_drop": ["ALL"],
+        "labels": [
+          "homepage.group=NAS",
+          "homepage.name=Pi-hole (secondary)",
+          "homepage.icon=pi-hole.png",
+          "homepage.description=DNS secondary - filtering + split-horizon parity with the Pi"
+        ]
+      }
+    }
+  }
+}

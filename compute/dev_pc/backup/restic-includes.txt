@@ -6,6 +6,7 @@ Projects
 .claude
 .config
 .ssh
+unifi-backups
 .zshrc
 .bashrc
 .gitconfig
