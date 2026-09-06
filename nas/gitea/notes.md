@@ -68,7 +68,13 @@ Highlights:
 - `[server] ROOT_URL=https://gitea.mati-lab.online/`
 - `[actions] ENABLED=true` (CI runner needs this)
 - `[packages]` enabled (container registry needs this)
-- `[indexer] REPO_INDEXER_ENABLED=false` (avoids 6× repo disk bloat)
+- `[indexer] REPO_INDEXER_ENABLED=true` (flipped 2026-09-06 — cross-repo code
+  search at Explore → Code. Was `false` at install over disk-bloat worry;
+  enabled with `MAX_FILE_SIZE=1048576` + `REPO_INDEXER_EXCLUDE` for
+  node_modules/.venv/vendor/dist/minified/lockfiles to keep the bleve index
+  lean. Index lives at `/mnt/bulk/gitea/data/indexers/repos.bleve` (persistent
+  bind mount; ~18 MB at enable). Pre-edit backup: `app.ini.bak-20260906` next
+  to the config.)
 - `[cron.archive_cleanup] OLDER_THAN=168h` (kills archive ZIPs after 7 days)
 - `[oauth2_client] ENABLE_AUTO_REGISTRATION=true ACCOUNT_LINKING=auto`
 - `[repository] DEFAULT_BRANCH=main DEFAULT_PUSH_CREATE_PRIVATE=true`
