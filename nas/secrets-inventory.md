@@ -181,13 +181,16 @@ See [`litellm/notes.md`](litellm/notes.md) for `/key/generate`, `/key/regenerate
 |---|---|---|---|---|---|
 | **Restic repo password** | Dev PC `~/.config/restic/repo-password` (0600) | `homelab/dev-pc/restic-repo-password` | Decrypts the entire dev-PC restic repo (`~/Projects`, `~/.claude`, `~/.ssh`, dotfiles). **Loss = unrecoverable backups** — same property as the NAS dump passphrase (intentional: the repo password is meaningful precisely because PM is the only holder). | Restic supports adding a second password to the repo before retiring the old one: (1) `restic key add` (paste new). (2) Replace contents of `~/.config/restic/repo-password`. (3) `restic key remove <old-id>`. (4) PM. | 2026-05-04 (issued at install) |
 
-## Sentinel Trader (compute)
+## Sentinel Trader (compute) — DECOMMISSIONED 2026-09-06
 
-| Role | File on disk | PM label | Dependents | Procedure | Last rotated |
-|---|---|---|---|---|---|
-| **XTB broker creds** | Sentinel Trader VM `.env` (`XTB_USER_ID`, `XTB_PASSWORD`) | `homelab/sentinel-trader/xtb` | Trading bot. | XTB account portal → roll → update VM `.env` → restart bot. | (Phase 5 install) |
-| **Anthropic key** | Sentinel Trader VM `.env` (`ANTHROPIC_API_KEY`) | `homelab/sentinel-trader/anthropic` | Sentinel Trader's Claude calls (separate from LiteLLM). | Anthropic console → roll → update `.env`. | (install) |
-| **Telegram bot** | Sentinel Trader VM `.env` (`TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`) | `homelab/sentinel-trader/telegram` | Sentinel Trader notifications. | BotFather → roll → update `.env`. | (install) |
+The VM (192.168.1.202) no longer exists on Proxmox (gone since ~2026-05).
+The `.env` died with it, but the credentials themselves may still be live at
+their providers — **revoke, don't just delete the PM rows**:
+`homelab/sentinel-trader/anthropic` (console.anthropic.com → disable key),
+`homelab/sentinel-trader/telegram` (BotFather `/revoke`),
+`homelab/sentinel-trader/xtb` (XTB portal password change if it was a real
+account). Provisioning code remains at `compute/sentinel_trader_vm/` for a
+future rebuild.
 
 ## Gitea Runner VM
 
