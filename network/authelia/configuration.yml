@@ -58,8 +58,13 @@ access_control:
 notifier:
   # SMTP via Resend — enables self-service password reset + 2FA re-enrollment
   # from the user portal (was filesystem, which wrote verification links to
-  # a file inside the container). Password is a Resend API key in the same
-  # {{ secret }}-file pattern as the OIDC secrets. See nas/secrets-inventory.md.
+  # a file inside the container). Password is a Resend API key read via the
+  # same secret-file template helper as the OIDC secrets below.
+  # WARNING: this file is rendered as a Go template BEFORE it is parsed as
+  # YAML, so template braces are evaluated even inside a '#' comment. Never
+  # write a bare template call in prose here — an argument-less one emptied
+  # the entire config and took Authelia (and every forward_auth vhost) down
+  # on 2026-09-06. See nas/secrets-inventory.md for the rotation row.
   disable_startup_check: false
   smtp:
     address: 'submissions://smtp.resend.com:465'
