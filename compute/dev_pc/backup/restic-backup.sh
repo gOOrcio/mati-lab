@@ -59,6 +59,11 @@ if [ ${#INCLUDE_ARGS[@]} -eq 0 ]; then
   exit 1
 fi
 
+# Clear stale locks (dead-PID only — restic refuses to remove live ones).
+# An interrupted prune leaves an exclusive lock that silently blocks every
+# subsequent run; this bit us 2026-08-13 → 2026-09-06 (3.5-week backup gap).
+restic unlock || echo "WARN: restic unlock failed; proceeding" >&2
+
 START=$(date -u +%FT%TZ)
 echo "[$START] dev-pc restic backup start"
 echo "  paths: ${INCLUDE_ARGS[*]}"
