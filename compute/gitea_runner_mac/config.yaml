@@ -1,0 +1,29 @@
+# act_runner config — canonical copy for the MacBook runner.
+# Live file: ~/.config/act_runner/config.yaml on the Mac.
+# Generated via `act_runner generate-config`, trimmed to the fields we set;
+# unlisted fields ride on defaults. NO secrets in this file (the runner
+# credential lives in ~/.config/act_runner/.runner — never committed).
+
+log:
+  level: info
+
+runner:
+  # one job at a time — this is a laptop, not a build farm
+  capacity: 1
+  timeout: 3h
+  # labels are set at registration; kept here for reference
+  labels:
+    - "macos-arm64:host"
+    - "linux-arm64:docker://ghcr.io/catthehacker/ubuntu:act-latest"
+
+cache:
+  enabled: true
+
+container:
+  # If the Mac runs colima, the socket must be explicit, e.g.:
+  #   docker_host: "unix:///Users/<user>/.colima/default/docker.sock"
+  # OrbStack / Docker Desktop work with the default socket — leave unset.
+  network: bridge
+
+host:
+  workdir_parent: ~/.cache/act_runner

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- User LaunchAgent for the Gitea act_runner (canonical copy).
+     Live file: ~/Library/LaunchAgents/io.gitea.act_runner.plist
+     Replace __HOME__ and __ACT_RUNNER__ (e.g. /opt/homebrew/bin/act_runner)
+     with real paths on install. -->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>io.gitea.act_runner</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>__ACT_RUNNER__</string>
+    <string>daemon</string>
+    <string>--config</string>
+    <string>__HOME__/.config/act_runner/config.yaml</string>
+  </array>
+  <key>WorkingDirectory</key>
+  <string>__HOME__/.config/act_runner</string>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>KeepAlive</key>
+  <true/>
+  <key>StandardOutPath</key>
+  <string>__HOME__/Library/Logs/act_runner.log</string>
+  <key>StandardErrorPath</key>
+  <string>__HOME__/Library/Logs/act_runner.log</string>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <!-- keep brew + docker CLI findable from launchd's sparse PATH -->
+    <key>PATH</key>
+    <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+  </dict>
+</dict>
+</plist>

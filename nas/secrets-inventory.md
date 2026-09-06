@@ -199,6 +199,12 @@ future rebuild.
 | **VM root password** | `compute/gitea_runner_vm/group_vars/all/vault.yml` (Ansible-vault encrypted) | `homelab/gitea-runner-vm/root` | Console + Ansible bootstrap. | `ansible-vault edit vault.yml`. | (install) |
 | **Runner registration token** | One-shot (consumed at register, then deleted) | (none) | act_runner identity. | Re-register on Gitea Site Admin → Actions → Runners. | (install) |
 
+## Gitea Runner — MacBook (conditional)
+
+| Role | File on disk | PM label | Dependents | Procedure | Last rotated |
+|---|---|---|---|---|---|
+| **Runner credential (`.runner`)** | Mac `~/.config/act_runner/.runner` (written at registration; runner token/UUID) | (none — regenerate, don't back up) | `macbook-arm64` runner identity. Loss/leak = delete the runner in Site Admin → Actions → Runners, re-register with a fresh one-shot token (command in `compute/gitea_runner_mac/notes.md`). | Delete stale runner in UI → mint one-shot token → `act_runner register --no-interactive …`. Never commit `.runner`. | (pending first registration) |
+
 ---
 
 ## Backups
