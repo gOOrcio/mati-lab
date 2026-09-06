@@ -54,3 +54,15 @@ the ALLOW list whenever a real command trips it.
 
 Hooks load at session start — after editing, restart Claude Code (or start a
 new session) for changes to take effect.
+
+## Known interaction: commit messages that quote commands
+
+The guard inspects the whole Bash command string, so a `git commit -m "…"`
+whose **message text** quotes a blocked command (e.g. describing a process
+listing, or a force-push) is blocked as if it were the real thing. It has no
+way to tell prose from intent.
+
+Write such messages to a file and use `git commit -F <file>`. That also
+avoids a second trap hit the same day: backticks inside a double-quoted
+`-m` string are command-substituted by the shell, which once launched an
+interactive interpreter that hung the commit until it timed out.
