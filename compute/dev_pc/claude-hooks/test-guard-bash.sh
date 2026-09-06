@@ -45,7 +45,20 @@ check block 'cat compute/gitea_runner_vm/group_vars/all/vault.yml'
 check block 'base64 network/authelia/data/oidc.key'
 check block 'cat /opt/mati-lab/network/alertmanager/ntfy-token'
 
+echo "== must BLOCK: process/env dumps (2026-09-06 key-leak class) =="
+check block 'pgrep -af git'
+check block 'pgrep -a claude'
+check block 'ps aux'
+check block 'ps -ef | grep claude'
+check block 'ps auxww'
+check block 'cat /proc/14926/environ'
+check block 'cat /proc/self/cmdline'
+
 echo "== must ALLOW (false positives are worse than misses) =="
+check allow 'pgrep -f claude'
+check allow 'pidof ollama'
+check allow 'ps -o pid,etime,comm -p 14926'
+check allow 'systemctl status fail2ban'
 check allow 'git push origin main'
 check allow 'git push -u origin feature-branch'
 check allow 'git push origin main && rm -f /tmp/scratch'

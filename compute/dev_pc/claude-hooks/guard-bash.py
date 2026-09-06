@@ -55,8 +55,18 @@ SECRET_PATH = re.compile(
     r"\.runner\b|"
     r"ntfy-token|smtp_password|"
     r"[\w-]*secret[\w-]*\.txt|"
-    r"credentials\.json"
+    r"credentials\.json|"
+    r"/proc/[^/\s]+/(environ|cmdline)"
     r")",
+    re.I,
+)
+
+# Process listings that print FULL command lines. On this box that reliably
+# dumps the Claude Code process, whose --mcp-config embeds a live LiteLLM
+# key — exactly how one leaked into a transcript on 2026-09-06. PID-only and
+# comm-only forms stay allowed.
+PROC_DUMP = re.compile(
+    r"(?<![\w./-])(ps\s+(aux|-ef|axww|auxww|aux?ww?)|pgrep\s+(-\w*[al]\w*))",
     re.I,
 )
 
@@ -82,6 +92,16 @@ BLOCK_SECRET_READ = (
     "human to paste the value into a `read -rs` prompt."
 )
 
+BLOCK_PROC_DUMP = (
+    "BLOCKED: process listing that prints full command lines.\n"
+    "On this machine that dumps the Claude Code process, whose --mcp-config "
+    "carries a live LiteLLM key inline — this is how one leaked into a "
+    "transcript on 2026-09-06 (it had to be rotated).\n"
+    "Allowed instead: `pgrep -f <pattern>` (PIDs only), "
+    "`ps -o pid,etime,comm -p <pid>`, `pidof <name>`, or "
+    "`systemctl status <unit>` when you just need to know if something runs."
+)
+
 BLOCK_GITHUB_PUSH = (
     "BLOCKED: pushing to GitHub.\n"
     "These repos mirror Gitea -> GitHub, and the mirror FORCE-pushes GitHub on "
@@ -104,6 +124,9 @@ def violation(segment: str):
 
     if READERS.search(segment) and SECRET_PATH.search(segment):
         return BLOCK_SECRET_READ
+
+    if PROC_DUMP.search(segment):
+        return BLOCK_PROC_DUMP
 
     return None
 
