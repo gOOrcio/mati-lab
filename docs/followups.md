@@ -83,7 +83,7 @@ Origin: Phase 6. Source: `docs/superpowers/plans/2026-04-30-phase-6-rag-pipeline
 
 | # | Item | Origin | Source |
 |---|---|---|---|
-| 4.f.1 | **arm64 runner strategy decision** — Phase 4 follow-up Task 8 is a decision-required gate (Defer / Mac stopgap / dedicated arm64 box). Tasks 9 implementation contingent on the choice. | Phase 4 follow-up | `docs/superpowers/plans/2026-04-29-cicd-followup-after-phase-4.md:423-462` |
+| 4.f.1 | ~~**arm64 runner strategy decision**~~ → resolved 2026-09-06: **Mac stopgap adopted.** Conditional runner `macbook-arm64` (labels `macos-arm64:host`, `linux-arm64:docker://…`) registered via LaunchAgent; scaffold + runbook in `compute/gitea_runner_mac/`. Reusable `image-build-arm64.yml` gained a `runner` input (default = runner-VM qemu path, never blocks); `build-caddy-arm64-native.yml` is the first dispatch-only native caller. Hard rule stands: nothing required targets the Mac labels. | Phase 4 follow-up | `compute/gitea_runner_mac/notes.md` |
 | 4.f.2 | **Gitea→ntfy bridge service** (own repo `gooral/gitea-ntfy-bridge`). Trigger: "after a week of MVP if webhook formatting becomes annoying." | Phase 4 follow-up | `docs/superpowers/plans/2026-04-29-cicd-followup-after-phase-4.md:509-523` |
 | 4.f.3 | **`pi-registry-pull` PAT rotation** — currently in use; rotate later if leaked. | Phase 4 follow-up | `docs/superpowers/plans/2026-04-29-cicd-followup-after-phase-4.md:537` |
 | 4.f.4 | **`madrale` repo into CI** — explicit opt-out; revisit if PoC promotes. | Phase 4 follow-up | `docs/superpowers/plans/2026-04-29-cicd-followup-after-phase-4.md:46` |

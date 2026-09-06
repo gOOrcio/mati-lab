@@ -1,0 +1,26 @@
+# Dispatch-only native arm64 build of the custom Caddy image on the
+# conditional MacBook runner (macbook-arm64, label linux-arm64).
+#
+# The regular push-triggered build (build-caddy-cloudflare.yml) stays on
+# the always-available runner VM via qemu — this is the fast path for when
+# the Mac is home. If dispatched while the Mac is away, the job queues
+# until it returns (or cancel it in the Actions UI).
+name: build-caddy-arm64-native
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Image tag to push"
+        type: string
+        default: "latest"
+
+jobs:
+  build:
+    uses: gooral/ci-workflows/.gitea/workflows/image-build-arm64.yml@main
+    with:
+      image-name: caddy-cloudflare
+      context: network/caddy
+      dockerfile: Dockerfile
+      tag: ${{ inputs.tag }}
+      runner: linux-arm64
+    secrets: inherit
