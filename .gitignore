@@ -48,3 +48,7 @@ CLAUDE.md
 
 compute/restorate_lxc/backups
 nas-secrets.yml
+
+# Gitea runner credential (created at registration on the Mac; never commit)
+compute/gitea_runner_mac/.runner
+**/.runner
