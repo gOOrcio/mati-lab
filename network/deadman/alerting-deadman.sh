@@ -39,8 +39,9 @@ if ! grep -q '"Watchdog"' <<<"$AM_ALERTS"; then
   FAILURES+=("Watchdog alert missing from Alertmanager (Prometheus->AM chain broken)")
 fi
 
-# 2. Notification failures counter flat
-NOTIFY_FAILS=$(curl -fsS --max-time 15 \
+# 2. Notification failures counter flat (prometheus publishes no host port —
+# query it inside its own container, same as the Alertmanager check above)
+NOTIFY_FAILS=$(docker exec prometheus wget -qO- \
   'http://localhost:9090/api/v1/query?query=sum(increase(alertmanager_notifications_failed_total%5B2h%5D))' 2>/dev/null \
   | python3 -c 'import json,sys
 d=json.load(sys.stdin)["data"]["result"]
