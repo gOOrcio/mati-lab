@@ -1,0 +1,10 @@
+[Unit]
+Description=Run alerting dead-man check every 6h
+
+[Timer]
+OnCalendar=*-*-* 01,07,13,19:11:00
+Persistent=true
+RandomizedDelaySec=120
+
+[Install]
+WantedBy=timers.target

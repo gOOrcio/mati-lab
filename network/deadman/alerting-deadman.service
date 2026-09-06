@@ -1,0 +1,9 @@
+[Unit]
+Description=Alerting-pipeline dead-man check
+Documentation=file:///opt/mati-lab/network/deadman/alerting-deadman.sh
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/opt/mati-lab/network/deadman/alerting-deadman.sh

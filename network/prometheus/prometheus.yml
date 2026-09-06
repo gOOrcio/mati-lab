@@ -24,6 +24,11 @@ scrape_configs:
     static_configs:
       - targets: ['prometheus:9090']
 
+  # Needed by rules/deadman.yml (alertmanager_notifications_failed_total).
+  - job_name: alertmanager
+    static_configs:
+      - targets: ['alertmanager:9093']
+
   - job_name: restorate
     static_configs:
       - targets: ['192.168.1.203:3001']
