@@ -18,6 +18,7 @@ services:
       - --web.external-url=https://alertmanager.mati-lab.online
     volumes:
       - ./alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - ./ntfy-token:/etc/alertmanager/ntfy-token:ro
       - alertmanager-data:/alertmanager
     labels:
       - "com.docker.compose.project=alertmanager"

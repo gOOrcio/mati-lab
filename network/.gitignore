@@ -12,3 +12,5 @@
 # Backup files
 *.backup
 *.bak
+# Secret token files (values live in the password manager)
+ntfy-token

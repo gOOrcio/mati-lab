@@ -22,6 +22,13 @@ receivers:
     webhook_configs:
       - url: 'http://ntfy:80/homelab-alerts'
         send_resolved: true
+        http_config:
+          # ntfy runs auth-default-access:deny — anonymous publishes get 403.
+          # Token minted for the dedicated write-only `alertmanager` ntfy user;
+          # rotation row in nas/secrets-inventory.md (ntfy section).
+          authorization:
+            type: Bearer
+            credentials_file: /etc/alertmanager/ntfy-token
 
 inhibit_rules:
   # If a pool is critical-full, suppress the warning-full alert for the same pool.
