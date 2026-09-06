@@ -85,6 +85,36 @@ QBIT_MCP_PORT=$(docker port ix-qbittorrent-mcp-qbittorrent-mcp-1 2>/dev/null | g
 [ -n "$QBIT_MCP_PORT" ] && check_mcp qbittorrent-mcp "$QBIT_MCP_PORT" /mnt/fast/databases/qbittorrent-mcp/.env \
   || fail "mcp bearer qbittorrent-mcp (container port not found)"
 
+# --- Hermes-side copies of the MCP bearers, in sync with the .env source? ---
+# Hermes embeds the literal Bearer value in config.yaml (its ${VAR} substitution
+# does not fire inside `headers` — followup 7.x.7), so each token lives in TWO
+# places. Rotating one and not the other 401s Hermes against that MCP server
+# with everything still looking healthy. Compared by sha256 — values never printed.
+# NOTE: this file moved when the bespoke `hermes` app was replaced by
+# `hermes-agent` (2026-07-31); the inventory pointed at the dead path until
+# 2026-09-06.
+HERMES_CFG=/mnt/fast/databases/hermes/data/config.yaml
+if [ -r "$HERMES_CFG" ]; then
+  for spec in "vault-rag-mcp:/mnt/fast/databases/vault-rag-mcp/.env" \
+              "qbittorrent-mcp:/mnt/fast/databases/qbittorrent-mcp/.env"; do
+    IFS=: read -r name envfile <<<"$spec"
+    tok=$(envval "$envfile" MCP_BEARER_TOKEN)
+    if [ -z "$tok" ]; then fail "hermes bearer copy $name (no token in $envfile)"; continue; fi
+    verdict=$(python3 - "$HERMES_CFG" "$tok" <<'PY'
+import hashlib, re, sys
+text = open(sys.argv[1]).read()
+present = {hashlib.sha256(m.group(1).encode()).hexdigest()
+           for m in re.finditer(r'Bearer\s+([A-Za-z0-9._\-]+)', text)}
+print("MATCH" if hashlib.sha256(sys.argv[2].encode()).hexdigest() in present else "MISMATCH")
+PY
+)
+    [ "$verdict" = "MATCH" ] && ok "hermes bearer copy $name" \
+      || fail "hermes bearer copy $name ($verdict — config.yaml disagrees with $envfile)"
+  done
+else
+  fail "hermes config.yaml unreadable at $HERMES_CFG (path moved?)"
+fi
+
 # --- dump passphrase file ---
 P=/mnt/bulk/backups/.secrets/dump-passphrase
 if [ -s "$P" ] && [ "$(stat -c %a "$P")" = "600" ]; then ok "dump-passphrase file"; else fail "dump-passphrase file (missing/empty/bad mode)"; fi
