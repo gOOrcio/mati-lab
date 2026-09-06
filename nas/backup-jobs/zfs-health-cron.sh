@@ -51,5 +51,5 @@ fi
 
 # Heartbeat: only when fully green, so a missed Kuma push = something
 # above failed (or the cron never ran).
-[ -n "$KUMA_URL" ] && curl -fsS -m 10 "$KUMA_URL?status=up&msg=ok" >/dev/null || true
+[ -n "$KUMA_URL" ] && curl -fsS -m 10 --retry 3 --retry-delay 45 --retry-all-errors "$KUMA_URL?status=up&msg=ok" >/dev/null || true
 echo "$(date -u +%FT%TZ) zfs health green"

@@ -22,7 +22,7 @@ echo "==== $(date -u +%FT%TZ) hermes-backup.sh start ===="
 DEST=/mnt/bulk/backups/hermes
 PASSF=/mnt/bulk/backups/.secrets/dump-passphrase
 RETAIN_DAYS=14
-DATA_DIR=/mnt/.ix-apps/app_mounts/hermes/data        # host-side bind mount of /opt/data inside container
+DATA_DIR=/mnt/fast/databases/hermes/data        # host-side bind mount of /opt/data inside container
 TMP_BASENAME=_pending_backup.zip                      # ephemeral, lives inside DATA_DIR briefly
 
 [ -f /root/.backup-env ] && . /root/.backup-env || true
@@ -34,9 +34,9 @@ chmod 700 "$DEST"
 DATE=$(date -u +%Y%m%dT%H%M%SZ)
 OUT="$DEST/hermes-$DATE.zip.gpg"
 
-HERMES_CONTAINER=$(docker ps --format '{{.Names}}' | grep '^ix-hermes-hermes-' | grep -v dashboard | head -1)
+HERMES_CONTAINER=$(docker ps --format '{{.Names}}' | grep '^ix-hermes-agent-hermes-agent-' | grep -v dashboard | head -1)
 if [ -z "$HERMES_CONTAINER" ]; then
-  echo "ERROR: ix-hermes-hermes-* container not running" >&2
+  echo "ERROR: ix-hermes-agent-hermes-agent-* container not running" >&2
   exit 1
 fi
 
@@ -69,6 +69,6 @@ fi
 
 find "$DEST" -name 'hermes-*.zip.gpg' -mtime +$RETAIN_DAYS -delete
 
-[ -n "$KUMA_URL" ] && curl -fsS -m 10 "$KUMA_URL?status=up&msg=ok" >/dev/null || true
+[ -n "$KUMA_URL" ] && curl -fsS -m 10 --retry 3 --retry-delay 45 --retry-all-errors "$KUMA_URL?status=up&msg=ok" >/dev/null || true
 
 echo "$(date -u +%FT%TZ) hermes dump ok: $OUT ($(du -h "$OUT" | cut -f1))"

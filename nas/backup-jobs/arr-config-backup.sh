@@ -89,7 +89,10 @@ backup_bazarr() {
   local after new=""
   for _ in $(seq 1 30); do
     after=$(ls -1 "$backups_dir" 2>/dev/null | sort) || true
-    new=$(comm -13 <(printf '%s\n' "$before") <(printf '%s\n' "$after"))
+    # Bazarr drops transient bazarr_temp.db/-journal files in the same dir
+    # mid-backup; a multi-file diff turns $new into "a\nb" and cp mangles it.
+    # Only the finished .zip counts.
+    new=$(comm -13 <(printf '%s\n' "$before") <(printf '%s\n' "$after") | grep -E '\.zip$' | tail -1)
     [ -n "$new" ] && break
     sleep 1
   done
@@ -128,6 +131,6 @@ fi
 
 find "$DEST" -name 'arr-*.tar.gz.gpg' -mtime +$RETAIN_DAYS -delete
 
-[ -n "$KUMA_URL" ] && curl -fsS -m 10 "$KUMA_URL?status=up&msg=ok" >/dev/null || true
+[ -n "$KUMA_URL" ] && curl -fsS -m 10 --retry 3 --retry-delay 45 --retry-all-errors "$KUMA_URL?status=up&msg=ok" >/dev/null || true
 
 echo "$(date -u +%FT%TZ) arr backup ok: $OUT ($(du -h "$OUT" | cut -f1))"

@@ -112,6 +112,19 @@ Origin: Phase 6. Source: `docs/superpowers/plans/2026-04-30-phase-6-rag-pipeline
 | net.8 | **Salon p8 (uplink to Szafa) shows 697 tx_errors.** Zero rx errors anywhere and the link is 1000 Mb full-duplex, so this is not currently degrading throughput — but tx errors on an uplink trunk are worth re-checking after any cabling work. If the count climbs, re-seat or replace the Szafa p4 ↔ Salon p8 lead. | 2026-08-13 network goal | `network/unifi/notes.md` |
 | net.6 | **Double NAT** — UDR WAN is `192.168.100.15` behind the Netia router (external `78.10.194.116`). Not currently causing harm (WAN measured 3.09 ms avg, 0% loss, 0 downtime over 24 h), but constrains inbound port-forwarding and is worth knowing before any inbound-service work. Fix would be bridge/passthrough mode on the Netia unit. | 2026-08-13 network goal | `network/unifi/notes.md` |
 
+## 2026-09-06 full-sweep followups
+
+See [`docs/sweep-2026-09-06.md`](sweep-2026-09-06.md) for the full findings record.
+
+| # | Item | Origin | Source |
+|---|---|---|---|
+| sw.1 | **Pi containerd store on SD card.** Storage driver is containerd-snapshotter: 12G of image layers in `/var/lib/containerd` on mmcblk0 (SD) — the NVMe move only covered `/var/lib/docker` (1.2G). Also the cause of cadvisor's ~32k/day "failed to identify read-write layer" log noise. Fix = stop docker+containerd, move `/var/lib/containerd` to NVMe, bind/symlink or `root =` config, restart (full-stack downtime, needs a quiet window). | 2026-09-06 sweep | `docs/sweep-2026-09-06.md` |
+| sw.2 | **gluetun PF observability via control API.** v3.41 truncates `/tmp/gluetun/forwarded_port` on VPN health cycles and only rewrites on change (probe was red 86 days over nothing). Log-fallback shipped in `qbit-port-probe.sh`; durable fix = control-server `config.toml` auth role for `GET /v1/openvpn/portforwarded` (mount into gluetun, app.update full-blob) or a gluetun bump if the file bug is fixed upstream, then point the probe at the API. | 2026-09-06 sweep | `nas/vpn-stack/scripts/qbit-port-probe.sh` |
+| sw.3 | **Remove empty `bulk/backups/network-pi` dataset shadowing the Pi's backup dir.** Pi nightly backups land in the parent dataset's directory *under* the empty child dataset mount (NAS-side ls shows nothing; data is present + snapshotted via parent). `pool.dataset.delete` EBUSYs while NFS pins it — quiesce NFS (or run right after NAS reboot), delete, verify Pi data visible NAS-side. | 2026-09-06 sweep | `docs/sweep-2026-09-06.md` |
+| sw.4 | **`secrets-drift-check.sh`** — weekly read-only cron (NAS + Pi) that authenticates as every stored credential consumer (homebridge login, ntfy publish, *arr keys, Kuma push URLs, CouchDB `_up`, LiteLLM virtual keys, Gitea PAT) + hashes `.scripts/*` against the repo, pushing one Kuma monitor. Would have caught all four silent credential failures found in the sweep. Design in `docs/secrets-management-proposal.md` (option C). | 2026-09-06 sweep | `docs/secrets-management-proposal.md` |
+| sw.5 | **Inventory cleanup pending confirmation**: sentinel-trader (.202) + sonarqube (.201) absent from Proxmox — if decommissioned: drop Prometheus target `.202:9090`, host-table rows in `~/.claude/CLAUDE.md`, Sentinel secrets-inventory rows. Also: stopped VM 100 (dup ollama-gpu) still in the weekly vzdump job (~2.8 GB/week); `restorate-dev` target `.173:3001` (mati-gamer, usually off) now feeds live alerts. | 2026-09-06 sweep | `docs/sweep-2026-09-06.md` |
+| sw.6 | **Pi fail2ban runs a held Debian 1.1.0 deb** (`apt-mark hold fail2ban`) because noble's 1.0.2 is broken on Python 3.12. Unhold + return to distro package at the next Ubuntu LTS upgrade. | 2026-09-06 sweep | `docs/sweep-2026-09-06.md` |
+
 ## Out of scope, no phase named
 
 | # | Item | Origin | Source |

@@ -44,6 +44,14 @@ push_kuma() {
 # 1. Read gluetun's forwarded port.
 GLUETUN_PORT=$(docker exec "$GLUETUN" cat /tmp/gluetun/forwarded_port 2>/dev/null | tr -d '[:space:]' || true)
 if [ -z "$GLUETUN_PORT" ] || [ "$GLUETUN_PORT" = "0" ]; then
+  # gluetun (v3.41) truncates the port file on internal VPN health cycles and
+  # only rewrites it when the granted port CHANGES — an empty file does not
+  # mean the lease is gone (bit us: probe red ~86 days while PF worked fine).
+  # Fall back to the last grant line in the container log.
+  GLUETUN_PORT=$(docker logs --since 96h "$GLUETUN" 2>&1 \
+    | grep -oE 'port forwarded is [0-9]+' | tail -1 | grep -oE '[0-9]+' || true)
+fi
+if [ -z "$GLUETUN_PORT" ] || [ "$GLUETUN_PORT" = "0" ]; then
   push_kuma down "gluetun forwarded_port empty (NAT-PMP not granted)"
   echo "[qbit-port-probe] DOWN: gluetun forwarded_port empty" >&2
   exit 0

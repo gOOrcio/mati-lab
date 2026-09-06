@@ -83,6 +83,6 @@ fi
 find "$DEST" -name 'homebridge-*.tar.gz.gpg' -mtime +$RETAIN_DAYS -delete
 
 # --- 5. Kuma heartbeat ---
-[ -n "$KUMA_URL" ] && curl -fsS -m 10 "$KUMA_URL?status=up&msg=ok" >/dev/null || true
+[ -n "$KUMA_URL" ] && curl -fsS -m 10 --retry 3 --retry-delay 45 --retry-all-errors "$KUMA_URL?status=up&msg=ok" >/dev/null || true
 
 echo "$(date -u +%FT%TZ) homebridge backup ok: $OUT ($(du -h "$OUT" | cut -f1))"

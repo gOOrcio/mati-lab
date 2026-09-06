@@ -40,6 +40,6 @@ fi
 
 find "$DEST" -name 'litellm-*.sql.gz.gpg' -mtime +$RETAIN_DAYS -delete
 
-[ -n "$KUMA_URL" ] && curl -fsS -m 10 "$KUMA_URL?status=up&msg=ok" >/dev/null || true
+[ -n "$KUMA_URL" ] && curl -fsS -m 10 --retry 3 --retry-delay 45 --retry-all-errors "$KUMA_URL?status=up&msg=ok" >/dev/null || true
 
 echo "$(date -u +%FT%TZ) litellm dump ok: $OUT ($(du -h "$OUT" | cut -f1))"
