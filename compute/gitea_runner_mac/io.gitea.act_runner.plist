@@ -2,7 +2,8 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <!-- User LaunchAgent for the Gitea act_runner (canonical copy).
      Live file: ~/Library/LaunchAgents/io.gitea.act_runner.plist
-     Replace __HOME__ and __ACT_RUNNER__ (e.g. /opt/homebrew/bin/act_runner)
+     Replace __HOME__ and __ACT_RUNNER__ (Homebrew formula is `gitea-runner`;
+     binary is /opt/homebrew/bin/gitea-runner, same subcommands as act_runner)
      with real paths on install. -->
 <plist version="1.0">
 <dict>

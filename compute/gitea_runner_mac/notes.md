@@ -33,7 +33,10 @@ launchctl unload ~/Library/LaunchAgents/io.gitea.act_runner.plist
 launchctl load   ~/Library/LaunchAgents/io.gitea.act_runner.plist
 
 # re-register (new token from Site Admin → Actions → Runners → Create new Runner)
-act_runner register --no-interactive \
+# (binary is `gitea-runner`; labels come from config.yaml — the --labels flag is
+#  ignored when the config file defines them, so keep them in sync there)
+cd ~/.config/act_runner && gitea-runner register --no-interactive \
+  --config ~/.config/act_runner/config.yaml \
   --instance https://gitea.mati-lab.online \
   --token <one-shot token> \
   --name macbook-arm64 \
@@ -49,8 +52,22 @@ Set up via a self-contained Claude prompt (2026-09-06 session; see
 after first registration — reconcile this file with the Mac-side setup
 summary (runtime used, any deviations).
 
-- [ ] Reconciled with actual Mac install (fill in: docker runtime, act_runner
-  version, deviations)
+- [x] Reconciled with actual Mac install (2026-09-06)
+  - Docker runtime: **Docker Desktop** (already installed; `AutoStart` was
+    already on, nothing changed). Daemon 27.4.0, aarch64, 8 CPU.
+  - Runner: Homebrew formula `gitea-runner` **3.3.2** (formula renamed from
+    `act_runner`; binary is `/opt/homebrew/bin/gitea-runner`). Registered as
+    runner id 6.
+  - Deviations from the original scaffold:
+    - `container.docker_host` set explicitly to Docker Desktop's socket
+      (`~/.docker/run/docker.sock`) — launchd has no docker CLI context and
+      `/var/run/docker.sock` was absent.
+    - `host.workdir_parent` made absolute (runner does not expand `~`).
+    - plist `__ACT_RUNNER__` → `/opt/homebrew/bin/gitea-runner`.
+    - `~/.config/act_runner/.runner` chmod 600.
+  - Verified: LaunchAgent running (KeepAlive), log shows
+    `declare successfully` with both labels; `docker run --rm arm64v8/alpine
+    uname -m` → `aarch64`.
 
 ## What targets it
 

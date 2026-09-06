@@ -20,10 +20,13 @@ cache:
   enabled: true
 
 container:
-  # If the Mac runs colima, the socket must be explicit, e.g.:
-  #   docker_host: "unix:///Users/<user>/.colima/default/docker.sock"
-  # OrbStack / Docker Desktop work with the default socket — leave unset.
+  # Socket is set explicitly: launchd does not see the docker CLI context, and
+  # Docker Desktop's /var/run/docker.sock symlink only exists once its
+  # privileged helper is installed. Docker Desktop's own socket is stable.
+  # (colima would be unix:///Users/<user>/.colima/default/docker.sock)
+  docker_host: "unix:///Users/mateuszgoral/.docker/run/docker.sock"
   network: bridge
 
 host:
-  workdir_parent: ~/.cache/act_runner
+  # absolute path — the runner does not expand `~`
+  workdir_parent: /Users/mateuszgoral/.cache/act_runner
