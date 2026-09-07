@@ -480,6 +480,38 @@ It is inert while a zone holds a single network — same-subnet traffic is
 L2-switched and never reaches the firewall. Do not "fix" it to Allow on sight;
 it only becomes relevant if a second network is added to an existing zone.
 
+### The policy-ordering endpoint is broken on 10.6.101 — reorder in the UI
+
+`PUT /integration/v1/sites/<site>/firewall/policies/ordering` returns
+`500 api.unexpected-error` on every attempt, with a valid body and both required
+query params (`sourceFirewallZoneId`, `destinationFirewallZoneId`). The matching
+`GET` works and reports the current order, so the ids are right.
+
+Consequence: **you cannot place a policy above an existing one via the API.**
+Within a zone pair, user policies are indexed in creation order — 10000, 10001,
+… — so a rule created later always evaluates later. If ordering matters (a deny
+that must precede an allow), either create them in the required order to begin
+with, or drag them in the UI: Settings → Security → Firewall → Policies → Reorder.
+
+### IoT devices that ride on a shared SSID inherit that SSID's VLAN
+
+The LG fridge and Aqara Hub could not be re-onboarded onto `konewka_iot`, so they
+stayed on `konewka`. When `konewka` moved to Trusted (VLAN 20) on 2026-09-07 they
+moved with it — and Trusted carries `Trusted-to-Infra-allow`, so two IoT devices
+silently gained **full access to VLAN 1**, the exact outcome the segmentation
+exists to prevent. They were *more* contained on VLAN 1 than they are on 20.
+
+An SSID is a VLAN assignment for every device on it. "Leave it where it is" is not
+a stable decision once that SSID is scheduled to move — re-check every accepted
+exception after any SSID re-binding.
+
+Mitigation in place: `IoT-exceptions-to-Infra-deny`, source zone Trusted with a
+**MAC** filter (`54:ef:44:68:16:6d`, `1c:39:29:86:51:fd`) → Internal, `BLOCK`,
+`connectionStateFilter: ["NEW"]` so Homebridge can still drive the Aqara Hub.
+MAC rather than IP because reservations for these two would not persist.
+**It is created but sits at index 10001, below the allow at 10000, so it is not
+yet enforcing** — it needs the UI reorder described above.
+
 ### Guest control restricted subnets
 
 `guest_access` carries `restricted_subnet_1/2/3` = `192.168.0.0/16`,
