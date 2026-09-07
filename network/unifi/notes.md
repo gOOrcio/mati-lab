@@ -382,6 +382,34 @@ Audit that list *before* any migration batch — a reservation you believe pins 
 address may be inert, which turns "the device got the wrong IP" into a confusing
 hunt through DHCP logs.
 
+### Gotcha: switch port counters update in lumps, client counters are often null
+
+`stat/device` `port_table[].rx_bytes` is the only reliable throughput signal —
+client-level `tx_bytes`/`rx_bytes` in `stat/sta` are frequently `null` even for a
+device that is plainly working.
+
+But the port counters refresh roughly every **40–60 s**, not per request. Two
+samples 30 s apart can return byte-identical values for a link carrying several
+Mbps. On 2026-09-07 that produced a "delta = 0 bytes → stream stopped" reading
+for a camera that was streaming normally, and nearly triggered a rollback of a
+correct firewall change.
+
+**Sample over ≥90 s, or take 4–5 samples and use first-to-last**, before
+concluding a link is idle:
+
+```bash
+A=$(api "$B/api/s/default/stat/device" | jq -r '.data[]|select(.name=="Salon")|.port_table[]|select(.port_idx==1)|.rx_bytes')
+sleep 90
+Bv=$(api "$B/api/s/default/stat/device" | jq -r '.data[]|select(.name=="Salon")|.port_table[]|select(.port_idx==1)|.rx_bytes')
+echo $(( (Bv - A) * 8 / 90 / 1000000 )) Mbps
+```
+
+This is the fourth form of the same lesson: **the controller is not ground
+truth.** Stale reservations, untracked DHCP leases, reverted SSID bindings and
+lumpy counters have each shown a device as wrong while it worked, or right while
+it did not. Verify against the network — pings, HTTP fingerprints, throughput
+deltas, both legs of a zone pair.
+
 ### Guest control restricted subnets
 
 `guest_access` carries `restricted_subnet_1/2/3` = `192.168.0.0/16`,
