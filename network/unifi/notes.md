@@ -512,6 +512,63 @@ MAC rather than IP because reservations for these two would not persist.
 **It is created but sits at index 10001, below the allow at 10000, so it is not
 yet enforcing** — it needs the UI reorder described above.
 
+## Adding a device after segmentation
+
+**Policy is per zone, not per device.** Of the user-defined firewall policies,
+almost all are zone-to-zone; a device inherits its zone from its VLAN. Nothing
+needs a rule written for it. (The two `pihole-*` rules are pre-ZBF legacy, and
+`IoT-exceptions-to-Infra-deny` is a workaround for devices that cannot be moved
+to the right SSID — not the design.)
+
+**Wireless — nothing to configure.** The SSID decides the VLAN:
+
+| SSID | VLAN | Access |
+|---|---|---|
+| `konewka`, `konewka_5g` | Trusted 20 | infra + IoT + cameras + internet |
+| `konewka_iot` | IoT 30 | internet + DNS only |
+| `konewka_guest` | Guest 50 | internet only, isolated |
+
+**Wired — the port decides, and it must be set deliberately.** There are three
+kinds of port and no single correct default:
+
+| Kind | Config | Examples |
+|---|---|---|
+| Infrastructure | VLAN 1, `forward: all` (trunk) | APs, switch uplinks, Proxmox host |
+| Client | access port, `forward: native` + `tagged_vlan_mgmt: block_all` | PC, PS5, AppleTV, camera, Hue Bridge |
+| Unused | least privilege (Guest 50) | Szafa p1/p5/p6/p7 |
+
+### Why wireless can auto-assign and wired cannot
+
+**An SSID is authenticated; a cable is not.** A device joining `konewka_iot`
+proves it belongs there by knowing that passphrase, so the VLAN can be inferred
+safely. A cable proves nothing — the port is the only signal, and it cannot know
+what is on the other end. 802.1X is the real answer to this and is overkill here.
+
+**Do not make Trusted the wired default.** It breaks the most likely wired
+addition: an AP needs a *trunk* (all VLANs tagged, VLAN 1 untagged for
+management). On a Trusted access port an AP loses its management network and
+every tagged SSID. This is why Salon p2, Szafa p2/p3/p4/p8 and Gabinet p1/p2 are
+deliberately untagged-all.
+
+It is also the wrong failure mode. Forget to downgrade a port and an IoT gadget
+silently gets full infra access, working perfectly, discovered during an
+incident. Forget to upgrade one and a PC just cannot reach the NAS — obvious and
+fixed in seconds. **Prefer the loud failure.**
+
+### Unused ports set to Guest (2026-09-08)
+
+Szafa p1/p5/p6/p7 → Guest 50, so anything plugged into a spare port gets internet
+and nothing else. Verified genuinely unused first — `rx_bytes`/`tx_bytes`/
+`rx_packets` all **0**.
+
+**Check the counters before assuming a down port is spare.** Gabinet p3 showed
+`up=false` but carried 42 GB rx / 129 GB tx — it is the work PC, merely powered
+off, and belongs on VLAN 1. Gabinet p4 also had real history. Both were excluded.
+
+`forward: "disabled"` does **not** down a port on 10.6 (that needs a Disabled
+port profile, and `rest/portconf` is empty), so pointing spare ports at Guest is
+the honest option — disabling them would look like protection without being it.
+
 ### Guest control restricted subnets
 
 `guest_access` carries `restricted_subnet_1/2/3` = `192.168.0.0/16`,
