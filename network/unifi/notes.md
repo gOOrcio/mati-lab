@@ -323,6 +323,30 @@ is still stronger — it keeps strangers off the SSID entirely.
 nothing to the radio. Portal-on-open leaves all guest traffic sniffable in the
 air. Encryption comes only from WPA2/WPA3 or OWE.
 
+### Gotcha: a zone deny silently eats return traffic
+
+The single most expensive bug of the segmentation work (2026-09-07). A deny like
+"VLAN X cannot reach `192.168.1.0/24`" written with no connection-state filter
+also kills the **return** leg of anything Infra initiates *into* VLAN X.
+
+ZBF derives a `<name> (Return)` policy when a policy sets
+`allowReturnTraffic: true`, but derived policies land at index **30000** while
+user-created policies land at **10000/10001**. Lower index wins:
+
+| idx | policy | states | effect |
+|---|---|---|---|
+| 10001 | `IoT-to-Infra-deny` | ALL | drops the replies |
+| 30000 | `Infra-to-IoT-allow (Return)` | RELATED, ESTABLISHED | never reached |
+
+**Fix: scope every such deny to `connectionStateFilter: ["NEW"]`.** New sessions
+initiated from the restricted VLAN are still blocked; established replies fall
+through to the return-allow.
+
+The symptom is nasty because everything looks right: the outbound leg tests fine,
+the policy list reads correctly, `enabled=true` — and the application is simply
+dead. Here it meant Homebridge could not drive the Hue Bridge. Test **both legs**
+of every zone pair, not just the direction the rule names.
+
 ### Guest control restricted subnets
 
 `guest_access` carries `restricted_subnet_1/2/3` = `192.168.0.0/16`,
