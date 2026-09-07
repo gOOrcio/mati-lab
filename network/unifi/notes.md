@@ -121,11 +121,12 @@ Rules encoded here:
 
 ## WLANs
 
-| SSID | Band | Security | Notes |
-|---|---|---|---|
-| `konewka` | 2.4 + 5 | WPA2, PMF optional | Main SSID. 802.11r + 802.11v on. Carries almost everything, IoT included. |
-| `konewka_iot` | 2.4 | WPA2, PMF **forced off** | Type `IOT_OPTIMIZED`. Nearly unused (1 client). PMF writes are silently rejected on this profile. |
-| `konewka_5g` | 5 only | WPA2/WPA3 transition, PMF optional | Kept deliberately for the PlayStation Portal, to guarantee 5 GHz for Remote Play. 802.11r enabled 2026-08-13. |
+| SSID | Band | Network | Security | Notes |
+|---|---|---|---|---|
+| `konewka` | 2.4 + 5 | **Trusted (VLAN 20)** since 2026-09-07 | WPA2, PMF optional | Main SSID. 802.11r + 802.11v on. Phones, MacBook, iPad, watch, dev PC Wi-Fi, RG556 — plus the LG fridge and Aqara Hub, which ride along as accepted exceptions (see net.1). **Binding lives in the PPSK entry, not the top-level field** — see the PPSK gotcha below. |
+| `konewka_iot` | 2.4 | IoT (VLAN 30) | WPA2, PMF **forced off** | Type `IOT_OPTIMIZED`, `l2_isolation` on. Carries the IoT fleet since 2026-09-07. PMF writes are silently rejected on this profile. |
+| `konewka_5g` | 5 only | **Trusted (VLAN 20)** since 2026-09-07 | WPA2/WPA3 transition, PMF optional | Kept deliberately for the PlayStation Portal, to guarantee 5 GHz for Remote Play. 802.11r enabled 2026-08-13. |
+| `konewka_guest` | 2.4 + 5 | Guest (VLAN 50) | WPA3, captive portal | Isolated. Created 2026-09-07. |
 
 All three have `minrate_setting_preference: manual` with a **6 Mbps floor** on
 both bands. Previously 1 Mbps, which let beacons and management frames go out at
@@ -435,6 +436,39 @@ Rules that follow:
 - **Repoint a DHCP reservation as part of the move, never ahead of it.** Three
   reservations were pre-pointed at VLAN 20 while the devices were still on VLAN 1;
   the RG556 stopped getting a lease at all until they were reverted.
+
+### Gotcha: with PPSK enabled, the private key entry owns the SSID's network
+
+`konewka` has `private_preshared_keys_enabled: true` with a single entry in
+`private_preshared_keys[]`, and each entry carries its **own** `networkconf_id`.
+When PPSK is on, that entry — not the top-level `networkconf_id` — decides which
+VLAN a client lands on, and the controller reconciles the top-level field back
+to match.
+
+Symptoms seen 2026-09-07 while rebinding `konewka` to Trusted:
+
+- `PUT rest/wlanconf/<id>` with only the top-level field changed returned
+  `{"meta":{"rc":"ok"},"data":[]}` — an **empty** `data` array, where a real
+  write echoes the object. A by-id read showed Trusted for a few seconds, then
+  every read (list and by-id) showed Default again. No client moved.
+- `konewka_5g`, which has no PPSK, rebound first time with the same pattern.
+
+Fix: transform **both** fields in the same write —
+
+```bash
+api "$B/api/s/default/rest/wlanconf/$W" | jq '.data[0]
+  | .networkconf_id=$n | .private_preshared_keys |= map(.networkconf_id=$n)' \
+  --arg n "$NET" > /tmp/w-put.json
+```
+
+After that write the response still echoes the top-level field as **Default**
+while the PPSK entry says Trusted, and every client re-leases on VLAN 20 anyway.
+The v1 API tells the truth here: `securityConfiguration.presharedKeys[].network`
+is the binding; read that, not the legacy top-level field, when verifying.
+
+`data: []` on a PUT is therefore a fourth "ok that confirms nothing" shape —
+treat it as a rejected or reconciled write and go find the field that owns the
+value.
 
 ### Intra-zone Block is the platform default, not a misconfiguration
 
