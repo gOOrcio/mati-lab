@@ -347,6 +347,28 @@ the policy list reads correctly, `enabled=true` — and the application is simpl
 dead. Here it meant Homebridge could not drive the Hue Bridge. Test **both legs**
 of every zone pair, not just the direction the rule names.
 
+### DHCP reservations are bound to a network, and go stale on a VLAN move
+
+A client reservation (`rest/user/<_id>`) carries `use_fixedip`, `fixed_ip` **and**
+`network_id`. Moving a device to another VLAN does not update it — the
+reservation silently stops applying, and the device takes a pool address instead.
+
+Seen 2026-09-07: the Hue Bridge held `fixed_ip: 192.168.1.221, network_id:
+Default` while physically on VLAN 30. It worked only because the UDR ignored the
+mismatched reservation and leased from the IoT pool.
+
+**When migrating a device between VLANs, update `network_id` and `fixed_ip`
+together**, in the same write as the port or SSID change:
+
+```bash
+api "$B/api/s/default/rest/user" | jq -r '.data[] | select(.use_fixedip==true)
+  | "\(.name // "-")\t\(.mac)\t\(.fixed_ip)\t\(.network_id // "-")"' | sort
+```
+
+Audit that list *before* any migration batch — a reservation you believe pins an
+address may be inert, which turns "the device got the wrong IP" into a confusing
+hunt through DHCP logs.
+
 ### Guest control restricted subnets
 
 `guest_access` carries `restricted_subnet_1/2/3` = `192.168.0.0/16`,
