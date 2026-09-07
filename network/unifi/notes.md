@@ -223,3 +223,61 @@ transcript) without fighting the regex.
 
 **Temporary keys must be revoked.** A key pasted into a chat transcript is
 burned; rotate it at the end of the work, per the final segmentation task.
+
+## Zone-Based Firewall (enabled 2026-09-07)
+
+Enabled from the UI (Settings → Security → Firewall). There is no API endpoint
+for the switch itself. The migration ran **without prompting** and did not drop
+anything: the two legacy `LAN_IN` accepts became eight ZBF policies (`pihole-dns`
+and `pihole-dhcp`, one copy per destination zone), and `rest/firewallrule` is now
+**empty** — legacy rules are gone, not shadowed.
+
+Zones after migration: `Internal` (holds `Default`), `External`, `Gateway`,
+`Vpn`, `Hotspot`, `Dmz`. Reachability was byte-identical before and after.
+
+`pihole-dhcp` is vestigial — the UDR is the DHCP server, so nothing matches it.
+Left in place rather than deleted; it costs nothing and removing it is a
+separate, revertible decision.
+
+### Policy ordering
+
+Lower `index` wins. User-created policies land at `10000`, derived return
+traffic and `Isolated Networks` blocks at `30000`, per-zone-pair defaults
+(`Allow All Traffic` / `Block All Traffic`) at `2147483647`. So a targeted allow
+at 10000 beats an isolation block at 30000 — that is precisely what lets an
+isolated VLAN keep DNS while everything else to `Internal` stays blocked.
+
+### Gotcha: the policies endpoint is paginated at 25
+
+With ZBF on there are ~96 policies. `GET …/firewall/policies` returns the first
+25 and gives no visual hint of truncation — a rule you just created simply is
+not in the response, and a filter over it looks like a clean negative result.
+
+**Always `?limit=200`, and assert against `totalCount`:**
+
+```bash
+api "$B/integration/v1/sites/$SITE/firewall/policies?limit=200" > /tmp/pol.json
+jq '.data|length as $n | .totalCount as $t
+    | if $n < $t then "TRUNCATED \($n)/\($t)" else "complete \($n)" end' /tmp/pol.json
+```
+
+This is the same class of bug as `rc: ok` — a successful-looking response that
+confirms nothing. It matters most for verifying that a DNS allow sits above a
+deny, which is the one ordering mistake that takes a whole VLAN offline.
+
+### Other 10.6 API shapes worth remembering
+
+- `action` is an object: use `.action.type`, not `\(.action)`.
+- Creating a network needs `management`, `name`, `vlanId`, `enabled`,
+  `isolationEnabled`, `internetAccessEnabled`, `cellularBackupEnabled` and
+  `ipv4Configuration`; with ZBF on, **`zoneId` is also required** even though the
+  OpenAPI schema marks it optional. Create the zone first (`networkIds: []` is
+  allowed), then the network.
+- `allowReturnTraffic: true` is **rejected** on any `→ External` policy
+  (`cant-allow-return-traffic`) — the built-in return rule already covers it.
+- `ipv4Configuration.dhcpConfiguration` sets subnet, pool, DNS override and lease
+  at create time, so new VLANs need no UI trip. Only SSIDs do, because they carry
+  a PSK.
+- A protocol `PRESET` of `TCP_UDP` covers DNS in one policy instead of two.
+- New networks default to `mdnsForwardingEnabled: true`. On an isolated VLAN that
+  partially defeats the isolation — turn it off explicitly.
