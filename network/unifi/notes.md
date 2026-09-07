@@ -281,3 +281,53 @@ deny, which is the one ordering mistake that takes a whole VLAN offline.
 - A protocol `PRESET` of `TCP_UDP` covers DNS in one policy instead of two.
 - New networks default to `mdnsForwardingEnabled: true`. On an isolated VLAN that
   partially defeats the isolation — turn it off explicitly.
+
+### Gotcha: a UI save reverts fields the form does not show
+
+Editing an SSID in the UI writes the **whole** `wlanconf` object, resetting
+anything the form does not render. Setting the `konewka_guest` passphrase in the
+UI silently reverted `minrate_setting_preference` from `manual` back to `auto`
+and the 2.4 GHz floor from 6000 to 1000 kbps — the exact airtime tax the radio
+plan above exists to prevent.
+
+**After any UI edit to a WLAN, re-read and re-apply the API-only fields.** Same
+family as `midclt app.update` replacing nested groups. When re-applying, fetch
+the object and transform it with `jq` rather than composing a fresh body, so
+`x_passphrase` is carried through untouched and never printed.
+
+### WiFi "type" is a UI abstraction, not a data model
+
+The UI's WiFi Type dropdown (Standard / Guest Hotspot / IoT) does not map to a
+single field. In the v1 API only two broadcast types exist — `STANDARD` and
+`IOT_OPTIMIZED` — and the guest/hotspot behaviour is **three independent
+settings**:
+
+| Concern | Field |
+|---|---|
+| Portal | `hotspotConfiguration.type` = `CAPTIVE_PORTAL` \| `PASSPOINT` |
+| Encryption | `securityConfiguration.type` = `OPEN` \| `WPA2_PERSONAL` \| `WPA2_WPA3_PERSONAL` \| … (**required**) |
+| Guest policy | legacy `is_guest` + `l2_isolation` |
+
+So **a captive portal and a passphrase are fully compatible.** Choosing "Guest
+Hotspot" in the UI merely presets security to `OPEN` and hides the password
+field, which reads as "hotspot networks cannot have a passphrase". They can —
+set the security separately.
+
+`OPEN` also accepts `encryption: ENHANCED_OPEN` or `ENHANCED_OPEN_WITH_TRANSITION`
+(OWE): WPA3-grade over-the-air encryption with **no passphrase**, transition mode
+falling back to plain open for older clients. That is Ubiquiti's recommended
+guest posture and is why the UI steers away from a password field. A passphrase
+is still stronger — it keeps strangers off the SSID entirely.
+
+**A captive portal is not a security control.** It gates HTTP access; it does
+nothing to the radio. Portal-on-open leaves all guest traffic sniffable in the
+air. Encryption comes only from WPA2/WPA3 or OWE.
+
+### Guest control restricted subnets
+
+`guest_access` carries `restricted_subnet_1/2/3` = `192.168.0.0/16`,
+`172.16.0.0/12`, `10.0.0.0/8`, and this version exposes **no `allowed_subnet`
+field** to punch through them. That range contains both DNS resolvers, so if the
+legacy guest-control path ever takes precedence over ZBF it will kill guest DNS.
+It does not today — `Guest-to-DNS-allow` at index 10000 wins — but re-test guest
+name resolution after any change to portal or guest-control settings.
