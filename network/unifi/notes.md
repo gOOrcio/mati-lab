@@ -295,6 +295,19 @@ family as `midclt app.update` replacing nested groups. When re-applying, fetch
 the object and transform it with `jq` rather than composing a fresh body, so
 `x_passphrase` is carried through untouched and never printed.
 
+It is **not only cosmetic fields**. On 2026-09-07 a UI visit to `konewka_iot`
+reverted `networkconf_id` from IoT back to Default *and* `l2_isolation` from
+true back to false — silently undoing a whole VLAN migration, with nine devices
+still happily associated to the SSID and every one of them back on
+`192.168.1.x`. Nothing errored; the UI simply wrote the object it had loaded.
+
+Verify after any UI session that touches a WLAN:
+
+```bash
+api "$B/api/s/default/rest/wlanconf" | jq -r '.data[]
+  | "\(.name)\tnet=\(.networkconf_id)\tl2iso=\(.l2_isolation)"'
+```
+
 ### WiFi "type" is a UI abstraction, not a data model
 
 The UI's WiFi Type dropdown (Standard / Guest Hotspot / IoT) does not map to a
