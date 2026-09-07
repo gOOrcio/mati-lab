@@ -557,13 +557,24 @@ fixed in seconds. **Prefer the loud failure.**
 
 ### Unused ports set to Guest (2026-09-08)
 
-Szafa p1/p5/p6/p7 → Guest 50, so anything plugged into a spare port gets internet
-and nothing else. Verified genuinely unused first — `rx_bytes`/`tx_bytes`/
-`rx_packets` all **0**.
+Szafa p1/p5/p6/p7 and Gabinet p4 → Guest 50, so anything plugged into a spare
+port gets internet and nothing else.
 
-**Check the counters before assuming a down port is spare.** Gabinet p3 showed
-`up=false` but carried 42 GB rx / 129 GB tx — it is the work PC, merely powered
-off, and belongs on VLAN 1. Gabinet p4 also had real history. Both were excluded.
+**Counters are necessary but not sufficient — ask the owner.** Two down ports
+both showed large byte counts and looked identical from the API:
+
+| Port | Counters | Reality |
+|---|---|---|
+| Gabinet p3 | 42 GB rx / 129 GB tx | **work PC, merely powered off** → stays VLAN 1 |
+| Gabinet p4 | 722 MB / 3.7 GB | decommissioned mini-PC, then briefly the NAS → **spare** |
+
+Traffic history proves a port *was* used, never that it still is. `up=false`
+alone is worthless — a laptop is off most of the day. Confirm intent with the
+owner before repurposing a port that has ever carried traffic; the Szafa four
+were safe to assume only because they read exactly **0 bytes, 0 packets**.
+
+Untouched by design: Gabinet p1 (uplink), **p2 (Proxmox trunk, four bridged VM
+MACs)**, p3 (work PC); Szafa p2/p3/p4/p8 and Salon p2/p8 (AP and switch uplinks).
 
 `forward: "disabled"` does **not** down a port on 10.6 (that needs a Disabled
 port profile, and `rest/portconf` is empty), so pointing spare ports at Guest is
