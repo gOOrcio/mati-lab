@@ -410,6 +410,42 @@ lumpy counters have each shown a device as wrong while it worked, or right while
 it did not. Verify against the network — pings, HTTP fingerprints, throughput
 deltas, both legs of a zone pair.
 
+### Never re-tag the port of the machine you are working from
+
+Done anyway on 2026-09-07, and it cost an outage. Gabinet p5 (dev PC) was moved
+to VLAN 20; the PC never leased on the new VLAN and went dark, taking the session
+with it. A second session on another machine rolled the port back to Default.
+
+The reasoning that failed was "Wi-Fi on VLAN 1 is the fallback" — it is not a
+fallback if it can drop, and it did. A fallback has to be a path that the change
+cannot affect: a console, or a NIC on a VLAN you are not touching.
+
+The cause was **not** a static IP. `ipv4.method` on that NIC is `auto`. It is the
+same link-bounce problem as the wired IoT devices: **changing a port's VLAN does
+not drop the link**, so the host keeps its old-VLAN lease, becomes stranded on a
+subnet with no gateway, and only recovers on lease expiry or a manual bounce.
+
+Rules that follow:
+
+- Move wireless SSIDs **before** wired ports, so the host has a working path on
+  the destination VLAN before its cable moves.
+- Only PoE-powered devices can be recovered remotely (`POWER_CYCLE` on the port
+  action endpoint). Mains-powered wired devices — PS5, AppleTV, TV boxes — need a
+  physical cable or power bounce.
+- **Repoint a DHCP reservation as part of the move, never ahead of it.** Three
+  reservations were pre-pointed at VLAN 20 while the devices were still on VLAN 1;
+  the RG556 stopped getting a lease at all until they were reverted.
+
+### Intra-zone Block is the platform default, not a misconfiguration
+
+Every **user-defined** zone gets a `Block All Traffic` policy for its own
+X→X pair, `origin: SYSTEM_DEFINED` (Trusted, IoT, Cameras, Guest, Dmz, Hotspot
+all match). Only the built-in `Internal` and `Vpn` default to Allow.
+
+It is inert while a zone holds a single network — same-subnet traffic is
+L2-switched and never reaches the firewall. Do not "fix" it to Allow on sight;
+it only becomes relevant if a second network is added to an existing zone.
+
 ### Guest control restricted subnets
 
 `guest_access` carries `restricted_subnet_1/2/3` = `192.168.0.0/16`,
