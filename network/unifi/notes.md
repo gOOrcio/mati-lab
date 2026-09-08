@@ -852,6 +852,46 @@ than in the Netia box upstream. This still works behind the double NAT.
   `ALLOW` / `BLOCK` / `REJECT` only. If a hog limit existed as a legacy rule, the
   2026-09-07 ZBF migration likely dropped it along with `rest/firewallrule`.
 
+### Measured: Smart Queues ENABLED 2026-09-08, and it works
+
+Real line rate measured first — both stored values and the older notes were
+wrong:
+
+| | down | up |
+|---|---|---|
+| measured (UniFi speedtest) | **588 Mbps** | 302 Mbps |
+| stored `wan_smartq_*_rate` (stale) | 268 | 696 |
+| older notes (stale) | 282 | 365 |
+
+Set to **530000 / 272000 kbps** (~90% of measured) and enabled, so the UDR is
+deliberately the bottleneck and the queue forms where it can be managed.
+
+**Bufferbloat proof — identical load both runs** (8 parallel downloads + 2
+uploads, ping to 1.1.1.1 throughout):
+
+| | idle | saturated avg | saturated max |
+|---|---|---|---|
+| **SQM off** | 5.3 ms | **150.0 ms** | 217 ms |
+| **SQM on** | 15.5 ms | **9.3 ms** | 23 ms |
+
+**16× lower latency under full saturation**, and under load it is effectively at
+idle. 0% packet loss in every run. Cost: download 588 → **484 Mbps** (−18%),
+upload 302 → 270, UDR CPU roughly +25 pp at ~38–88% depending on sample.
+
+That trade is clearly worth it for the reported symptom (devices "losing
+connection" during PS5/game downloads): 150 ms of queue delay is what breaks
+calls, DNS and interactive sessions, while 100 Mbps of unused peak is invisible.
+
+**A single-stream test is not a bufferbloat test.** One `curl` showed SQM on
+20.0 ms vs off 21.3 ms — no difference, and it nearly led to the wrong
+conclusion. One TCP flow does not build the queue; **8 down + 2 up** did, and the
+effect went from invisible to 28×. Always saturate in both directions with many
+flows.
+
+**Per-host rate caps are now unnecessary** — remove any that reappear. SQM gives
+the same protection without permanently slowing the capped device on an idle
+line, and it covers new devices automatically.
+
 ### The catch: the UDR is marginal for SQM
 
 SQM is CPU-intensive and caps throughput at what the gateway can shape. Ubiquiti
