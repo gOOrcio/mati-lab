@@ -45,19 +45,24 @@
 
     # Driver installation triggers a kernel module build — reboot required after this task
     # if running for the first time. The play continues; reboot manually if nvidia-smi fails.
-    - name: Configure UFW — allow SSH from LAN
+    # 192.168.1.0/24 = VLAN 1 (NAS/LiteLLM, Pi, Proxmox). 192.168.20.0/24 =
+    # Trusted VLAN 20 (dev PC, laptops) since the 2026-09-07 segmentation —
+    # without it the dev PC can ping the VM but every TCP connection times out.
+    - name: Configure UFW — allow SSH from LAN + Trusted VLAN
       community.general.ufw:
         rule: allow
         port: "22"
         proto: tcp
-        src: "192.168.1.0/24"
+        src: "{{ item }}"
+      loop: "{{ ufw_allowed_sources }}"
 
-    - name: Configure UFW — allow Ollama from LAN
+    - name: Configure UFW — allow Ollama from LAN + Trusted VLAN
       community.general.ufw:
         rule: allow
         port: "11434"
         proto: tcp
-        src: "192.168.1.0/24"
+        src: "{{ item }}"
+      loop: "{{ ufw_allowed_sources }}"
 
     - name: Enable UFW
       community.general.ufw:

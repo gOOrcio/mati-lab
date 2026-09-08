@@ -27,6 +27,13 @@ vm_gateway: "192.168.1.1"
 vm_nameserver: "192.168.1.1"
 vm_cidr: 24
 
+# Source subnets admitted by the VM's ufw for SSH + Ollama. VLAN 1 is the
+# server LAN (NAS/LiteLLM, Pi, Proxmox); 192.168.20.0/24 is Trusted VLAN 20
+# (dev PC, laptops) from the 2026-09-07 segmentation.
+ufw_allowed_sources:
+  - "192.168.1.0/24"
+  - "192.168.20.0/24"
+
 # SSH
 vm_ssh_user: "ollama-gpu"
 vm_ssh_key_path: "~/.ssh/id_ed25519.pub"

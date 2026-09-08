@@ -516,7 +516,8 @@ yet enforcing** — it needs the UI reorder described above.
 
 **Policy is per zone, not per device.** Of the user-defined firewall policies,
 almost all are zone-to-zone; a device inherits its zone from its VLAN. Nothing
-needs a rule written for it. (The two `pihole-*` rules are pre-ZBF legacy, and
+needs a rule written for it **on the UDR**. Host firewalls are another matter —
+see the next gotcha. (The two `pihole-*` rules are pre-ZBF legacy, and
 `IoT-exceptions-to-Infra-deny` is a workaround for devices that cannot be moved
 to the right SSID — not the design.)
 
@@ -536,6 +537,36 @@ kinds of port and no single correct default:
 | Infrastructure | VLAN 1, `forward: all` (trunk) | APs, switch uplinks, Proxmox host |
 | Client | access port, `forward: native` + `tagged_vlan_mgmt: block_all` | PC, PS5, AppleTV, camera, Hue Bridge |
 | Unused | least privilege (Guest 50) | Szafa p1/p5/p6/p7 |
+
+### Gotcha: host firewalls scoped to `192.168.1.0/24` outlive the VLAN move
+
+Found 2026-09-08, a day after the dev PC landed on Trusted (VLAN 20). The UDR
+zone policy was right — `Trusted-to-Infra-allow` passed everything, ping worked
+to every VLAN 1 host — yet TCP to the Ollama VM (`:22`, `:11434`) and the Pi
+(`:22`) timed out, and LiteLLM on the NAS could no longer reach the dev PC's
+Ollama. Three separate ufw instances, each written when the LAN was flat:
+
+| Host | Rule as found | Effect after the move |
+|---|---|---|
+| Ollama VM `.48` | `22,11434/tcp ALLOW from 192.168.1.0/24` | dev PC pings it, every TCP connect times out |
+| Pi `.252` | `22,53,5000,5001 from 192.168.1.0/24` | SSH from the dev PC dead (deploys, Ansible). DNS + Loki still worked only because Docker-published ports bypass ufw |
+| dev PC `.173→20.173` | default-deny, no rule for the NAS | `UFW BLOCK SRC=192.168.1.65 DPT=11434` in `journalctl -k`; LiteLLM's `coding` primary and `agent-default` local fallback silently dead |
+
+The signature is **ping works, TCP times out, and VLAN 1 → VLAN 1 to the same
+port works**. That combination rules out the UDR (a zone block drops ICMP too)
+and points at the destination host. Ubuntu's ufw accepts echo-request in
+`ufw-before-input` regardless of user rules, which is why ICMP is a false
+comfort here.
+
+Fix pattern: add the Trusted subnet as a second source rather than widening
+to `any` (Ollama VM: `compute/ollama_vm` `ufw_allowed_sources`; Pi:
+`network/ansible/group_vars/all/vars.yml` `ufw_rules`; dev PC:
+`dev_pc/ollama-setup.md`). LiteLLM's `api_base` for the dev PC moved to
+`192.168.20.173` in the same change.
+
+**Checklist for any future VLAN move:** grep the repo for the old subnet in
+`ufw`/`src:`/`from:` fields *before* moving the port, and test one TCP port
+per host from the new VLAN afterwards — not just ping.
 
 ### Why wireless can auto-assign and wired cannot
 

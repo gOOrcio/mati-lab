@@ -2,7 +2,7 @@
 #
 # IPs:
 #   192.168.1.48  = Proxmox Ollama VM (ollama-gpu) — always-on
-#   192.168.1.173 = Dev PC (Ubuntu-side only) — health-flaps by design
+#   192.168.20.173 = Dev PC (Ubuntu-side only, Trusted VLAN 20) — health-flaps by design
 #
 # Aliases consumed by clients:
 #   agent-default : Hermes daily driver. DeepSeek > Claude > local Qwen 14B.
@@ -14,6 +14,16 @@
 #                   + hybrid fallback land in campaign #2 (needs the CC client
 #                   to validate the override/health-check behaviour). See
 #                   nas/litellm/notes.md.
+#   pve-ollama/*  : any model on the Proxmox Ollama VM, by name, no config edit.
+#   dev-ollama/*  : same for the dev PC. See "Dynamic model management" in notes.
+#
+# Access groups (model_info.access_groups) — keys reference the GROUP instead
+# of listing models, so a model added to a group is instantly visible to every
+# key holding it (nas/litellm/update-key-models.sh):
+#   agents      : agent-default, agent-smart, coding, embeddings
+#   claude-code : claude-opus-4-8, claude-sonnet-5, claude-haiku-4-5
+# Wildcard deployments cannot join a group on the free tier; keys list the
+# pattern itself (e.g. "pve-ollama/*").
 
 model_list:
   # ── agent-default (Hermes session driver) ──
@@ -23,6 +33,7 @@ model_list:
       api_key: os.environ/DEEPSEEK_API_KEY
     model_info:
       order: 1
+      access_groups: ["agents"]
 
   - model_name: agent-default           # fallback 1: Claude if DeepSeek 5xx
     litellm_params:
@@ -33,13 +44,15 @@ model_list:
           role: system
     model_info:
       order: 2
+      access_groups: ["agents"]
 
   - model_name: agent-default           # fallback 2: dev-PC local — gpt-oss:20b,
     litellm_params:                      # best-fit for the 5070 Ti (100% GPU, ~12GB)
       model: ollama_chat/gpt-oss:20b
-      api_base: http://192.168.1.173:11434
+      api_base: http://192.168.20.173:11434
     model_info:
       order: 3
+      access_groups: ["agents"]
       input_cost_per_token: 0
       output_cost_per_token: 0
 
@@ -51,6 +64,8 @@ model_list:
       cache_control_injection_points:   # cache the stable system prefix (#7)
         - location: message
           role: system
+    model_info:
+      access_groups: ["agents"]
 
   # ── coding (OpenCode primary, code-specific model) ──
   # dev-PC tier is gpt-oss:20b (best-fit local for the 5070 Ti — 100% GPU,
@@ -59,9 +74,10 @@ model_list:
   - model_name: coding
     litellm_params:
       model: ollama_chat/gpt-oss:20b
-      api_base: http://192.168.1.173:11434
+      api_base: http://192.168.20.173:11434
     model_info:
       order: 1
+      access_groups: ["agents"]
       input_cost_per_token: 0
       output_cost_per_token: 0
 
@@ -71,6 +87,7 @@ model_list:
       api_key: os.environ/DEEPSEEK_API_KEY
     model_info:
       order: 2
+      access_groups: ["agents"]
 
   - model_name: coding                  # fallback 2: Proxmox local — qwen3.5:9b,
     litellm_params:                      # best-fit for the 3070 (8GB, ~6.6GB, 48 tok/s)
@@ -78,6 +95,7 @@ model_list:
       api_base: http://192.168.1.48:11434
     model_info:
       order: 3
+      access_groups: ["agents"]
       input_cost_per_token: 0
       output_cost_per_token: 0
 
@@ -91,6 +109,8 @@ model_list:
     litellm_params:
       model: ollama/nomic-embed-text
       api_base: http://192.168.1.48:11434
+    model_info:
+      access_groups: ["agents"]
 
   # ── Claude Code gateway (token-efficiency campaign #1) ──
   # API-key tier for the models Claude Code's /model picker will show once it
@@ -116,6 +136,7 @@ model_list:
         - location: message
           role: system
     model_info:
+      access_groups: ["claude-code"]
       input_cost_per_token: 0
       output_cost_per_token: 0
 
@@ -127,6 +148,7 @@ model_list:
         - location: message
           role: system
     model_info:
+      access_groups: ["claude-code"]
       input_cost_per_token: 0
       output_cost_per_token: 0
 
@@ -137,6 +159,31 @@ model_list:
       cache_control_injection_points:
         - location: message
           role: system
+    model_info:
+      access_groups: ["claude-code"]
+      input_cost_per_token: 0
+      output_cost_per_token: 0
+
+  # ── Local Ollama autodiscovery (one wildcard per host) ──
+  # `pve-ollama/<tag>` → ollama_chat/<tag> on the Proxmox VM; `dev-ollama/<tag>`
+  # → the dev PC. Anything `ollama pull`ed on either box is routable by name
+  # with no config edit. check_provider_endpoint (litellm_settings) makes
+  # /v1/models expand these from each host's /api/tags. Background health
+  # checks skip wildcard deployments, so the dev PC being off costs nothing
+  # here. The tiered aliases above stay explicit: a wildcard is one host, one
+  # provider, no fallback order.
+  - model_name: "pve-ollama/*"
+    litellm_params:
+      model: "ollama_chat/*"
+      api_base: http://192.168.1.48:11434
+    model_info:
+      input_cost_per_token: 0
+      output_cost_per_token: 0
+
+  - model_name: "dev-ollama/*"
+    litellm_params:
+      model: "ollama_chat/*"
+      api_base: http://192.168.20.173:11434
     model_info:
       input_cost_per_token: 0
       output_cost_per_token: 0
@@ -158,6 +205,13 @@ router_settings:
 
 general_settings:
   master_key: os.environ/LITELLM_MASTER_KEY
+  # Models added via the Admin UI (Models + Endpoints) or POST /model/new are
+  # persisted in the Postgres sidecar and merged with this file at boot — no
+  # scp + redeploy for a new alias. This file stays the source of truth for
+  # everything in it; DB models are the "added later" layer. Snapshot them
+  # with GET /model/info (see notes.md). Caveat: settings saved from the UI
+  # land in LiteLLM_Config and OVERLAY this file at startup.
+  store_model_in_db: true
   background_health_checks: true
   health_check_interval: 30
   enable_health_check_routing: true
@@ -172,6 +226,10 @@ general_settings:
 # network/prometheus/prometheus.yml. Without this the endpoint 404s.
 litellm_settings:
   callbacks: ["prometheus"]
+  # Expand wildcard deployments in /v1/models by asking each provider for its
+  # live model list (Ollama: GET /api/tags). Clients with a model picker
+  # (OpenCode, Admin UI) then see what is actually pulled on each host.
+  check_provider_endpoint: true
   # Drop provider-unsupported params instead of erroring. Claude Code sends
   # Anthropic-specific params (e.g. context_management) that the local ollama
   # models (coding/agent-default fallbacks) don't accept — without this, a CC

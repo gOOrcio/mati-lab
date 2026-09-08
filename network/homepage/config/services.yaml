@@ -61,6 +61,6 @@
 
 - Other:
     - Dev PC:
-        href: http://192.168.1.173
+        href: http://192.168.20.173
         description: Workstation (Linux desktop)
         icon: mdi-desktop-tower-monitor

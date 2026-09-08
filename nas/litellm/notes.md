@@ -76,11 +76,17 @@ LiteLLM admin operations use the **master key** (`LITELLM_MASTER_KEY` in `.env`)
 | Alias | Consumer | Models | Budget | Where the key lives |
 |---|---|---|---|---|
 | `rag-watcher` | rag-watcher Custom App | `embeddings` | $1 / 30d | `/mnt/fast/databases/rag-watcher/.env` |
-| `openclaw` | OpenClaw Custom App | `agent-default`, `agent-smart`, `coding`, `embeddings` | $20 / 30d | OpenClaw in-app config (LLM provider wizard) |
-| `dev-pc-tools` | Local CLI tooling on dev box (Claude Code MCP `vault-rag`, OpenCode, ad-hoc curl) | `agent-default`, `agent-smart`, `coding`, `embeddings` | $30 / 30d | Dev-box `~/.claude/mcp.json` env block + shell env |
-| `claude-code` | Claude Code / opencode / codex via the gateway (token-efficiency campaign) | `claude-opus-4-8`, `claude-sonnet-5`, `claude-haiku-4-5` | $30 / 30d | Dev-box shell env + PM `homelab/litellm/claude-code` |
+| `openclaw` | OpenClaw Custom App | group `agents` | $20 / 30d | OpenClaw in-app config (LLM provider wizard) |
+| `dev-pc-tools` | Local CLI tooling on dev box (Claude Code MCP `vault-rag`, OpenCode, ad-hoc curl) | group `agents` + `pve-ollama/*` + `dev-ollama/*` | $30 / 30d | Dev-box `~/.claude.json` (vault-rag env block) + shell env |
+| `claude-code` | Claude Code / opencode / codex via the gateway (token-efficiency campaign) | group `claude-code` | $30 / 30d | Dev-box shell env + PM `homelab/litellm/claude-code` |
 
 PM labels follow `homelab/litellm/<alias>`.
+
+Key model lists reference **access groups** (declared per deployment in
+`config.yml` as `model_info.access_groups`) since 2026-09-08, so adding a
+model to a group grants it to every key holding the group without touching
+the key. `bash nas/litellm/update-key-models.sh` (re)applies the mapping and
+runs smoke tests. `rag-watcher` keeps an explicit `embeddings` on purpose.
 
 ### Issue (initial or new consumer)
 
@@ -108,6 +114,46 @@ Save new value in PM, then update the consumer:
 - **rag-watcher:** `bash nas/litellm/swap-consumer-key.sh rag-watcher` (prompts silently for the new key, edits `.env` over SSH, redeploys)
 - **openclaw:** in-container shell (`Apps → openclaw → Shell`), use OpenClaw's config wizard to set the new key. Verify with a Telegram message.
 - **dev-pc-tools:** `claude mcp remove vault-rag && claude mcp add vault-rag … -e LITELLM_API_KEY="$NEWKEY" …` — see `compute/rag/mcp/server.py` header comment for the full registration command.
+
+## Dynamic model management (2026-09-08)
+
+Three mechanisms remove the scp + redeploy round-trip for routine model
+changes. `config.yml` remains the source of truth for everything in it;
+these are the "added later" layer.
+
+| Want | Do | Persists |
+|---|---|---|
+| Use a model that is already pulled on an Ollama host | Just request `pve-ollama/<tag>` (Proxmox VM) or `dev-ollama/<tag>` (dev PC). Wildcard deployments in `config.yml` map the suffix onto `ollama_chat/<tag>` for that host. `ollama pull` is the whole change. | n/a |
+| See what each host actually has | `GET /v1/models` — `litellm_settings.check_provider_endpoint: true` expands the wildcards from each host's `/api/tags`. If the dev PC is off, its wildcard falls back to LiteLLM's static Ollama list (cosmetic noise, not an error). | n/a |
+| Add a new Claude/DeepSeek alias without a deploy | Admin UI → Models + Endpoints → Add Model, or `POST /model/new` (master key). `general_settings.store_model_in_db: true` persists it in the Postgres sidecar; it is merged with `config.yml` at boot. Set `model_info.access_groups` there too so the right keys see it. | DB (`LiteLLM_ProxyModelTable`) — covered by the `litellm-pgdata` snapshots and Phase 8 pg_dump |
+| Grant a key a new model | Nothing, if the model carries the key's group. Otherwise `POST /key/update` with the key's alias and the new `models` list (see `update-key-models.sh`). | DB |
+
+**Rules that survive the convenience:**
+
+- `claude-*` entries stay **explicit in `config.yml`**: they carry the
+  zero-cost override (phantom-spend fix, PR #123) and the
+  `forward_client_headers_to_llm_api` scope for Max billing, both keyed on
+  the exact alias. A wildcard-routed Claude call would bill the API key at
+  list price. Adding a fourth Claude alias means adding it to *both* the
+  model list and the forward list — that one still needs a redeploy.
+- Tiered aliases (`agent-default`, `coding`) stay explicit: a wildcard is
+  one host, one provider, no fallback order.
+- Wildcards can't join an access group on the free tier; keys that should
+  reach them list the pattern (`"pve-ollama/*"`).
+- Anything saved from the Admin UI's *Settings* pages lands in
+  `LiteLLM_Config` and **overlays `config.yml` at startup**. Prefer editing
+  the file for router/general settings; use the UI for models and keys.
+- **Snapshot DB-added models into the repo** after adding one, same
+  discipline as Grafana dashboards:
+  `curl -sS $LITELLM/model/info -H "Authorization: Bearer $KEY" | python3 -c '...db_model...' > nas/litellm/db-models.json`
+  (filter on `model_info.db_model == true`; API keys are masked in this output).
+
+Verified in the 1.83.7 source before enabling: custom-prefix wildcards
+substitute the captured suffix into `litellm_params.model`
+(`router_utils/pattern_match_deployments.py`), key `models` lists accept
+wildcard patterns (`auth_checks._model_matches_any_wildcard_pattern_in_list`),
+Ollama has a `get_models` hook on `/api/tags`, and background health checks
+skip deployments whose name contains `*`.
 
 ### Inspect spend per key
 

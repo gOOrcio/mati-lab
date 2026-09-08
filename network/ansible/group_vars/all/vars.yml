@@ -57,20 +57,28 @@ docker_log_max_file: "3"
 docker_data_root: "/mnt/nvme/docker"
 
 # UFW firewall rules
+# 192.168.20.0/24 = Trusted VLAN 20 (dev PC, phones, laptops) since the
+# 2026-09-07 segmentation. A host firewall scoped to 192.168.1.0/24 silently
+# drops every Trusted client even though the UDR zone policy allows it.
 ufw_default_incoming: deny
 ufw_default_outgoing: allow
 ufw_rules:
   - { rule: allow, port: "22", proto: tcp, from: "192.168.1.0/24", comment: "SSH LAN" }
+  - { rule: allow, port: "22", proto: tcp, from: "192.168.20.0/24", comment: "SSH Trusted VLAN" }
   - { rule: allow, port: "22", proto: tcp, from: "10.0.0.0/24", comment: "SSH VPN" }
   - { rule: allow, port: "80", proto: tcp, comment: "HTTP" }
   - { rule: allow, port: "443", proto: tcp, comment: "HTTPS" }
   - { rule: allow, port: "443", proto: udp, comment: "HTTPS QUIC" }
   - { rule: allow, port: "53", proto: tcp, from: "192.168.1.0/24", comment: "DNS TCP LAN" }
   - { rule: allow, port: "53", proto: udp, from: "192.168.1.0/24", comment: "DNS UDP LAN" }
+  - { rule: allow, port: "53", proto: tcp, from: "192.168.20.0/24", comment: "DNS TCP Trusted VLAN" }
+  - { rule: allow, port: "53", proto: udp, from: "192.168.20.0/24", comment: "DNS UDP Trusted VLAN" }
   - { rule: allow, port: "53", proto: tcp, from: "172.18.0.0/16", comment: "DNS TCP Docker" }
   - { rule: allow, port: "53", proto: udp, from: "172.18.0.0/16", comment: "DNS UDP Docker" }
   - { rule: allow, port: "5000", proto: tcp, from: "192.168.1.0/24", comment: "Docker registry mirror LAN" }
   - { rule: allow, port: "5001", proto: tcp, from: "192.168.1.0/24", comment: "Docker private registry LAN" }
+  - { rule: allow, port: "5000", proto: tcp, from: "192.168.20.0/24", comment: "Docker registry mirror Trusted VLAN" }
+  - { rule: allow, port: "5001", proto: tcp, from: "192.168.20.0/24", comment: "Docker private registry Trusted VLAN" }
 
 # fail2ban
 fail2ban_maxretry: 5

@@ -60,7 +60,7 @@ the route tree and split rule files by domain.
 ## Silencing a known-noise alert
 
 Use the UI: `https://alertmanager.mati-lab.online/#/silences/new`. Set
-the matcher (e.g. `alertname=ScrapeTargetDown, instance=192.168.1.173:3001`)
+the matcher (e.g. `alertname=ScrapeTargetDown, instance=192.168.20.173:3001`)
 and a comment explaining WHY. Silences expire — set the duration to
 match the underlying issue (e.g. "until restorate-dev VM is back up").
 

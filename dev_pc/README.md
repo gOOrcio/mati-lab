@@ -1,6 +1,7 @@
 # Dev PC
 
-Personal developer machine at `192.168.1.173`. **Not managed by Ansible** —
+Personal developer machine at `192.168.20.173` (Trusted VLAN 20 since the
+2026-09-07 segmentation; was `192.168.1.173` on the flat LAN). **Not managed by Ansible** —
 dual-boots Ubuntu (for dev + Ollama) and Windows (for gaming). Setup steps
 are documented here for reproducibility after a reinstall; they are NOT
 automated.
@@ -9,9 +10,10 @@ automated.
 
 - Ubuntu side runs Ollama on `:11434` (bound to all interfaces) serving
   larger models than the Proxmox VM can fit on its 8 GB 3070.
-- LiteLLM on the Pi (`network/litellm/`) uses this as the preferred
-  endpoint for `coding` (qwen2.5-coder:14b) and one fallback tier of
-  `agent-default` (qwen3.5:14b). LiteLLM's health checks flap this
+- LiteLLM on the NAS (`nas/litellm/`) uses this as the preferred
+  endpoint for `coding` (gpt-oss:20b), one fallback tier of
+  `agent-default`, and the `dev-ollama/*` wildcard (any model pulled
+  here is routable by name). LiteLLM's health checks flap this
   endpoint up/down based on which OS is booted — that's expected.
 - Dev PC is never a dependency of a 24/7 service. All homelab services
   must continue to work when the dev PC is off.
@@ -22,7 +24,10 @@ automated.
   regular workstation.
 - SSH key from this machine to other homelab hosts uses
   `~/.ssh/id_ed25519`.
-- No inbound connections except Ollama `:11434` from the LAN.
+- No inbound connections except Ollama `:11434` from the NAS (LiteLLM,
+  `192.168.1.65`). ufw is on with default-deny; since the VLAN move the
+  NAS sits on a different subnet, so the allow rule must name it
+  explicitly — see `ollama-setup.md`.
 
 ## Setup docs
 

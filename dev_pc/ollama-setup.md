@@ -7,7 +7,8 @@ Ansible, no playbooks. Re-run these steps after any Ubuntu reinstall.
 
 - Ubuntu 24.04 LTS
 - Nvidia 5070 Ti with recent driver (`nvidia-smi` works)
-- `192.168.1.173` as LAN IP (either DHCP reservation or static in netplan)
+- `192.168.20.173` as LAN IP — Trusted VLAN 20, DHCP reservation on the UDR
+  (was `192.168.1.173` before the 2026-09-07 segmentation)
 
 ## Install Ollama
 
@@ -18,8 +19,8 @@ ollama --version   # confirm install
 
 ## Bind Ollama to all interfaces
 
-By default Ollama binds to `127.0.0.1:11434`. LiteLLM on the Pi needs to
-reach it on the LAN, so we override to `0.0.0.0:11434`.
+By default Ollama binds to `127.0.0.1:11434`. LiteLLM on the NAS needs to
+reach it across VLANs, so we override to `0.0.0.0:11434`.
 
 ```bash
 sudo systemctl edit ollama
@@ -46,13 +47,21 @@ ss -tlnp | grep 11434
 # should show *:11434 (LISTEN) on tcp/tcp6
 ```
 
-## UFW — allow inbound from the Pi
+## UFW — allow inbound from the NAS (LiteLLM)
 
-If UFW is enabled:
+ufw is enabled with default-deny incoming. The only inbound consumer is
+LiteLLM on the NAS, which is on VLAN 1 while this PC is on VLAN 20, so
+the source must be named explicitly (the UDR allows Internal→Trusted;
+it is this host's ufw that drops the packets — visible as
+`UFW BLOCK ... SRC=192.168.1.65 ... DPT=11434` in `journalctl -k`):
 
 ```bash
-sudo ufw allow from 192.168.1.252 to any port 11434 proto tcp comment "Pi LiteLLM -> Ollama"
+sudo ufw allow from 192.168.1.65 to any port 11434 proto tcp comment "NAS LiteLLM -> Ollama"
 ```
+
+Found 2026-09-08: after the VLAN move the `coding` primary tier and the
+`agent-default` local fallback were silently dead until this rule (and
+LiteLLM's `api_base`) were updated.
 
 ## Pull the Phase 3 models
 
@@ -73,11 +82,11 @@ Do **NOT** pull `qwen3.5:35b-a3b` or other 20GB+ variants — they exceed
 16 GB VRAM. Ollama falls back to CPU spill with a hard latency hit
 (~5 tok/s). Skip unless you're deliberately experimenting.
 
-## Smoke test from the Pi
+## Smoke test from the NAS
 
 ```bash
-ssh gooral@192.168.1.252 \
-  'curl -sS http://192.168.1.173:11434/api/tags | head'
+ssh truenas_admin@192.168.1.65 \
+  'curl -sS http://192.168.20.173:11434/api/tags | head'
 ```
 
 Expected: JSON listing `qwen2.5-coder:14b` and `qwen2.5:14b-instruct`.
