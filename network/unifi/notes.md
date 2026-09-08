@@ -10,16 +10,21 @@ Integration + legacy APIs are available and are what the audit below used.
 Netia ONT/router (double NAT — UDR WAN = 192.168.100.15, external 78.10.194.116)
 └── UDR (Dream Router) 192.168.1.1 — gateway, controller, Protect, AP
      └── Szafa (USW Lite 8 PoE) 192.168.1.242
-          ├── U6+ Gabinet 192.168.1.188      (AP)
+          ├── U6+ Gabinet 192.168.1.189      (AP)
           ├── Gabinet (USW Flex Mini) 192.168.1.105
           └── Salon (USW Lite 8 PoE) 192.168.1.171
-               └── U6+ Salon 192.168.1.169   (AP)
+               └── U6+ Salon 192.168.1.170   (AP)
 ```
 
 Both U6+ are **wired**, not wireless-meshed. There is no mesh backhaul to tune —
 AP-to-AP handoff is a *roaming* concern (802.11r/v), not a mesh one.
 
-G5 Flex camera (192.168.1.243) is a Protect device on the same flat LAN.
+G5 Flex camera is a Protect device, now on **Cameras VLAN 40** at `192.168.40.243`
+(moved 2026-09-07; it was `192.168.1.243` on the flat LAN).
+
+> AP addresses drift: both U6+ re-leased on 2026-09-08 (Gabinet `.188`→`.189`,
+> Salon `.169`→`.170`). They are DHCP with no reservation — re-derive from
+> `stat/device` rather than trusting this diagram.
 
 ## API access
 
@@ -690,6 +695,60 @@ snapshot: `~/vlan-rollback-konewka-wlanconf.json` (dev PC, `chmod 600`).
 
 The general rule: **a VLAN binding that lives anywhere other than the SSID's own
 `networkconf_id` is a trap.** All four SSIDs now bind directly.
+
+### Network-scoped security features do NOT follow a VLAN migration
+
+Found in the 2026-09-08 golden-state audit. Three separate features in the `ips`
+setting are scoped per-network, and **all three were still pinned to `Default`
+(VLAN 1)** after every client had moved off it:
+
+| Field | What it controls | State found |
+|---|---|---|
+| `enabled_networks` | **IPS/IDS inspection scope** | `[Default]` — inspecting 8 infra hosts and nothing else |
+| `dns_filters[].network_id` | Content filter (`work` level) | `Default` — filtering servers, not clients |
+| `ad_blocking_configurations[].network_id` | UniFi ad blocking | `Default` |
+
+So the migration silently gutted IPS coverage: it kept running, reported healthy,
+and inspected almost no real traffic. **Check these three after any VLAN change** —
+nothing in the UI or API warns that a security feature's target network is now
+empty.
+
+`enabled_networks` is writable via `PUT set/setting/ips` and holds.
+`dns_filters` and `ad_blocking_configurations` return `rc: ok` and silently
+revert — they are **UI-only**; `PUT rest/setting/<id>` rejects them with
+`api.err.Invalid`.
+
+### The UDR cannot afford IPS across the client VLANs
+
+Widening `enabled_networks` from 1 network to 5 was measured, not assumed:
+
+| | Before | 5 networks (peak) | IoT+Guest, settled |
+|---|---|---|---|
+| CPU | 93.6% | **100%** | 37.7% |
+| Memory | 83.4% | **91.7%** | 87.6% |
+| load1 | 3.92 | **10.68** | **3.18** |
+| load5 / load15 | — | — | 5.62 / 4.86, falling |
+
+**The spike was IPS re-provisioning, not steady state** — it took ~4 minutes to
+settle. Measure over at least that long before concluding a scope change is
+unaffordable; a 30-second sample here would have triggered a needless rollback.
+
+Settled `load1` is at or below the pre-change reading, so **IPS on IoT + Guest is
+sustainable**. The lasting cost is memory: 87.6% vs 83.4%, back to the historical
+87.4% that the 2026-06-19 postmortem associates with `status: controller` reboots.
+Nothing degraded at any point (gateway RTT 0.58 ms, internet 4.5 ms, 6/6 adopted).
+
+Guest carries 0 clients, so effectively the entire cost is inspecting IoT's 14
+chatty devices — which is exactly where inspection is worth paying for.
+
+Guest carries 0 clients, so essentially the whole cost is inspecting IoT's 14
+chatty devices. The trade-off is real: **ZBF already contains IoT** (it cannot
+reach Infra, Trusted or Cameras — proven 11/11 from inside VLAN 30), so IPS there
+adds outbound-threat *detection* on top of containment that already holds. On a
+2 GB box with a reboot-cascade history, that detection may cost more reliability
+than it buys.
+
+Decide deliberately; do not leave it at 100% CPU by accident.
 
 ## Golden state — full audit 2026-09-08
 
