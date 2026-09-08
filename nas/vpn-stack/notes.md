@@ -644,7 +644,27 @@ exactly what happened and went unnoticed for four days.
 Both are reachable from Kuma on the Pi (`192.168.1.252`), which is inside qBit's
 auth-bypass whitelist.
 
-The `vpn-port-mismatch` push monitor was never wired up — `qbit-port-probe.sh` is
-not deployed on the NAS and no cron references it, which is why nothing fired on
-2026-09-04. Either deploy it or rely on `qbit-connectable`, which covers the same
-failure with no script to maintain.
+### The port-mismatch probe DID work — correcting an earlier claim
+
+An earlier note here said the probe "was never wired up". **Wrong.** It is
+TrueNAS cronjob **id=19**, "qBit-gluetun NAT-PMP port-consistency probe (Kuma
+push)", enabled and running `*/30 * * * *`. It was pushing *down* correctly for
+the whole 2026-09-04 → 09-08 outage; the signal was there and unheeded, not
+missing. The mistake came from looking for a script file
+(`qbit-port-probe.sh`) on disk instead of checking `midclt call cronjob.query`.
+
+**On this NAS, scheduled work lives in TrueNAS cronjobs, not in crontab or loose
+scripts.** Check `cronjob.query` before concluding something is not deployed.
+
+The push monitor was subsequently deleted (2026-09-08), which orphaned cron 19 —
+it kept POSTing to a push URL with no monitor behind it. Resolve one way or the
+other; do not leave a cron pushing into the void:
+
+- **Disable the cron** (`midclt call cronjob.update 19 '{"enabled": false}'`) and
+  rely on `qbit-connectable`, which detects the same failure at 300 s versus the
+  probe's 30-minute cron plus 25-hour heartbeat, and needs no push URL.
+- **Or recreate the monitor** and put the new URL in `KUMA_URL_VPN_PORT_MISMATCH`
+  in `/root/.backup-env`, with a sane heartbeat (3600, not 90000).
+
+A permanently-red monitor and a cron pushing nowhere are both worse than either
+choice made deliberately.
