@@ -650,6 +650,47 @@ python3 /tmp/srv2.py    # see the mDNS probe pattern in this file's history
 This also means **firewall rules must never target a HAP port** — scope them to
 the zone pair, which is what `Trusted-to-IoT-allow` and `Infra-to-IoT-allow` do.
 
+### PPSK consolidated away on `konewka` (2026-09-08) — and why
+
+`konewka` carried a **single-entry PPSK** (`private_preshared_keys_enabled:
+true`) that predated the segmentation. It was not a per-user-PSK setup: the one
+entry simply held the *real* Wi-Fi password (14 chars) while the SSID's own
+`x_passphrase` held a different, unused 32-char generated key.
+
+That made the entry load-bearing in a non-obvious way. **The PPSK entry's own
+`networkconf_id` decides the client VLAN, and the controller reconciles the
+top-level field back to it.** So after the VLAN move:
+
+| Field | Read | Reality |
+|---|---|---|
+| top-level `networkconf_id` | `Default` (VLAN 1) | misleading |
+| PPSK entry `networkconf_id` | `Trusted` | **authoritative** |
+| where clients actually were | `192.168.20.x` | Trusted |
+
+A top-level-only `PUT` therefore returned `{"rc":"ok","data":[]}` and silently
+reverted within a minute — the failure the Mac session hit.
+
+**Also: PPSK is incompatible with WPA3.** In the v1 schema `presharedKeys` exists
+only on `IntegrationWifiWpa2PersonalSecurityConfigurationDetailDto`; the
+`WPA2_WPA3_PERSONAL` DTO has no such field. Enabling WPA3 would have dropped the
+PPSK array and dumped every trusted wireless client onto VLAN 1, with no error.
+**Check this before raising any PPSK SSID to WPA3.**
+
+Fixed by consolidating, in **one** write (separate writes let the reconciler undo
+them):
+
+1. copy the PPSK password into the top-level `x_passphrase` — so no device needs
+   re-joining, the password is unchanged from the client's point of view;
+2. set the top-level `networkconf_id` to Trusted;
+3. `private_preshared_keys_enabled: false`, `private_preshared_keys: []`.
+
+Verified after: binding held past the ~60 s revert window, all clients
+re-associated onto `192.168.20.x` unattended, minrate floor survived. Rollback
+snapshot: `~/vlan-rollback-konewka-wlanconf.json` (dev PC, `chmod 600`).
+
+The general rule: **a VLAN binding that lives anywhere other than the SSID's own
+`networkconf_id` is a trap.** All four SSIDs now bind directly.
+
 ### Guest control restricted subnets
 
 `guest_access` carries `restricted_subnet_1/2/3` = `192.168.0.0/16`,
