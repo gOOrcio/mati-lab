@@ -524,3 +524,52 @@ Closes followup [`7.x.6`](../../docs/followups.md) when applied.
   another country by editing env. Proton's status: `status.proton.me`.
 - **Don't expose the Gluetun control API (8000) externally** — it
   reveals tunnel state and could leak the public-IP info. LAN-only.
+
+## Tunnel down, silently — found 2026-09-08
+
+**State found:** `vpn-stack` app RUNNING, but
+
+| Signal | Value |
+|---|---|
+| gluetun `/v1/publicip/ip` | `{"public_ip":""}` — empty |
+| qBit `connection_status` | `firewalled` |
+| qBit dl / up | **0 B/s / 0 B/s** |
+| qBit `dht_nodes` | **0** |
+| NAS itself → internet | works (returns the home WAN IP) |
+
+So the tunnel was not established and **the killswitch was holding correctly** —
+zero traffic, no leak. The failure mode is safe, but the stack was doing nothing
+and nothing said so.
+
+### The monitor could not have caught this
+
+`gluetun-vpn-tunnel` in Uptime Kuma is an HTTP-Keyword monitor matching the
+keyword **`public_ip`** against `/v1/publicip/ip`. The dead-tunnel response is
+`{"public_ip":""}` — which *contains* the string `public_ip`. **The monitor is
+green whether or not there is a tunnel.**
+
+The notes already said "visit the URL manually after a deploy to confirm
+`public_ip` is NOT your home IP" — the manual check was right, the automated one
+tested the wrong thing.
+
+**Fix the keyword so it cannot match an empty value.** Anything that requires a
+digit works, e.g. keyword `"public_ip":"` plus a JSON-query condition, or invert
+to a "keyword must NOT appear" check on `"public_ip":""`.
+
+### Diagnosing it without root
+
+gluetun's control API is deliberately locked down by `auth.toml` — only
+`/v1/publicip/ip` is `auth = "none"`; `/v1/openvpn/status`, `/v1/dns/status`,
+`/v1/settings` and `/v1/version` all return `Unauthorized`. `midclt` exposes no
+container-log method either. The usable signal is therefore **qBittorrent's own
+API**: `connection_status`, `dl_info_speed` and `dht_nodes` together tell you
+whether traffic is actually moving, without needing gluetun internals.
+
+### qBit's LAN whitelist did not follow the VLAN move
+
+`http://192.168.1.65:30024/api/v2/*` returns **403 Forbidden** from the dev PC on
+`192.168.20.x`, but works from the Pi on `192.168.1.x`. The bypass whitelist is
+still scoped to the old flat LAN. Same family as the ufw findings in
+`network/unifi/notes.md` — a host-level allowlist written for `192.168.1.0/24`
+that silently excludes Trusted VLAN 20. Add `192.168.20.0/24` to qBit's
+"Bypass authentication for clients in whitelisted IP subnets".
