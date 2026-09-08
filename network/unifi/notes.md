@@ -611,6 +611,45 @@ MACs)**, p3 (work PC); Szafa p2/p3/p4/p8 and Salon p2/p8 (AP and switch uplinks)
 port profile, and `rest/portconf` is empty), so pointing spare ports at Guest is
 the honest option — disabling them would look like protection without being it.
 
+### Moving a device beats writing a policy for it (2026-09-08)
+
+The LG fridge and Aqara Hub spent a day on Trusted 20 — they had ridden along
+when `konewka` moved — which handed two IoT devices full VLAN 1 access. The
+stopgap was `IoT-exceptions-to-Infra-deny`, a MAC-scoped BLOCK. It never
+enforced: user policies are indexed in creation order within a zone pair, so it
+landed at 10001 *below* the allow at 10000, and neither the ordering API (500s
+on 10.6.101) nor the UI drag would move it.
+
+Once both devices were re-onboarded onto `konewka_iot`, the policy was **deleted**
+rather than fixed. The zone-level `IoT-to-Infra-deny` already covers them.
+
+The lesson generalises: **a per-device exception is a symptom that a device is on
+the wrong network.** Fixing placement removed the exception, the ordering
+problem, and the audit burden in one step. There are now zero per-device
+policies apart from the two pre-ZBF `pihole-*` rules.
+
+Rollback copy of the deleted policy, if it is ever needed again:
+`~/vlan-rollback-iot-exceptions-policy.json` (dev PC, `chmod 600`).
+
+### Gotcha: HAP ports are ephemeral — never pin a HomeKit accessory by port
+
+Moving the Aqara Hub between VLANs changed its HomeKit port from `33051` to
+`43913`. HAP ports are assigned per bridge instance and are not stable across a
+re-pair, restart or network change; Homebridge child bridges behave the same way
+(Govee `31081`, Daikin `59268`, main `51484`, WoL `59802` — none of them the
+documented default `51826`).
+
+So a closed HAP port after a move means "re-advertised elsewhere", not "broken".
+Read the current port from the SRV record rather than scanning:
+
+```bash
+# _hap._tcp.local SRV records, from a host on the controller's VLAN
+python3 /tmp/srv2.py    # see the mDNS probe pattern in this file's history
+```
+
+This also means **firewall rules must never target a HAP port** — scope them to
+the zone pair, which is what `Trusted-to-IoT-allow` and `Infra-to-IoT-allow` do.
+
 ### Guest control restricted subnets
 
 `guest_access` carries `restricted_subnet_1/2/3` = `192.168.0.0/16`,
