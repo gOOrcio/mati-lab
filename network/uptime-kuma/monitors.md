@@ -94,14 +94,27 @@ Kuma runs on the Pi (`192.168.1.252`, VLAN 1 / Internal zone). **Every probe
 below therefore tests the path *from VLAN 1*.** That matters for what they can
 and cannot prove — see the caveat after the table.
 
-| ☐ | Name | Type | Endpoint | Expect | Catches |
+| ☑ | Name | Type | Endpoint | Expect | Catches |
 |---|---|---|---|---|---|
-| ☐ | `dns-pihole-primary` | DNS | `mati-lab.online` via `192.168.1.252`, A record | `192.168.1.252` | Pi-hole down/wedged |
-| ☐ | `dns-pihole2-nas` | DNS | `mati-lab.online` via `192.168.1.65`, A record | `192.168.1.252` | secondary resolver down — the one that silently covers for the primary |
-| ☐ | `camera-g5-flex` | Ping | `192.168.40.243` | up | camera down, **and** the `Infra-to-Cameras-allow` policy being lost |
-| ☐ | `hue-bridge-iot` | HTTP | `https://192.168.30.221/api/config` (ignore TLS) | 200 | Hue Bridge down, **and** the `Infra-to-IoT-allow` policy being lost (Homebridge depends on it) |
+| ☑ | `dns-pihole-primary` | DNS | `mati-lab.online` via `192.168.1.252`, A record | `192.168.1.252` | Pi-hole down/wedged |
+| ☑ | `dns-pihole2-nas` | DNS | `mati-lab.online` via `192.168.1.65`, A record | `192.168.1.252` | secondary resolver down — the one that silently covers for the primary |
+| ☑ | `camera-g5-flex` | Ping | `192.168.40.243` | up | camera down, **and** the `Infra-to-Cameras-allow` policy being lost |
+| ☑ | `hue-bridge-iot` | HTTP | `https://192.168.30.221/api/config` (ignore TLS) | 200 | Hue Bridge down, **and** the `Infra-to-IoT-allow` policy being lost (Homebridge depends on it) |
 
 Interval 60 s, retries 2, notify via the ntfy channel like everything else.
+All four added and verified green 2026-09-08.
+
+> **`dns-pihole-primary` found a real bug on its first run.** It sat Down while
+> `dns-pihole2-nas` passed — the Pi's ufw admitted DNS from `172.18.0.0/16`, but
+> every Pi Docker bridge is under `172.17.0.0/16` (Kuma is 172.17.1.20). No
+> container on the Pi could query the Pi's own LAN DNS. Invisible before, because
+> containers reach Pi-hole by container name on the shared bridge and never touch
+> ufw — which is exactly why the older `pihole-dns` monitor stayed green. Fixed in
+> `network/ansible/group_vars/all/vars.yml`. See `network/unifi/notes.md`.
+>
+> Keep both DNS monitors: the older `pihole-dns` tests the service, these test the
+> **client-facing address** every VLAN actually resolves against. Only the latter
+> catches a host-firewall or binding fault.
 
 ### What these do NOT catch
 
