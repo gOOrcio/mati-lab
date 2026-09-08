@@ -14,7 +14,7 @@
           "VPN_SERVICE_PROVIDER": "protonvpn",
           "VPN_TYPE": "wireguard",
           "SERVER_COUNTRIES": "Switzerland",
-          "FIREWALL_OUTBOUND_SUBNETS": "192.168.1.0/24,172.16.0.0/12",
+          "FIREWALL_OUTBOUND_SUBNETS": "192.168.1.0/24,192.168.20.0/24,172.16.0.0/12",
           "TZ": "Europe/Warsaw",
           "DOT_PROVIDERS": "cloudflare",
           "BLOCK_MALICIOUS": "off",

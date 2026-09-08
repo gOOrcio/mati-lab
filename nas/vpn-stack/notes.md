@@ -573,3 +573,31 @@ still scoped to the old flat LAN. Same family as the ufw findings in
 `network/unifi/notes.md` — a host-level allowlist written for `192.168.1.0/24`
 that silently excludes Trusted VLAN 20. Add `192.168.20.0/24` to qBit's
 "Bypass authentication for clients in whitelisted IP subnets".
+
+## VLAN-20 allowlist sweep (2026-09-08)
+
+Two allowlists in this stack were still scoped to the old flat LAN:
+
+| What | Was | Now |
+|---|---|---|
+| qBit `bypass_auth_subnet_whitelist` | `192.168.1.0/24`, `172.16.0.0/12`, `10.0.0.0/8` | **+ `192.168.20.0/24`** — applied live via `POST /api/v2/app/setPreferences`, verified from VLAN 20 |
+| gluetun `FIREWALL_OUTBOUND_SUBNETS` | `192.168.1.0/24,172.16.0.0/12` | **+ `192.168.20.0/24`** — edited in `app-config.json`, **not yet applied** |
+
+`FIREWALL_OUTBOUND_SUBNETS` is gluetun's killswitch LAN exception: subnets listed
+there may talk to the container outside the tunnel. With Trusted 20 missing, LAN
+access to qBit from the dev PC/phones depends on whatever the container's port
+publishing happens to permit rather than on an explicit rule — fragile. Apply it
+with the rest of the app values present; `midclt call app.update` **replaces**
+nested groups, so a partial patch silently zeroes siblings.
+
+qBit's API is the practical health probe for this stack, now reachable from
+VLAN 20:
+
+```bash
+curl -s http://192.168.1.65:30024/api/v2/transfer/info \
+  | jq '{connection_status, dl_info_speed, dht_nodes}'
+```
+
+`connection_status: firewalled` with `dl_info_speed: 0` and `dht_nodes: 0` means
+the tunnel is down and the killswitch is holding — which is exactly the state
+found on 2026-09-08.
