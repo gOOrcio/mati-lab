@@ -699,3 +699,50 @@ field** to punch through them. That range contains both DNS resolvers, so if the
 legacy guest-control path ever takes precedence over ZBF it will kill guest DNS.
 It does not today — `Guest-to-DNS-allow` at index 10000 wins — but re-test guest
 name resolution after any change to portal or guest-control settings.
+
+## IoT wall proven from inside VLAN 30 (2026-09-08)
+
+Every earlier check ran from a permitted VLAN, which can only show that
+allows allow. A deny rule is proven only from the side it denies. Run from the
+MacBook joined to `konewka_iot` (2.4 GHz, ch1) with source `192.168.30.174`,
+10:52 CEST, using TCP connects — not ping. The deny is a silent BLOCK, so an
+ICMP timeout is indistinguishable from a host being down; every target below
+was confirmed OPEN from Trusted 20 the same day, so a TCP timeout from VLAN 30
+can only mean the firewall acted.
+
+| From IoT 30 to | Port | Expect | Got |
+|---|---|---|---|
+| TrueNAS `192.168.1.65` | 443 | BLOCKED | BLOCKED |
+| TrueNAS `192.168.1.65` | 80 | BLOCKED | BLOCKED |
+| Proxmox `192.168.1.184` | 8006 | BLOCKED | BLOCKED |
+| Pi `192.168.1.252` | 80 | BLOCKED | BLOCKED |
+| dev PC `192.168.20.173` (Trusted) | 22 | BLOCKED | BLOCKED |
+| g5-flex `192.168.40.243` (Cameras) | 443 | BLOCKED | BLOCKED |
+| gateway `192.168.30.1` | 53 | OPEN | OPEN |
+| DNS `mati-lab.online` via `192.168.1.252` | 53 | answer | `192.168.1.252` |
+| DNS `mati-lab.online` via `192.168.1.65` | 53 | answer | `192.168.1.252` |
+| Pi-hole ad-block `doubleclick.net` | 53 | `0.0.0.0` | `0.0.0.0` |
+| internet `1.1.1.1` | 443 | OPEN | OPEN |
+
+11/11. `IoT-to-Infra-deny` (idx 10001) holds against Infra, Trusted and
+Cameras; `IoT-to-DNS-allow` (idx 10000) still sits above it and its
+destination filter still carries both resolvers; `IoT → External` is intact.
+The segmentation is proven, not inferred.
+
+Reusable test: `nc -z -G 3 -w 3 <host> <port>` per row, gated on
+`ipconfig getifaddr en0` matching `192.168.30.*` — if it reads `192.168.20.x`
+the laptop is still on `konewka` and every result is worthless. The script is
+in the net.10 handoff (local, gitignored). Rejoin `konewka` afterwards and
+confirm `192.168.20.x`; a trusted laptop forgotten on `konewka_iot` is exactly
+the trap the iPhone fell into on 2026-09-07.
+
+Failure modes, if this is ever re-run and does not come back clean:
+
+- A BLOCKED row comes back OPEN → the wall has a hole; most likely ordering.
+  Do not fix from the IoT side; the ordering endpoint is broken on 10.6.101
+  (see above), so reorder in the UI.
+- Blocks pass but DNS fails → `IoT-to-DNS-allow` fell below the deny or lost an
+  address. Highest-consequence silent failure: every IoT device loses names and
+  looks offline while the network is fine.
+- Internet fails too → suspect the SSID/VLAN binding, not policy; re-check the
+  source IP first.
