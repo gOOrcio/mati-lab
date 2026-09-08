@@ -809,6 +809,62 @@ than it buys.
 
 Decide deliberately; do not leave it at 100% CPU by accident.
 
+## WAN saturation / bufferbloat — the seamless fix is Smart Queues
+
+**Symptom:** a large download (dev PC games, PS5) makes other devices appear to
+lose connection. The workaround used was a per-host rate cap.
+
+**What is actually happening is not bandwidth starvation — it is bufferbloat.**
+A bulk TCP flow fills a large buffer in the ISP/modem path, so every other
+packet queues behind hundreds of milliseconds of backlog. DNS times out, TCP
+handshakes fail, calls drop. There is still bandwidth available; latency is what
+breaks. That is why capping the hog "works" — it stops the buffer filling — but
+it is a blunt instrument.
+
+**Per-host cap vs Smart Queues:**
+
+| | Per-host cap | Smart Queues (SQM) |
+|---|---|---|
+| Idle line | Capped device stays slow **always** | Uses the full line |
+| Contended line | Others get the remainder | Every flow gets a fair share, latency stays low |
+| Maintenance | One rule per hog, forever | Set once, applies to all traffic |
+| New devices | Not covered until you add a rule | Covered automatically |
+
+SQM (fq_codel / CAKE) keeps the queue short instead of rationing devices. The
+big download still saturates the line when nothing else wants it, and yields
+within milliseconds when something does. That is the "seamless" property.
+
+**The shaper must be the bottleneck.** Set the rates slightly *below* real line
+rate (~85–95%) so the queue forms inside the UDR where it is managed, rather
+than in the Netia box upstream. This still works behind the double NAT.
+
+### State on this site (2026-09-08)
+
+- `wan_smartq_enabled: false` — **Smart Queues is off**, but rates are already
+  populated (`down 268000`, `up 696000` kbps), so it was configured once and
+  disabled.
+- The stored up rate (696 Mbps) contradicts the measured 365 Mbps in the radio
+  notes. **Re-measure before enabling** — rates set above actual line rate make
+  SQM useless, because the queue then still forms upstream.
+- **No rate limiting exists anywhere right now**: `trafficrule`, `qos-rule`,
+  `usergroup` (only Default, unlimited) and per-client `qos_rate_max_*` are all
+  empty. ZBF policies structurally cannot rate-limit — the action set is
+  `ALLOW` / `BLOCK` / `REJECT` only. If a hog limit existed as a legacy rule, the
+  2026-09-07 ZBF migration likely dropped it along with `rest/firewallrule`.
+
+### The catch: the UDR is marginal for SQM
+
+SQM is CPU-intensive and caps throughput at what the gateway can shape. Ubiquiti
+guidance is that it is not recommended above ~300 Mbps on smaller gateways; the
+UDM Pro (4-core 1.7 GHz, 4 GB) is the model cited as comfortable at 300–910 Mbps.
+The UDR is weaker and already runs Network + Protect + IPS at ~84% memory and
+load ~2–4 on 2 GB.
+
+So enabling SQM here will probably cost peak throughput. Try it with conservative
+rates and measure; if the UDR cannot hold line rate, that is the **second**
+concrete argument for the UDR7 (3 GB, quad-core 1.5 GHz) — the first being memory
+pressure. Both point at the same box.
+
 ## Golden state — full audit 2026-09-08
 
 Post-segmentation baseline. Everything below was read from the controller, not
