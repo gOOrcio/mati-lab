@@ -525,7 +525,29 @@ Closes followup [`7.x.6`](../../docs/followups.md) when applied.
 - **Don't expose the Gluetun control API (8000) externally** — it
   reveals tunnel state and could leak the public-IP info. LAN-only.
 
-## Tunnel down, silently — found 2026-09-08
+## Port forwarding died silently — found 2026-09-08 (NOT a tunnel failure)
+
+> **Corrected after reading the logs.** The first read of this — "the tunnel is
+> down" — was **wrong**. WireGuard connected 2026-09-03 and stayed up the whole
+> time; DNS kept resolving through `10.2.0.2` daily. Two independent faults were
+> conflated:
+>
+> 1. **`public_ip` empty** — all four IP-echo fetchers (`ipinfo`, `ifconfig.co`,
+>    `ip2location`, `cloudflare`) timed out *once* at startup and gluetun never
+>    retried. Purely cosmetic; the tunnel was fine.
+> 2. **Port forwarding died 2026-09-04 03:20:32** —
+>    `adding port mapping: ... 10.2.0.1:5351: connection refused` (NAT-PMP to the
+>    Proton gateway). Gluetun removed the firewall allow for port 58308 and never
+>    recovered it. *That* is what made qBit `firewalled` with 0 DHT nodes.
+>
+> **The lesson: an empty `public_ip` does not mean the tunnel is down.** Confirm
+> with something that proves traffic flow — qBit's `connection_status`/`dht_nodes`,
+> or the DNS lines in gluetun's log — before concluding anything.
+>
+> Fixed incidentally by redeploying the app (an env-var edit), which
+> re-established the port forward. After: `public_ip 146.70.226.202` (Zurich,
+> M247 — Proton, not the home IP), `connection_status: connected`,
+> `dht_nodes: 221`, new forwarded port.
 
 **State found:** `vpn-stack` app RUNNING, but
 
@@ -537,9 +559,8 @@ Closes followup [`7.x.6`](../../docs/followups.md) when applied.
 | qBit `dht_nodes` | **0** |
 | NAS itself → internet | works (returns the home WAN IP) |
 
-So the tunnel was not established and **the killswitch was holding correctly** —
-zero traffic, no leak. The failure mode is safe, but the stack was doing nothing
-and nothing said so.
+The stack was reachable but **unconnectable** — no incoming peers — and nothing
+said so for four days.
 
 ### The monitor could not have caught this
 
@@ -601,3 +622,29 @@ curl -s http://192.168.1.65:30024/api/v2/transfer/info \
 `connection_status: firewalled` with `dl_info_speed: 0` and `dht_nodes: 0` means
 the tunnel is down and the killswitch is holding — which is exactly the state
 found on 2026-09-08.
+
+## Monitoring this stack properly
+
+The old `gluetun-vpn-tunnel` idea (keyword `public_ip`) is a bad signal in both
+directions: it matches the empty body `{"public_ip":""}`, and an empty value does
+**not** imply a dead tunnel. Two monitors that test real things:
+
+| Name | Type | URL | Keyword | Invert | Catches |
+|---|---|---|---|---|---|
+| `qbit-connectable` | HTTP-Keyword | `http://192.168.1.65:30024/api/v2/transfer/info` | `"connection_status":"connected"` | off | port-forward death — the actual 2026-09-04 fault |
+| `vpn-ip-not-home` | HTTP-Keyword | `http://192.168.1.65:8000/v1/publicip/ip` | `78.10.194.116` (home WAN IP) | **on** | killswitch failure / tunnel leak |
+
+`qbit-connectable` is the important one: `connection_status` goes
+`connected` → `firewalled` the moment incoming peers stop working, which is
+exactly what happened and went unnoticed for four days.
+
+`vpn-ip-not-home` is a leak detector, not a health check — it stays green while
+`public_ip` is empty. The two are complementary; neither alone is sufficient.
+
+Both are reachable from Kuma on the Pi (`192.168.1.252`), which is inside qBit's
+auth-bypass whitelist.
+
+The `vpn-port-mismatch` push monitor was never wired up — `qbit-port-probe.sh` is
+not deployed on the NAS and no cron references it, which is why nothing fired on
+2026-09-04. Either deploy it or rely on `qbit-connectable`, which covers the same
+failure with no script to maintain.
