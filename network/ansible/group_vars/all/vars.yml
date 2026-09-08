@@ -73,8 +73,12 @@ ufw_rules:
   - { rule: allow, port: "53", proto: udp, from: "192.168.1.0/24", comment: "DNS UDP LAN" }
   - { rule: allow, port: "53", proto: tcp, from: "192.168.20.0/24", comment: "DNS TCP Trusted VLAN" }
   - { rule: allow, port: "53", proto: udp, from: "192.168.20.0/24", comment: "DNS UDP Trusted VLAN" }
-  - { rule: allow, port: "53", proto: tcp, from: "172.18.0.0/16", comment: "DNS TCP Docker" }
-  - { rule: allow, port: "53", proto: udp, from: "172.18.0.0/16", comment: "DNS UDP Docker" }
+  # Pi docker bridges live under 172.17.0.0/16 (bridge .0.x, pihole-net .1.x,
+  # cloudflared .2.x). The old 172.18.0.0/16 here matched nothing on this host —
+  # that subnet belongs to the dev PC — so containers could not use the Pi's LAN
+  # DNS. Found 2026-09-08 when Kuma (172.17.1.20) could not query 192.168.1.252.
+  - { rule: allow, port: "53", proto: tcp, from: "172.17.0.0/16", comment: "DNS TCP Docker" }
+  - { rule: allow, port: "53", proto: udp, from: "172.17.0.0/16", comment: "DNS UDP Docker" }
   - { rule: allow, port: "5000", proto: tcp, from: "192.168.1.0/24", comment: "Docker registry mirror LAN" }
   - { rule: allow, port: "5001", proto: tcp, from: "192.168.1.0/24", comment: "Docker private registry LAN" }
   - { rule: allow, port: "5000", proto: tcp, from: "192.168.20.0/24", comment: "Docker registry mirror Trusted VLAN" }

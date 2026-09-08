@@ -718,6 +718,29 @@ empty.
 revert — they are **UI-only**; `PUT rest/setting/<id>` rejects them with
 `api.err.Invalid`.
 
+### Host firewalls, part 2: the Pi's Docker DNS rule pointed at the wrong /16
+
+Same family as the VLAN-move ufw finding, but not caused by the migration — it
+had simply never worked. The Pi's ufw admitted DNS from `172.18.0.0/16`
+("DNS Docker"), but every Docker bridge on the Pi lives under `172.17.0.0/16`
+(`bridge` .0.x, `pihole-net` .1.x, `cloudflared_default` .2.x). `172.18` is the
+**dev PC's** bridge range — the rule looks copied from there.
+
+Effect: no container on the Pi could query the Pi's own LAN DNS at
+`192.168.1.252`. It stayed invisible because containers reach Pi-hole by its
+container name (`pihole`, 172.17.1.16) on the shared bridge, which never touches
+ufw. It only surfaced when a Kuma DNS monitor was pointed at `192.168.1.252` and
+sat permanently Down while the same probe to `192.168.1.65` (the NAS, no such
+rule) passed.
+
+Fixed in `network/ansible/group_vars/all/vars.yml` (172.18 → 172.17) and applied
+live; the stale 172.18 rules were removed. Verified from inside the container:
+all three resolvers now answer.
+
+**Diagnostic pattern worth reusing:** when one probe fails and an equivalent one
+to a *different host* succeeds, suspect the destination host's firewall, not the
+network. The UDR zone policy was never involved in either case.
+
 ### Content filtering: Guest only, deliberately
 
 The `work`-level DNS filter is applied to **Guest 50 only**. That is a decision,
