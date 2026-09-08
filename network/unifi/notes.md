@@ -718,6 +718,42 @@ empty.
 revert — they are **UI-only**; `PUT rest/setting/<id>` rejects them with
 `api.err.Invalid`.
 
+### Content filtering: Guest only, deliberately
+
+The `work`-level DNS filter is applied to **Guest 50 only**. That is a decision,
+not an omission:
+
+**Content filtering fails as a silent NXDOMAIN.** A miscategorised domain does
+not error, warn, or log usefully — it just stops resolving, and the symptom is
+"this app/site is broken" with no pointer to DNS. This lab has already lost time
+to exactly that: the UniFi CyberSecure feed NXDOMAIN'd LinkedIn (see
+`feedback_udr_content_filter_fp`).
+
+| Network | Filter | Why |
+|---|---|---|
+| Guest 50 | **work** | Visitors on devices you do not control; a false positive costs them nothing (they have cellular) |
+| Trusted 20 | **no** | Dev PC, MacBook, phones. A silent NXDOMAIN on a package registry or API endpoint mid-task is expensive and hard to attribute. Pi-hole already blocks ads/trackers here |
+| IoT 30 | **no** | IoT devices do not browse. The real risk is breaking vendor cloud endpoints (Daikin, Govee, LG, Tuya, Aqara) — the device just stops working, silently. **IPS covers IoT instead**, which is the right tool for threat detection |
+| Cameras 40 | **no** | No internet at all |
+| WireGuard | **no** | Same false-positive risk as Trusted, and you are least able to debug it while remote |
+
+If malware/phishing blocking is wanted on Trusted, add a blocklist to **Pi-hole**
+rather than enabling the UniFi filter — Pi-hole's lists are transparent, greppable
+and per-domain overridable; the UniFi feed is an opaque category blob.
+
+### VPN surface
+
+`One-Click VPN` (192.168.2.0/24) is **already disabled** (`enabled: false`) —
+an earlier audit pass reported it as enabled because the query defaulted a missing
+field to true. Only `WireGuard` (192.168.3.0/24, `wireguard-server`, bound to WAN)
+is live, and it shows **0 peers** through every API endpoint checked
+(`rest/vpnclient`, `list/vpnclient`, `stat/vpn`).
+
+Note the UDR is behind **double NAT** (WAN `192.168.100.15` behind the Netia
+router), so inbound WireGuard only works if the Netia unit forwards UDP 51820.
+Hits on the `Allow WireGuard VPNs` rule are as likely to be internet scan noise
+as real use — WireGuard does not reply to unauthenticated packets.
+
 ### The UDR cannot afford IPS across the client VLANs
 
 Widening `enabled_networks` from 1 network to 5 was measured, not assumed:
