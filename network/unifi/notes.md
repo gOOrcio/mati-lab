@@ -691,6 +691,89 @@ snapshot: `~/vlan-rollback-konewka-wlanconf.json` (dev PC, `chmod 600`).
 The general rule: **a VLAN binding that lives anywhere other than the SSID's own
 `networkconf_id` is a trap.** All four SSIDs now bind directly.
 
+## Golden state — full audit 2026-09-08
+
+Post-segmentation baseline. Everything below was read from the controller, not
+assumed. Re-run this audit before/after any significant change.
+
+### Controller and devices
+
+| | |
+|---|---|
+| Network | 10.6.101 (`atag_10.6.101_35991`), no update available |
+| Devices | 6, all `state=1` adopted, **none upgradable** |
+| UDR | 5.1.31.34074 · U6+ ×2 6.7.54.15663 · USW Lite 8 PoE ×2 7.5.10.17129 · Flex Mini 2.1.6.762 |
+| WAN | ok, no drops · all health subsystems ok |
+| Port errors | **zero** across every switch (the 697 tx_errors once seen on Salon p8 have cleared) |
+| AP uplinks | both 1000 Mb, satisfaction 95 (Salon) / 99 (Gabinet) |
+
+### RF — configured == operating (no DFS drift)
+
+| AP | 2.4 GHz | 5 GHz |
+|---|---|---|
+| U6+ Gabinet | ch 1 @ 20 — util 18%, **retries 31.3%** | ch 36 @ 40 — util 2%, retries 4.9% |
+| UDR | ch 6 @ 20 — util 3%, retries 0% | ch 36 @ 20 — util 4%, retries 0% |
+| U6+ Salon | ch 11 @ 20 — **util 35%**, retries 12.7% | ch 44 @ 40 — util 3%, retries 9.8% |
+
+All four SSIDs `minrate_setting_preference: manual`, 6 Mbps floor both bands.
+
+### WLANs
+
+| SSID | Band | Network | Security | Isolation |
+|---|---|---|---|---|
+| `konewka` | 2.4+5 | Trusted 20 | WPA2/WPA3 transition, PMF optional | l2 off (AirPlay/casting need it) |
+| `konewka_5g` | 5 | Trusted 20 | WPA2/WPA3 transition, PMF optional | l2 off |
+| `konewka_iot` | 2.4 | IoT 30 | WPA2, PMF **disabled** (IOT_OPTIMIZED rejects it) | **l2 on** |
+| `konewka_guest` | 2.4+5 | Guest 50 | WPA2/WPA3 transition, PMF optional | **l2 on**, `is_guest` |
+
+No PPSK anywhere; every SSID binds at its own top-level `networkconf_id`.
+
+### Networks
+
+All five: lease 86400 s, DNS override `192.168.1.252` + `192.168.1.65`.
+
+| VLAN | Subnet | DHCP | Isolation | Internet | mDNS |
+|---|---|---|---|---|---|
+| 1 Default | 192.168.1.1/24 | .6–.254 | no | yes | **yes** |
+| 20 Trusted | 192.168.20.1/24 | .6–.254 | no | yes | **yes** |
+| 30 IoT | 192.168.30.1/24 | .6–.254 | no | yes | **yes** |
+| 40 Cameras | 192.168.40.1/24 | .6–.254 | no | **no** | no |
+| 50 Guest | 192.168.50.1/24 | .6–.254 | **yes** | yes | no |
+
+mDNS on exactly the three that need it (HomeKit/AirPlay span 1↔20↔30).
+
+### Firewall
+
+174 policies, 10 zones, each user zone holding exactly one network (Vpn holds 2).
+User-defined: 9 zone-level + 8 legacy `pihole-*`. **Zero per-device policies.**
+
+Critical ordering, verified: `IoT-to-DNS-allow` (10000) **above**
+`IoT-to-Infra-deny` (10001, `states: ["NEW"]`, logging on). The `NEW` scope is
+what lets Infra-initiated return traffic through.
+
+IPS `ips` mode, 13 categories, honeypot on.
+
+### Ports
+
+Client access ports carry `forward: native` + `tagged_vlan_mgmt: block_all`
+(true access ports — no VLAN hopping). Uplinks/AP ports stay VLAN 1 trunks.
+
+| Switch | Trunk (VLAN 1) | Access |
+|---|---|---|
+| Szafa | p2 p3 p4 p8 | p1 p5 p6 p7 → **Guest 50** (spare) |
+| Gabinet | p1, **p2 (Proxmox trunk — never convert)**, p3 (work PC) | p4 → Guest 50 · p5 → Trusted 20 |
+| Salon | p2 p8 | p1 → Cameras 40 · p3 p4 p5 → Trusted 20 · p6 p7 → IoT 30 |
+| UDR | p1 p5 | p2 p3 p4 → Default (infra) |
+
+### Clients
+
+Cameras 1 · Default 8 (infrastructure only) · IoT 14 · Trusted 10.
+**Zero devices holding a VLAN-1 lease on a moved SSID or port.**
+
+### Wall proven
+
+11/11 from the MacBook inside VLAN 30 — see the section above.
+
 ### Guest control restricted subnets
 
 `guest_access` carries `restricted_subnet_1/2/3` = `192.168.0.0/16`,
