@@ -123,7 +123,7 @@ Rules encoded here:
 
 | SSID | Band | Network | Security | Notes |
 |---|---|---|---|---|
-| `konewka` | 2.4 + 5 | **Trusted (VLAN 20)** since 2026-09-07 | WPA2, PMF optional | Main SSID. 802.11r + 802.11v on. Phones, MacBook, iPad, watch, dev PC Wi-Fi, RG556 — plus the LG fridge and Aqara Hub, which ride along as accepted exceptions (see net.1). **Binding lives in the PPSK entry, not the top-level field** — see the PPSK gotcha below. |
+| `konewka` | 2.4 + 5 | **Trusted (VLAN 20)** since 2026-09-07 | **WPA2/WPA3 transition, PMF optional** since 2026-09-08 | Main SSID. 802.11r + 802.11v on. Phones, MacBook, iPad, watch, dev PC Wi-Fi, RG556. **Binds directly at the top-level `networkconf_id`** — the single-entry PPSK that used to own the binding was consolidated away 2026-09-08 (see the PPSK section below); PPSK is also incompatible with WPA3. The LG fridge and Aqara Hub **no longer ride along** — both moved to `konewka_iot` 2026-09-08. |
 | `konewka_iot` | 2.4 | IoT (VLAN 30) | WPA2, PMF **forced off** | Type `IOT_OPTIMIZED`, `l2_isolation` on. Carries the IoT fleet since 2026-09-07. PMF writes are silently rejected on this profile. |
 | `konewka_5g` | 5 only | **Trusted (VLAN 20)** since 2026-09-07 | WPA2/WPA3 transition, PMF optional | Kept deliberately for the PlayStation Portal, to guarantee 5 GHz for Remote Play. 802.11r enabled 2026-08-13. |
 | `konewka_guest` | 2.4 + 5 | Guest (VLAN 50) | WPA3, captive portal | Isolated. Created 2026-09-07. |
