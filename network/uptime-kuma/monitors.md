@@ -88,6 +88,37 @@ file into a single combined inventory. Push-monitor URLs land in the
 password manager under `homelab/uptime-kuma/push-<name>` (anyone with
 the URL can mark the monitor green — treat as a secret).
 
+## VLAN segmentation coverage (added 2026-09-08)
+
+Kuma runs on the Pi (`192.168.1.252`, VLAN 1 / Internal zone). **Every probe
+below therefore tests the path *from VLAN 1*.** That matters for what they can
+and cannot prove — see the caveat after the table.
+
+| ☐ | Name | Type | Endpoint | Expect | Catches |
+|---|---|---|---|---|---|
+| ☐ | `dns-pihole-primary` | DNS | `mati-lab.online` via `192.168.1.252`, A record | `192.168.1.252` | Pi-hole down/wedged |
+| ☐ | `dns-pihole2-nas` | DNS | `mati-lab.online` via `192.168.1.65`, A record | `192.168.1.252` | secondary resolver down — the one that silently covers for the primary |
+| ☐ | `camera-g5-flex` | Ping | `192.168.40.243` | up | camera down, **and** the `Infra-to-Cameras-allow` policy being lost |
+| ☐ | `hue-bridge-iot` | HTTP | `https://192.168.30.221/api/config` (ignore TLS) | 200 | Hue Bridge down, **and** the `Infra-to-IoT-allow` policy being lost (Homebridge depends on it) |
+
+Interval 60 s, retries 2, notify via the ntfy channel like everything else.
+
+### What these do NOT catch
+
+**None of them test `IoT-to-DNS-allow`.** A probe from VLAN 1 to `192.168.1.252`
+exercises Internal→Internal, not IoT→Internal. If the IoT DNS allow slipped below
+the deny, every IoT device would lose name resolution and these monitors would
+stay green.
+
+That failure can only be proven from inside VLAN 30 — the manual TCP/dig matrix
+run from a laptop on `konewka_iot` (see `network/unifi/notes.md`, "IoT wall
+proven from inside VLAN 30"). **Re-run that matrix after any firewall or SSID
+change**; it is not something Kuma can replace.
+
+The two VLAN-crossing monitors (`camera-g5-flex`, `hue-bridge-iot`) are the
+closest continuous proxy: they fail if the corresponding `Infra-to-*-allow`
+policy disappears, which is the most likely way this config regresses.
+
 ## Notification routing
 
 All monitors route to the existing ntfy notification channel
