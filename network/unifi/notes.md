@@ -846,7 +846,12 @@ Critical ordering, verified: `IoT-to-DNS-allow` (10000) **above**
 `IoT-to-Infra-deny` (10001, `states: ["NEW"]`, logging on). The `NEW` scope is
 what lets Infra-initiated return traffic through.
 
-IPS `ips` mode, 13 categories, honeypot on.
+IPS `ips` mode, 13 categories, honeypot on, **scoped to IoT 30 + Guest 50**
+(not Default — see the IPS-scope section above; it was inspecting VLAN 1 only
+until 2026-09-08). Content filter and ad blocking remain on Default pending a
+UI move to Guest; both are UI-only and silently reject API writes.
+
+VPN: `WireGuard` (192.168.3.0/24) enabled and in use; `One-Click VPN` disabled.
 
 ### Ports
 
