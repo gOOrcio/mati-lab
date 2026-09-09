@@ -993,6 +993,47 @@ Cameras 1 · Default 8 (infrastructure only) · IoT 14 · Trusted 10.
 
 11/11 from the MacBook inside VLAN 30 — see the section above.
 
+### Cutting one device off the internet without moving it (2026-09-09)
+
+The LG webOS TV (`24:e8:53:e4:61:68`, `192.168.30.61`) phones home to LG's
+ad/ACR endpoints. The owner watches everything through the AppleTV and uses none
+of the TV's built-in apps, so it needs no internet at all — but it must stay
+reachable for HomeKit automations.
+
+**`LG-TV-no-Internet`** — source zone `IoT` with a **MAC filter**, destination
+zone `External`, `BLOCK`, logging on, all connection states.
+
+Why this works without touching anything else:
+
+- **HomeKit, AirPlay and casting are entirely LAN-local.** The AppleTV hub on
+  Trusted 20 reaches the TV via `Trusted-to-IoT-allow` — a different zone pair,
+  untouched by this rule.
+- **DNS still resolves.** `IoT-to-DNS-allow` targets `192.168.1.252`/`.65`, which
+  are in `Internal`, not `External`. The TV will not hang on DNS timeouts.
+- **Ordering needs no intervention.** `internetAccessEnabled: true` on the IoT
+  network produces `Allow All Traffic` at index `2147483647`; a user policy lands
+  at `10000` and therefore wins. This is the *opposite* of the
+  `IoT-exceptions-to-Infra-deny` case, where the competing allow was also a user
+  policy at 10000 and could not be reordered.
+- **MAC-scoped**, so every other VLAN 30 device keeps its internet.
+
+**A per-device rule is right here, and that does not contradict the earlier
+lesson.** `IoT-exceptions-to-Infra-deny` was wrong because those devices simply
+belonged on IoT and re-homing them removed the need. Here the requirement is
+genuinely per-device: one member of VLAN 30 needs a different internet policy
+from its peers, and no placement change expresses that. The test is whether
+moving the device would dissolve the rule — if yes, move it; if no, write it.
+
+**Diagnostic note:** an LG TV in standby answers neither ICMP nor its HTTP ports
+while staying associated with good RSSI and moving bytes. Do not read that as a
+broken rule — check `stat/sta` for `satisfaction`/`tx_bytes` instead, and verify
+HomeKit with the TV actually on.
+
+Alternative considered: blocklisting LG's domains in Pi-hole
+(`lgtvsdp.com`, `lgtvcommon.com`, `us.ad.lgsmartad.com`, `ngfts.lge.com`). Less
+blunt and keeps the TV's apps working, but leaky — LG can hardcode IPs and
+bypass DNS. Chosen against because the TV's apps are unused.
+
 ### Guest control restricted subnets
 
 `guest_access` carries `restricted_subnet_1/2/3` = `192.168.0.0/16`,
