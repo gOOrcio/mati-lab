@@ -107,6 +107,11 @@ ufw_rules:
   - { rule: allow, port: "123", proto: udp, from: "192.168.50.0/24", comment: "NTP Guest VLAN" }
   - { rule: allow, port: "123", proto: udp, from: "172.17.0.0/16", comment: "NTP Docker" }
 
+  # UniFi UDR remote syslog -> promtail (RFC3164/UDP). Source-restricted to the
+  # gateway itself; the UDR's own log view is not queryable via the API, so
+  # shipping it to Loki is the only way to search or alert on firewall denials.
+  - { rule: allow, port: "1514", proto: udp, from: "192.168.1.1", comment: "UniFi syslog to promtail" }
+
 # fail2ban
 fail2ban_maxretry: 5
 fail2ban_bantime: 3600
