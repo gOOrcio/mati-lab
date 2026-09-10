@@ -13,6 +13,15 @@
     cputemp: true
     uptime: true
 
+# Warsaw. openmeteo needs no API key; `cache` is in minutes.
+- openmeteo:
+    label: Warsaw
+    latitude: 52.2297
+    longitude: 21.0122
+    timezone: Europe/Warsaw
+    units: metric
+    cache: 5
+
 - search:
     provider: duckduckgo
     target: _blank
