@@ -57,30 +57,29 @@ scrape_configs:
         target_label: 'unifi_host'
       - source_labels: ['__syslog_message_severity']
         target_label: 'severity'
-      - source_labels: ['__syslog_message_facility']
-        target_label: 'facility'
     pipeline_stages:
-      # Firewall / IPS events arrive as CEF. Pull the fields worth querying on
-      # into labels; leave everything else in the line.
+      # Firewall / IPS events arrive as CEF. Extract the few fields worth
+      # querying on. NOTE: Go uses RE2 — no lookahead/lookbehind. The client
+      # alias may contain spaces, so match non-greedily up to the next CEF key.
       - match:
           selector: '{job="unifi"} |= "CEF:"'
           stages:
             - regex:
-                expression: 'UNIFIpolicyName=(?P<policy>\\S+)'
+                expression: 'UNIFIpolicyName=(?P<policy>\S+)'
             - regex:
-                expression: 'act=(?P<action>\\S+)'
+                expression: '\bact=(?P<action>\S+)'
             - regex:
-                expression: 'UNIFIsrcClientAlias=(?P<src_client>[^ ]+(?: [^ =]+)*?)(?= [A-Za-z]+=)'
+                expression: '\bapp=(?P<app>\S+)'
             - regex:
-                expression: 'dst=(?P<dst>\\S+)'
+                expression: 'UNIFIsrcClientAlias=(?P<src_client>.*?) UNIFI'
             - regex:
-                expression: 'dpt=(?P<dport>\\d+)'
+                expression: '\bdst=(?P<dst>\S+)'
             - regex:
-                expression: 'app=(?P<app>\\S+)'
+                expression: '\bdpt=(?P<dport>\d+)'
+            # Only low-cardinality fields become labels. dst / dport /
+            # src_client stay as extracted fields for line filtering — a label
+            # per destination IP would blow up the index.
             - labels:
                 policy:
                 action:
                 app:
-      # Keep cardinality sane: dst/dport/src_client stay as extracted fields for
-      # line filtering, NOT labels. A label per destination IP would explode the
-      # index.
