@@ -23,7 +23,7 @@ services:
       - "homepage.group=Observability"
       - "homepage.name=Uptime-Kuma"
       - "homepage.icon=uptime-kuma.png"
-      - "homepage.href=https://kuma.mati-lab.online"
+      - "homepage.href=https://uptime-kuma.mati-lab.online"
       - "homepage.description=Active probe + alerting"
       - "homepage.widget.type=uptimekuma"
       - "homepage.widget.url=http://uptime-kuma:3001"

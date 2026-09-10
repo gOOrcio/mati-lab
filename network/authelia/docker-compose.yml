@@ -39,7 +39,13 @@ services:
       - "homepage.group=Network"
       - "homepage.name=Authelia"
       - "homepage.icon=authelia.png"
-      - "homepage.href=https://auth.mati-lab.online"
+      - "homepage.href=https://authelia.mati-lab.online"
       - "homepage.description=Forward-auth (2FA SSO)"
-      - "homepage.widget.type=authelia"
-      - "homepage.widget.url=http://authelia:9091"
+      # gethomepage has no native "authelia" widget (only authentik) — a
+      # widget.type it doesn't know renders as "Missing Widget Type" on the
+      # card. customapi against Authelia's unauthenticated /api/health gives
+      # the same signal with no credential.
+      - "homepage.widget.type=customapi"
+      - "homepage.widget.url=http://authelia:9091/api/health"
+      - "homepage.widget.refreshInterval=30000"
+      - 'homepage.widget.mappings=[{"field":"status","label":"Health"}]'

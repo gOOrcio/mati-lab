@@ -35,7 +35,7 @@ session:
   cookies:
     - domain: 'mati-lab.online'
       authelia_url: 'https://authelia.mati-lab.online'
-      default_redirection_url: 'https://homarr.mati-lab.online'
+      default_redirection_url: 'https://home.mati-lab.online'
       name: authelia_session
       same_site: lax
       inactivity: 30m

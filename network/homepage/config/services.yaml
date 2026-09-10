@@ -1,34 +1,83 @@
-# Auto-discovered services (Docker labels) populate alongside these manual entries.
-# Manual entries are for things that aren't Docker containers we control:
-# network gear, raw nodes, NAS catalogue apps without label support.
-# NAS catalogue apps with chart-level "Extra Labels" support are added via the
-# TrueNAS UI in the afternoon deploy pass, not here.
+# Auto-discovered services (Docker labels on the Pi + NAS socket-proxy)
+# populate alongside these manual entries. Manual entries are for things that
+# aren't Docker containers we control: network gear, Proxmox guests, NAS
+# catalogue apps whose chart has no "Extra Labels" field.
+#
+# Hostnames must match a `@name host <fqdn>` matcher in
+# network/caddy/Caddyfile — the wildcard cert resolves every *.mati-lab.online
+# name, so a typo'd host reaches Caddy and 404s instead of failing DNS.
 
 - Network:
     - Pi LAN gateway:
         href: http://192.168.1.1
-        description: Router admin
+        description: UniFi UDR — router, DHCP, firewall
         icon: mdi-router-network
     - TrueNAS UI:
-        href: https://truenas.mati-lab.online
-        siteMonitor: https://truenas.mati-lab.online
+        href: https://nas.mati-lab.online
+        siteMonitor: https://nas.mati-lab.online
         description: NAS web admin (192.168.1.65)
         icon: truenas.png
-    - Proxmox UI:
-        href: https://proxmox.mati-lab.online
-        siteMonitor: https://proxmox.mati-lab.online
-        description: PVE manager (192.168.1.184)
-        icon: proxmox.png
     - Homebridge UI:
         href: https://homebridge.mati-lab.online
         siteMonitor: https://homebridge.mati-lab.online
         description: HomeKit bridge (192.168.1.155)
         icon: homebridge.png
+        widget:
+          type: homebridge
+          url: http://192.168.1.155:8581
+          username: '{{HOMEPAGE_VAR_HOMEBRIDGE_USERNAME}}'
+          password: '{{HOMEPAGE_VAR_HOMEBRIDGE_PASSWORD}}'
+
+# Proxmox host + its guests. proxmoxNode/proxmoxVMID/proxmoxType render live
+# status + CPU/RAM straight from the PVE API — see config/proxmox.yaml.
+# VMIDs come from `pvesh get /cluster/resources --type vm`.
+- Proxmox:
+    - Proxmox UI:
+        href: https://proxmox.mati-lab.online
+        siteMonitor: https://proxmox.mati-lab.online
+        description: PVE manager (192.168.1.184)
+        icon: proxmox.png
+        widget:
+          type: proxmox
+          url: https://192.168.1.184:8006
+          username: '{{HOMEPAGE_VAR_PROXMOX_TOKEN_ID}}'
+          password: '{{HOMEPAGE_VAR_PROXMOX_TOKEN_SECRET}}'
+          node: proxmox
+    - Ollama GPU:
+        href: http://192.168.1.48:11434
+        description: VM 101 — Ollama, LiteLLM backend
+        icon: ollama.png
+        proxmoxNode: proxmox
+        proxmoxVMID: 101
+        proxmoxType: qemu
+    - Gitea runner:
+        href: https://gitea.mati-lab.online/gooral/mati-lab/actions
+        description: VM 102 — Gitea Actions CI
+        icon: gitea.png
+        proxmoxNode: proxmox
+        proxmoxVMID: 102
+        proxmoxType: qemu
+    - smart-resume:
+        href: https://smart-resume.mati-lab.online
+        siteMonitor: https://smart-resume.mati-lab.online
+        description: LXC 110 — resume tailoring app
+        icon: mdi-file-account
+        proxmoxNode: proxmox
+        proxmoxVMID: 110
+        proxmoxType: lxc
+    - restorate:
+        href: https://restorate.mati-lab.online
+        siteMonitor: https://restorate.mati-lab.online
+        description: LXC 111 — restaurant rating app
+        icon: mdi-silverware-fork-knife
+        proxmoxNode: proxmox
+        proxmoxVMID: 111
+        proxmoxType: lxc
 
 - NAS:
-    # Catalogue apps without docker label support — populated as fallback during
-    # the afternoon UI sweep. Apps where chart "Extra Labels" worked will be
-    # auto-discovered via the docker-socket-proxy and won't need entries here.
+    # TrueNAS catalogue apps whose chart has no "Extra Labels" field, so they
+    # can't carry homepage.* Docker labels. Apps that DO have it are labelled
+    # in nas/<app>/app-config.json and auto-discover via docker-socket-proxy.
     - Jellyfin:
         href: https://jellyfin.mati-lab.online
         siteMonitor: https://jellyfin.mati-lab.online
@@ -39,15 +88,30 @@
         siteMonitor: https://gitea.mati-lab.online
         description: Self-hosted Git
         icon: gitea.png
-    - Obsidian LiveSync:
-        href: https://obsidian.mati-lab.online
-        description: CouchDB sync endpoint
-        icon: obsidian.png
+    - Hermes:
+        href: https://hermes.mati-lab.online
+        siteMonitor: https://hermes.mati-lab.online
+        description: Telegram agent gateway
+        icon: mdi-robot-happy
     - LiteLLM:
         href: https://litellm.mati-lab.online
         siteMonitor: https://litellm.mati-lab.online
         description: LLM gateway
         icon: mdi-brain
+    - Qdrant:
+        href: https://qdrant.mati-lab.online
+        siteMonitor: https://qdrant.mati-lab.online
+        description: Vector DB — obsidian-vault collection
+        icon: qdrant.png
+    - Obsidian LiveSync:
+        href: https://obsidian.mati-lab.online
+        description: CouchDB sync endpoint
+        icon: obsidian.png
+    - Syncthing:
+        href: https://syncthing.mati-lab.online
+        siteMonitor: https://syncthing.mati-lab.online
+        description: Mac → NAS vault replication
+        icon: syncthing.png
     - Prowlarr:
         href: https://prowlarr.mati-lab.online
         siteMonitor: https://prowlarr.mati-lab.online
@@ -62,5 +126,5 @@
 - Other:
     - Dev PC:
         href: http://192.168.20.173
-        description: Workstation (Linux desktop)
+        description: Workstation (VLAN 20)
         icon: mdi-desktop-tower-monitor

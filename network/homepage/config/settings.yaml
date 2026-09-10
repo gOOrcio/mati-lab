@@ -5,17 +5,20 @@ headerStyle: clean
 language: en
 target: _self
 
+# Explicit order — groups not listed here would render alphabetically after
+# these. Network first (the things that break everything else), then the
+# hypervisor, then storage/apps.
 layout:
   Network:
     style: row
     columns: 4
+  Proxmox:
+    style: row
+    columns: 5
   Observability:
     style: row
     columns: 4
   NAS:
-    style: row
-    columns: 4
-  Proxmox:
     style: row
     columns: 4
   Other:

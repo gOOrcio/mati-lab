@@ -1,0 +1,12 @@
+# Proxmox connection used by services.yaml entries carrying
+# proxmoxNode/proxmoxVMID/proxmoxType — they render live status + CPU/RAM
+# for a VM or LXC. The top-level key MUST equal the PVE node name
+# (`pvesh get /nodes`), which here is "proxmox", not the "pve" default.
+#
+# Credentials come from network/homepage/.env via HOMEPAGE_VAR_* (see
+# .env.example). The token is homepage@pve!dashboard with role PVEAuditor
+# at path "/" — audit-only, it cannot change anything.
+proxmox:
+  url: https://192.168.1.184:8006
+  token: '{{HOMEPAGE_VAR_PROXMOX_TOKEN_ID}}'
+  secret: '{{HOMEPAGE_VAR_PROXMOX_TOKEN_SECRET}}'

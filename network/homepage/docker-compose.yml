@@ -13,7 +13,7 @@ services:
       - 1.0.0.1
     environment:
       - HOMEPAGE_ALLOWED_HOSTS=home.mati-lab.online
-      # Widget credentials (sourced from network/.env on the Pi):
+      # Widget credentials (sourced from network/homepage/.env — see .env.example):
       - HOMEPAGE_VAR_PROXMOX_TOKEN_ID=${PROXMOX_HOMEPAGE_TOKEN_ID:-}
       - HOMEPAGE_VAR_PROXMOX_TOKEN_SECRET=${PROXMOX_HOMEPAGE_TOKEN_SECRET:-}
       - HOMEPAGE_VAR_HOMEBRIDGE_USERNAME=${HOMEBRIDGE_USERNAME:-}
