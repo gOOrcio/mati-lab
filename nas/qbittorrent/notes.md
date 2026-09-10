@@ -190,3 +190,28 @@ find /mnt/bulk/data/torrents -type f -links +1 \
 **Gotcha: `/tmp` is `noexec` on TrueNAS.** A root cron pointed at
 `/tmp/script.sh` runs and silently does nothing — no error, no output. Use
 `/bin/sh /tmp/script.sh`, which reads the file instead of exec'ing it.
+
+### Repair outcome (2026-09-10)
+
+**138 / 140 fully restored to seeding, 0 left in `missingFiles`.**
+
+Two could not finish because the piece is no longer available in the swarm:
+
+| Torrent | Needs | Swarm |
+|---|---|---|
+| `Peacemaker S02E02 …` | 1.87 MB | `seeds=0` |
+| `Ironheart S01E02 …` | 1.05 MB | `seeds=1`, won't connect |
+
+Both sit at ~99.95 % in `stalledDL`. **This is cosmetic — the media is
+intact.** libtorrent only marks the piece missing; it never truncated the
+`.mkv`, and the library hardlink is the same intact file. They continue to
+upload the pieces they hold, so ratio still accrues. Leave them, or remove
+them from qBittorrent — removing *with* data is safe for the library, since
+the library holds a second hardlink to the same inode and deleting one link
+leaves the other.
+
+Note the re-downloaded piece spans the `.mkv`/`.nfo` boundary, so it did
+write through the still-intact `.mkv` hardlink into the library — with byte
+identical `.mkv` content, so nothing was damaged. Verified afterwards:
+0 size mismatches across every file of all 140 torrents, 0 `.nfo` hardlinks
+remaining, 116 video hardlinks preserved.
