@@ -1,0 +1,34 @@
+{{ ansible_managed | comment }}
+# Local NTP server for the segmented LAN.
+#
+# Why this exists: after the 2026-09-07 VLAN segmentation, devices on isolated
+# VLANs need a time source that does not require internet access. The LG TV in
+# particular is deliberately blocked from External, so internet NTP is not an
+# option for it. IoT-to-DNS-allow already permits udp/123 to this host — before
+# this file existed, nothing was listening, so that half of the rule was dead.
+
+# Upstream: Debian/Ubuntu pool, plus the vendor pool as a second opinion.
+pool {{ chrony_upstream_pool }} iburst maxsources 4
+{% for s in chrony_upstream_servers %}
+server {{ s }} iburst
+{% endfor %}
+
+driftfile /var/lib/chrony/chrony.drift
+ntsdumpdir /var/lib/chrony
+logdir /var/log/chrony
+
+# Allow the clock to step (rather than slew) on the first three updates —
+# matters on a Pi, which has no battery-backed RTC and can boot far off.
+makestep 1.0 3
+rtcsync
+
+# Serve time to the LAN. Each VLAN is listed explicitly rather than using a
+# blanket 192.168.0.0/16 so the intent stays auditable alongside the firewall
+# policy matrix in network/unifi/notes.md.
+{% for net in chrony_allow_subnets %}
+allow {{ net }}
+{% endfor %}
+
+# Do not act as a peer or accept remote control from the network.
+cmdport 0
+noclientlog

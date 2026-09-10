@@ -1071,6 +1071,43 @@ query `_hap._tcp.local` and compare against a known-good accessory on the same
 VLAN. It separates "accessory stopped offering HomeKit" from "network is not
 carrying it" in one step.
 
+### Local NTP — the Pi serves time to every VLAN (2026-09-10)
+
+**Why:** `IoT-to-DNS-allow` had always permitted **udp/123** to `192.168.1.252`
+and `.65`, but neither served NTP — the Pi ran `systemd-timesyncd`, which is a
+client only. Half that rule pointed at a service that did not exist. Surfaced by
+a `IoT-to-Infra-deny` hit: the Hue Bridge sending NTP to `192.168.1.253`, a
+stale cached server address that nothing has occupied for a long time (no client
+record has ever held it, and no DHCP scope advertised NTP).
+
+It became worth fixing rather than ignoring because the **LG TV is now blocked
+from External** — it has no internet clock, and a drifting clock on a TV breaks
+TLS and certificate validation.
+
+**What was done** — Ansible-sourced, `make ntp` in `network/ansible`:
+
+- `chrony` installed on the Pi (apt removes `systemd-timesyncd`; the playbook
+  also masks it explicitly, since two time daemons conflict).
+- `templates/chrony.conf.j2` — upstream `pool.ntp.org` + `time.cloudflare.com`,
+  `makestep 1.0 3` (the Pi has no battery-backed RTC), `cmdport 0` and
+  `noclientlog` so it serves time and nothing else.
+- `chrony_allow_subnets` lists each VLAN explicitly rather than a blanket
+  `192.168.0.0/16`, so intent stays auditable next to the policy matrix.
+- `ufw_rules` gained udp/123 for all five VLANs plus `172.17.0.0/16` (the Pi's
+  docker bridges — see the DNS rule gotcha above, same trap).
+- Every DHCP scope now advertises `ntpServerIpAddresses: ["192.168.1.252"]`.
+
+**Verified:** chrony stratum 2, synced to `tempus2.gum.gov.pl`, system time 52 ns
+off; answers in ~1 ms from VLAN 20 and from VLAN 1. `IoT-to-DNS-allow`'s port 123
+is now backed by a real service.
+
+`chronyc` needs root locally — `cmdport 0` disables the *network* command port,
+and the local socket is root-only. `sudo chronyc sources` / `tracking`.
+
+**The Hue Bridge will stop chasing `.253` on its next lease renewal**, when it
+picks up the advertised NTP server. Until then the denials continue and are
+harmless: one 76-byte UDP packet per attempt, dropped.
+
 ### Guest control restricted subnets
 
 `guest_access` carries `restricted_subnet_1/2/3` = `192.168.0.0/16`,

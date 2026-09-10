@@ -56,6 +56,22 @@ docker_log_max_size: "10m"
 docker_log_max_file: "3"
 docker_data_root: "/mnt/nvme/docker"
 
+# NTP — the Pi serves time to the segmented VLANs.
+# Added 2026-09-10. Before this, systemd-timesyncd ran (client-only, nothing
+# listening on udp/123) while IoT-to-DNS-allow already permitted udp/123 to
+# 192.168.1.252 — an allow rule pointing at a service that did not exist.
+# The LG TV is now blocked from the internet entirely, so it has no other clock.
+chrony_upstream_pool: "pool.ntp.org"
+chrony_upstream_servers:
+  - "time.cloudflare.com"
+chrony_allow_subnets:
+  - "192.168.1.0/24"     # VLAN 1  Default / infra
+  - "192.168.20.0/24"    # VLAN 20 Trusted
+  - "192.168.30.0/24"    # VLAN 30 IoT
+  - "192.168.40.0/24"    # VLAN 40 Cameras
+  - "192.168.50.0/24"    # VLAN 50 Guest
+  - "172.17.0.0/16"      # Pi docker bridges
+
 # UFW firewall rules
 # 192.168.20.0/24 = Trusted VLAN 20 (dev PC, phones, laptops) since the
 # 2026-09-07 segmentation. A host firewall scoped to 192.168.1.0/24 silently
@@ -83,6 +99,13 @@ ufw_rules:
   - { rule: allow, port: "5001", proto: tcp, from: "192.168.1.0/24", comment: "Docker private registry LAN" }
   - { rule: allow, port: "5000", proto: tcp, from: "192.168.20.0/24", comment: "Docker registry mirror Trusted VLAN" }
   - { rule: allow, port: "5001", proto: tcp, from: "192.168.20.0/24", comment: "Docker private registry Trusted VLAN" }
+  # NTP served to every VLAN (chrony). udp/123 only; cmdport is disabled.
+  - { rule: allow, port: "123", proto: udp, from: "192.168.1.0/24", comment: "NTP LAN" }
+  - { rule: allow, port: "123", proto: udp, from: "192.168.20.0/24", comment: "NTP Trusted VLAN" }
+  - { rule: allow, port: "123", proto: udp, from: "192.168.30.0/24", comment: "NTP IoT VLAN" }
+  - { rule: allow, port: "123", proto: udp, from: "192.168.40.0/24", comment: "NTP Cameras VLAN" }
+  - { rule: allow, port: "123", proto: udp, from: "192.168.50.0/24", comment: "NTP Guest VLAN" }
+  - { rule: allow, port: "123", proto: udp, from: "172.17.0.0/16", comment: "NTP Docker" }
 
 # fail2ban
 fail2ban_maxretry: 5

@@ -393,6 +393,42 @@
       notify: Restart SSH
       tags: [security, ssh]
 
+    # ── NTP (chrony) ────────────────────────────────────────────────────────
+    # The Pi serves time to every VLAN. Devices on isolated VLANs — notably the
+    # LG TV, which is blocked from External — have no other clock source.
+    - name: Install chrony
+      ansible.builtin.apt:
+        name: chrony
+        state: present
+      tags: [base, ntp]
+
+    - name: Disable systemd-timesyncd (chrony replaces it; two time daemons conflict)
+      ansible.builtin.systemd:
+        name: systemd-timesyncd
+        enabled: false
+        state: stopped
+        masked: true
+      failed_when: false
+      tags: [base, ntp]
+
+    - name: Configure chrony
+      ansible.builtin.template:
+        src: ../templates/chrony.conf.j2
+        dest: /etc/chrony/chrony.conf
+        owner: root
+        group: root
+        mode: "0644"
+      notify: Restart chrony
+      tags: [base, ntp]
+
+    - name: Enable and start chrony
+      ansible.builtin.systemd:
+        name: chrony
+        enabled: true
+        state: started
+        daemon_reload: true
+      tags: [base, ntp]
+
     # ── UFW firewall ────────────────────────────────────────────────────────
     - name: Install UFW
       ansible.builtin.apt:
@@ -472,6 +508,11 @@
       tags: [base]
 
   handlers:
+    - name: Restart chrony
+      ansible.builtin.systemd:
+        name: chrony
+        state: restarted
+
     - name: Restart Docker
       ansible.builtin.systemd:
         name: docker
