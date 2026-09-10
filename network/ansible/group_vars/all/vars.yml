@@ -110,7 +110,14 @@ ufw_rules:
   # UniFi UDR remote syslog -> promtail (RFC3164/UDP). Source-restricted to the
   # gateway itself; the UDR's own log view is not queryable via the API, so
   # shipping it to Loki is the only way to search or alert on firewall denials.
-  - { rule: allow, port: "1514", proto: udp, from: "192.168.1.1", comment: "UniFi syslog to promtail" }
+  # Every UniFi device ships its own syslog from its own IP (observed: the UDR
+  # .1, Szafa .242, Salon .171, U6+ APs), not just the gateway — so this must be
+  # the infra subnet, not a single host.
+  # NOTE: this rule is largely decorative. promtail publishes 1514/udp through
+  # Docker, and Docker's DNAT bypasses ufw's INPUT chain entirely; real
+  # restriction would need a DOCKER-USER rule. Kept because it documents intent
+  # and would apply if the port were ever bound on the host directly.
+  - { rule: allow, port: "1514", proto: udp, from: "192.168.1.0/24", comment: "UniFi syslog to promtail" }
 
 # fail2ban
 fail2ban_maxretry: 5
