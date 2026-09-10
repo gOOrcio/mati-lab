@@ -48,4 +48,10 @@ services:
       - "homepage.widget.type=customapi"
       - "homepage.widget.url=http://authelia:9091/api/health"
       - "homepage.widget.refreshInterval=30000"
-      - 'homepage.widget.mappings=[{"field":"status","label":"Health"}]'
+      # Docker label values reach Homepage as plain strings (only env-var
+      # substitution runs on them), so a JSON array here arrives as a string
+      # and the widget throws. Homepage's shvl splits the label key on
+      # [.[]] and builds an array when the next segment is numeric, so
+      # nested/array config has to be spelled out index by index.
+      - "homepage.widget.mappings[0].field=status"
+      - "homepage.widget.mappings[0].label=Health"
