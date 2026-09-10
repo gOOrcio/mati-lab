@@ -138,3 +138,27 @@ identity_providers:
           - 'code'
         userinfo_signed_response_alg: 'none'
         token_endpoint_auth_method: 'client_secret_basic'
+
+      # Hermes Agent dashboard. Public client + PKCE, so there is no shared
+      # secret to store or rotate — the Hermes self_hosted OIDC plugin does
+      # PKCE on every login and authenticates the token endpoint with the
+      # verifier alone (RFC 7636). Redirect URI is derived by Hermes as
+      # <HERMES_DASHBOARD_PUBLIC_URL>/auth/callback.
+      - client_id: 'hermes-dashboard'
+        client_name: 'Hermes Dashboard'
+        public: true
+        require_pkce: true
+        pkce_challenge_method: 'S256'
+        authorization_policy: 'two_factor'
+        redirect_uris:
+          - 'https://hermes.mati-lab.online/auth/callback'
+        scopes:
+          - 'openid'
+          - 'profile'
+          - 'email'
+        grant_types:
+          - 'authorization_code'
+        response_types:
+          - 'code'
+        userinfo_signed_response_alg: 'none'
+        token_endpoint_auth_method: 'none'
