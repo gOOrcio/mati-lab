@@ -1108,6 +1108,44 @@ and the local socket is root-only. `sudo chronyc sources` / `tracking`.
 picks up the advertised NTP server. Until then the denials continue and are
 harmless: one 76-byte UDP packet per attempt, dropped.
 
+### Shipping UDR logs to Loki (2026-09-10) — receiver built, UDR not yet sending
+
+**Why bother:** the UDR's log view is not queryable. `stat/event`, `stat/alarm`
+and `stat/ips/event` all reject Integration API keys, so firewall denials can
+only be read by hand in the UI. That cost real time twice on 2026-09-10 — the
+Hue Bridge `.253` NTP denials and the IPS p2p noise both had to be pasted in
+manually. In Loki they become searchable, correlatable with Pi/NAS logs,
+retained 30 days, and alertable via the existing Alertmanager.
+
+**Receiver — built and verified working:**
+
+- `promtail` job `unifi-syslog`, **UDP 1514**, `syslog_format: rfc3164`.
+  **UniFi sends RFC3164, promtail defaults to RFC5424 and silently drops what it
+  cannot parse** — that setting is mandatory, not cosmetic.
+- Security events arrive as **CEF** in the message body. The pipeline extracts
+  `policy` / `action` / `app` as labels and leaves `dst` / `dport` /
+  `src_client` as fields — a label per destination IP would blow up the index.
+- `1514/udp` published in the compose file; ufw admits it **only from
+  192.168.1.1**.
+
+**Blocked on:** the UDR is not sending. `rsyslogd` reads back correctly
+(`enabled: true`, `ip: 192.168.1.252`, `port: 1514`) after a `PUT` to
+`set/setting/rsyslogd`, and a force-provision changed nothing — `tcpdump` on the
+Pi sees mDNS from the gateway but zero packets on 1514. **Set it in the UI
+instead** (Settings → System → Logging / Remote Logging): this joins content
+filtering and ad blocking as a setting the API stores but the gateway ignores.
+
+**Two traps worth remembering:**
+
+- `promtail -check-syntax` reported **"Valid config file!"** for a config whose
+  pipeline regexes could not compile. It validates YAML, not regexes. The
+  container then crash-looped, which also stopped **Pi container log shipping** —
+  a config error in a new job takes down the existing ones. Verify extraction
+  against a real sample line before deploying.
+- Go uses **RE2**: no lookahead/lookbehind. The CEF client alias contains
+  spaces, so match non-greedily to the next key (`(?P<src_client>.*?) UNIFI`)
+  rather than reaching for `(?=`.
+
 ### Guest control restricted subnets
 
 `guest_access` carries `restricted_subnet_1/2/3` = `192.168.0.0/16`,
