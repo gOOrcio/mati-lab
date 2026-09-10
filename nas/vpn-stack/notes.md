@@ -668,3 +668,49 @@ other; do not leave a cron pushing into the void:
 
 A permanently-red monitor and a cron pushing nowhere are both worse than either
 choice made deliberately.
+
+## Port forwarding drops ~30 min after connecting (2026-09-10)
+
+**Signature**, from gluetun's log:
+
+```
+08:31:32 [port forwarding] port forwarded is 48564   <- works
+08:31:32 [firewall] setting allowed input port 48564 through interface tun0
+08:59:36 [firewall] removing allowed port 48564
+08:59:36 ERROR [port forwarding] adding port mapping: ...
+         read udp 10.2.0.2:39338->10.2.0.1:5351: recvfrom: connection refused
+```
+
+The tunnel stays up throughout — gluetun keeps resolving its own public IP, and
+qBit reports the VPN exit for both IPv4 and IPv6 (no leak). What dies is the
+**NAT-PMP renewal**: the Proton gateway refuses on udp/5351 and gluetun never
+recovers the mapping, leaving qBit permanently `firewalled` with 0 DHT nodes.
+
+Same failure on 2026-09-04. A redeploy fixes it temporarily — for about half an
+hour — which is why it looked "fixed" that day.
+
+**Not a server-selection problem.** The startup banner shows
+`Port forwarding only servers: yes`, so gluetun is already restricted to
+PF-capable exits. Ruled out before changing anything.
+
+This is a known upstream bug with several open gluetun issues
+(#2679, #3013, #1891, #1749). Issue #1749 links it to an internal VPN restart
+after a failed healthcheck, which matches `Restart VPN on healthcheck failure:
+yes` in the banner.
+
+**Actions taken:** pinned gluetun **v3.41.1 → v3.41.3** (the running container
+logs "There is a new release v3.41.3"), and removed
+`HEALTH_VPN_DURATION_INITIAL`, which gluetun warns is obsolete at every start.
+
+**If it recurs:** the reported workaround is regenerating the Proton WireGuard
+credentials so a different exit is chosen. `SERVER_COUNTRIES: Switzerland`
+narrows the pool considerably — widening it to more PF-capable countries gives
+gluetun more room to land on a healthy gateway.
+
+**Read the log carefully:** the `[qbit-update-port]` lines are tagged `ERROR`
+but say `OK (attempt 2)`. gluetun logs the hook's stderr at ERROR level; that is
+the port-sync script succeeding, not failing. Do not chase it.
+
+**Monitoring:** `qbit-connectable` (Kuma, `connection_status":"connected"`)
+catches this within 300 s. It is the reason this was noticed at all rather than
+after weeks of nothing downloading.

@@ -5,7 +5,7 @@
   "custom_compose_config": {
     "services": {
       "gluetun": {
-        "image": "qmcgaw/gluetun:v3.41.1",
+        "image": "qmcgaw/gluetun:v3.41.3",
         "restart": "unless-stopped",
         "cap_add": ["NET_ADMIN"],
         "devices": ["/dev/net/tun:/dev/net/tun"],
@@ -18,7 +18,6 @@
           "TZ": "Europe/Warsaw",
           "DOT_PROVIDERS": "cloudflare",
           "BLOCK_MALICIOUS": "off",
-          "HEALTH_VPN_DURATION_INITIAL": "30s",
           "VPN_PORT_FORWARDING": "on",
           "VPN_PORT_FORWARDING_PROVIDER": "protonvpn",
           "VPN_PORT_FORWARDING_UP_COMMAND": "/scripts/qbit-update-port.sh {{PORTS}}",
