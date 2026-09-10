@@ -1,7 +1,7 @@
 # Hermes Agent (NAS) — catalogue app
 
 TrueNAS Scale **catalogue app** `hermes-agent` (train `community`, chart
-version `1.0.9`, image `nousresearch/hermes-agent:v2026.7.20`). Replaces the
+version `1.0.19`, image `nousresearch/hermes-agent:v2026.9.7`). Replaces the
 bespoke Custom App formerly at `nas/hermes/`, which was **deleted via the UI
 on 2026-07-31** (no longer a rollback target — see `nas/hermes/notes.md`).
 Single `gateway run` container; no separate dashboard
@@ -17,12 +17,74 @@ at the bottom.
 ## Endpoints
 
 - **Direct (LAN):** `http://192.168.1.65:30262` — dashboard, published from
-  `network.dashboard_port` in `app-config.json`.
+  `network.dashboard_port` in `app-config.json`. Redirects to the Authelia OIDC
+  login; there is no unauthenticated path any more (see the auth section below).
+- **Gateway API:** `http://192.168.1.65:30264` — `/health` returns 200. This is
+  the port to health-check; `:30262` answers 302, not 200.
 - **Through Caddy + Authelia 2FA:** `https://hermes.mati-lab.online` →
   `192.168.1.65:30262` (unchanged from the bespoke app — same Caddy vhost).
 - **Telegram:** `@HermesMatiBot` — same bot, token migrates from the old
   app's `.env` to this app's `TELEGRAM_BOT_TOKEN` env var (PM
   `homelab/openclaw/telegram-bot`, same entry the bespoke app used).
+
+## Dashboard auth — Authelia OIDC (SSO)
+
+**Upstream removed the insecure-dashboard escape hatch.** From v2026.9.7 the
+dashboard refuses to bind a non-loopback address unless an auth provider is
+registered:
+
+> Refusing to bind dashboard to 0.0.0.0 — the auth gate engages on non-loopback
+> binds (0.0.0.0), but no auth providers are registered.
+> There is no unauthenticated public-dashboard option.
+
+Fronting it with Authelia does not satisfy this — Hermes explicitly rejects the
+"a local reverse proxy reaches a loopback backend" argument. The old
+`enable_insecure_dashboard_access: true` option is gone from the chart, replaced
+by `enable_basic_auth`.
+
+**Failure mode when this is unconfigured:** the dashboard process starts, refuses
+to bind, and loops. Docker still *publishes* host port 30262, so the port looks
+open in `ss -tlnp` while nothing is behind it — connections are refused and Caddy
+returns **502**. Confirmed from the NAS itself: `127.0.0.1:30262` also refuses.
+This bit us between the chart upgrade and 2026-09-10.
+
+We use the bundled generic OIDC provider (`plugins/dashboard_auth/self_hosted`)
+against Authelia rather than `enable_basic_auth`, so the dashboard is real SSO
+instead of a second password behind the one Authelia already asks for.
+
+Configured through `additional_envs` (the chart exposes no OIDC options):
+
+| Env | Value |
+|---|---|
+| `HERMES_DASHBOARD_PUBLIC_URL` | `https://hermes.mati-lab.online` |
+| `HERMES_DASHBOARD_OIDC_ISSUER` | `https://authelia.mati-lab.online` |
+| `HERMES_DASHBOARD_OIDC_CLIENT_ID` | `hermes-dashboard` |
+
+`HERMES_DASHBOARD_PUBLIC_URL` is **required**: the redirect URI is derived as
+`<public_url>/auth/callback`, and without it Hermes builds the callback from the
+request host, which Authelia then rejects as a mismatch.
+
+The Authelia side is a **public PKCE client** in
+`network/authelia/configuration.yml` (`public: true`, `require_pkce: true`,
+`pkce_challenge_method: S256`, `token_endpoint_auth_method: none`). Public means
+**no client secret exists** — nothing to store in the password manager, nothing
+to rotate, no row in `nas/secrets-inventory.md`. The plugin authenticates the
+token endpoint with the PKCE verifier alone.
+
+Verify the wiring without a browser:
+
+```bash
+curl -s http://192.168.1.65:30262/api/auth/providers
+# {"providers":[{"name":"self-hosted","display_name":"Self-Hosted OIDC",...}]}
+curl -s -o /dev/null -w '%{redirect_url}\n' \
+  'http://192.168.1.65:30262/auth/login?provider=self-hosted&next=%2F'
+# https://authelia.mati-lab.online/api/oidc/authorization?...&code_challenge_method=S256
+```
+
+`enable_basic_auth` stays `false`. Turning it on would add a second credential
+in front of the same dashboard; it's the fallback if the OIDC plugin is ever
+dropped upstream.
+
 
 ## App layout
 

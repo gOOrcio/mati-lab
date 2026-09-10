@@ -75,7 +75,7 @@ to bypass the Authelia 302-redirect on Caddy-fronted vhosts).
 | ☐ | Name | Type | Endpoint | Match |
 |---|---|---|---|---|
 | ☐ | pi-hole (DNS) | DNS | `mati-lab.online` via `192.168.1.252` | resolves |
-| ☐ | hermes | HTTP-Keyword | `http://192.168.1.65:30262/` | `Hermes Agent - Dashboard` (the dashboard sidecar serves a 200 with this title) |
+| ☐ | hermes | HTTP | `http://192.168.1.65:30264/health` | Gateway API health. **Do not keyword-check `:30262`** — since v2026.9.7 the dashboard requires OIDC and answers 302, never an anonymous 200. A 502 here in Sept 2026 went unnoticed for want of this monitor. |
 | ☐ | homebridge | HTTP | `http://192.168.1.155:8581/health` | 200 |
 | ☐ | backup-homebridge-dump | Push | minted in Kuma UI; URL in PM (`homelab/uptime-kuma/push-homebridge-backup`) and `/root/.backup-env` (`KUMA_URL_HOMEBRIDGE`) | weekly heartbeat (interval 604800s, retry 259200s) |
 | ☐ | backup-dev-pc-restic | Push | minted in Kuma UI; URL in PM (`homelab/uptime-kuma/push-dev-pc-restic`) and dev-PC `~/.config/restic/kuma-push-url` | daily heartbeat (interval 86400s, retry 43200s, max retries 2) |

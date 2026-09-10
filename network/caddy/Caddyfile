@@ -407,12 +407,15 @@
 
 	@hermes host hermes.mati-lab.online
 	handle @hermes {
-		# Hermes Agent web dashboard (`hermes dashboard --port 9119 --insecure`)
-		# running as a sidecar in the `hermes` Custom App on NAS, exposed at
-		# host port 30262. Authelia 2FA gates browser access; LAN-direct still
-		# bypasses (same posture as old OpenClaw vhost). Hermes also embeds
-		# its own per-session token in the HTML, so LAN-direct still needs
-		# that token.
+		# Hermes Agent web dashboard, served by the `hermes-agent` catalogue
+		# app on NAS at host port 30262 (single container — the old dashboard
+		# sidecar and its --insecure flag are both gone upstream).
+		# Two layers of the SAME identity: Authelia 2FA gates the vhost here,
+		# and Hermes then runs its own OIDC login against Authelia
+		# (client `hermes-dashboard`, public + PKCE). The callback lands on
+		# /auth/callback, which must stay reachable through this handle.
+		# LAN-direct to :30262 bypasses Caddy but NOT Hermes's own OIDC gate.
+		# Health-check :30264/health, not :30262 — the dashboard answers 302.
 		forward_auth http://authelia:9091 {
 			uri /api/authz/forward-auth
 			copy_headers Remote-User Remote-Groups Remote-Name Remote-Email
