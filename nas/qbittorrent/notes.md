@@ -127,3 +127,66 @@ via the `*.mati-lab.online` wildcard in `network/authelia/configuration.yml`.
      `/mnt/.ix-apps/app_mounts/qbittorrent/config/qBittorrent/qBittorrent.conf`,
      remove the `WebUI\Password_PBKDF2` line, start the app — the default
      `adminadmin` login works until you set a new one.
+
+## `missingFiles` mass outbreak — Jellyfin rewriting `.nfo` through Sonarr hardlinks (2026-09-10)
+
+**Symptom.** 25 torrents stuck in `missingFiles` with `progress=0`, all
+`category=tv`, clustered in two batches (5× Ironheart added 2026-05-01,
+20× Adventure Time S01 added 2026-06-11). Looked like deleted media.
+
+**It was not missing media.** Every `.mkv` was present, correct size, correct
+ownership. The qBittorrent log named the real fault:
+
+```
+fast resume rejected. check_resume(/downloads/complete/…/<episode>.nfo):
+mismatching file size
+```
+
+Every failure was on the **`.nfo`**, never the video.
+
+**Root cause — a hardlink shared between two apps that both write it:**
+
+1. Sonarr imports with hardlinks and had **Import Extra Files** on, so it
+   hardlinked the `.mkv` *and the `.nfo`* into `/mnt/bulk/data/media/tv/…`.
+2. Jellyfin has "save metadata into media folders" on and **rewrites that
+   `.nfo` in place** on library refresh.
+3. Same inode ⇒ the seeding torrent's file changes size underneath libtorrent
+   ⇒ `check_resume` rejects at startup ⇒ `missingFiles`.
+
+Proof: inode `1106` was shared between the torrent's `.nfo` and
+`…/Adventure Time - S01E08 - Business Time WEBDL-1080p.nfo`; content was
+Jellyfin's `<episodedetails>`/`<lockdata>` XML (not the scene NFO); `.nfo`
+mtime Aug 10 23:03 vs the `.mkv`'s untouched Jun 11 18:51.
+
+**The 25 were only the visible part.** Comparing every file of all 238
+torrents against disk: **140 size mismatches, all `.nfo`, zero `.mkv`** —
+25 already broken, **115 still seeding that would have dropped out on the
+next restart**. libtorrent only re-validates at restore, so the damage
+stays latent until qBittorrent restarts.
+
+**Repair applied.** Break the hardlink on the download side (`cp -p` to a
+temp + `mv` back ⇒ new inode; the library keeps its own copy), then force
+recheck so each torrent re-pulls the correct `.nfo` bytes. 118 + 17 links
+broken, 0 failures, 0 hardlinked `.nfo` left, **326 video hardlinks
+preserved** (those are intentional and must never be broken — breaking them
+would double disk usage).
+
+**Prevention.** Sonarr/Radarr → Settings → Media Management → **Import Extra
+Files** off (or drop `nfo` from the list). The scene `.nfo` has no value in
+the library, and it is the only thing that was shared between the two trees.
+Jellyfin metadata saving can stay on once nothing is hardlinked.
+
+**Watch for:** the same class of bug with any file both a *arr imports and a
+media server rewrites — artwork (`folder.jpg`, `-thumb.jpg`) and Bazarr
+subtitles are the obvious candidates. Checked 2026-09-10: only `.nfo` was
+ever hardlinked, no artwork or subtitles.
+
+```bash
+# audit: anything non-video hardlinked into the seeding tree is a landmine
+find /mnt/bulk/data/torrents -type f -links +1 \
+  ! -iname '*.mkv' ! -iname '*.mp4' -printf '%n\t%p\n'
+```
+
+**Gotcha: `/tmp` is `noexec` on TrueNAS.** A root cron pointed at
+`/tmp/script.sh` runs and silently does nothing — no error, no output. Use
+`/bin/sh /tmp/script.sh`, which reads the file instead of exec'ing it.

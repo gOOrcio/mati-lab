@@ -1201,3 +1201,71 @@ Failure modes, if this is ever re-run and does not come back clean:
   looks offline while the network is fine.
 - Internet fails too → suspect the SSID/VLAN binding, not policy; re-check the
   source IP first.
+
+## Hue Bridge held pre-migration addresses after VLAN segmentation (2026-09-10)
+
+**Symptom.** Hue sensors stopped reporting in HomeKit while control still
+worked, plus a steady stream of `IoT-to-Infra-deny` hits from the bridge.
+The first one spotted was NTP to `192.168.1.253`, which is what prompted the
+local chrony work — but `.253` was a red herring.
+
+**Actual cause.** The bridge was pushing to *pre-migration* addresses —
+same host numbers, old subnet:
+
+| Bridge → target | Port | What it is | Reality |
+|---|---|---|---|
+| `192.168.1.161` | udp/5540 | Matter | AppleTV is now `192.168.20.161` |
+| `192.168.1.126` | udp/1900 | SSDP reply | no such client |
+| `192.168.1.253` | udp/123 | NTP | no such client |
+
+None of the three existed any more as a client, device, or reservation.
+Control worked (controller→bridge, allowed as NEW from Trusted); the
+*pushes* went nowhere, which is exactly "sensors don't report".
+
+**Fix.** Re-pair / re-link the bridge — it refreshes the fabric with current
+addresses. Confirmed 2026-09-10: 163 denials in one 5-min bucket, then zero
+for the following 4h while the syslog pipeline kept ingesting 41–390
+lines/5min throughout (so it was not the bridge going quiet). Bridge kept
+its config: `factorynew=False`, `datastoreversion=189`.
+
+Homebridge (`192.168.1.155`) was never implicated — zero denials involved it.
+
+**Lesson.** After moving a VLAN, HomeKit/Matter/SSDP peers cache the old
+addresses and there is no TTL that fixes it. Re-pair is the remedy. Any
+integration that pushes state (rather than being polled) will show up as
+"stale readings" rather than "offline".
+
+### `IoT-to-Trusted-deny` (added 2026-09-10)
+
+Diagnosing the above was harder than it should have been: IoT→Trusted was
+already dropped by the default **Block All Traffic**, but that rule has
+`logging=False`, so every drop was invisible. Only the Infra path had an
+explicit logging deny.
+
+Added a mirror of `IoT-to-Infra-deny` so the Trusted path is observable:
+
+- name `IoT-to-Trusted-deny`, id `6aa268e0e15a6380ee8eae50`
+- BLOCK, `connection_states: ["NEW"]`, `logging: true`
+- source zone IoT, destination `192.168.20.0/24` in zone Trusted
+
+**Behaviour is unchanged** — those packets were already dropped. This only
+makes them visible. Scoped to `NEW` for the same reason as the Infra rule:
+an all-states deny preempts the derived return-allow at index 30000 and eats
+established replies.
+
+Note the console **reassigned the index** from the requested 10002 to 10000.
+Harmless here (the other 10000 rules have non-overlapping destinations —
+`IoT-to-DNS-allow` targets Infra IPs, `LG-TV-no-Internet` targets Internet),
+but worth re-checking after any policy add, since
+`PUT firewall/policies/ordering` still 500s on 10.6.101.
+
+Verified after the change: Trusted→IoT still works (Hue bridge reachable and
+pingable from `192.168.20.173`).
+
+**Still not provable from the logs:** whether the bridge's Matter pushes to
+`192.168.20.161` now succeed. They are permitted only by
+`Trusted-to-IoT-allow (Return)` on `RELATED,ESTABLISHED`, so they flow while
+the AppleTV's Matter subscription is alive, and die silently if the UDP
+conntrack entry expires. UDR SSH is disabled (port 22 refused), so conntrack
+can't be read. If sensors go stale again after a quiet period, that is the
+mechanism, and `IoT-to-Trusted-deny` will now log it.

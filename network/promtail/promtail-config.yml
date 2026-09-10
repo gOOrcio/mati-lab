@@ -58,28 +58,40 @@ scrape_configs:
       - source_labels: ['__syslog_message_severity']
         target_label: 'severity'
     pipeline_stages:
-      # Firewall / IPS events arrive as CEF. Extract the few fields worth
-      # querying on. NOTE: Go uses RE2 — no lookahead/lookbehind. The client
-      # alias may contain spaces, so match non-greedily up to the next CEF key.
+      # UniFi firewall events arrive in the kernel's iptables LOG format, NOT
+      # CEF. This was originally written against CEF and silently matched
+      # nothing — every label came back empty. Verified against the live
+      # stream before rewriting: 0 lines contained "CEF:", 240/240 firewall
+      # lines matched the shape below. Sample:
+      #
+      #   Dream-Router [CUSTOM2_LAN-D-10001] DESCR="IoT-to-Infra-deny"
+      #   IN=br30 OUT=br0 MAC=... SRC=192.168.30.221 DST=192.168.1.126
+      #   ... PROTO=UDP SPT=1900 DPT=64472 ...
+      #
+      # NOTE: Go uses RE2 — no lookahead/lookbehind. Field names are
+      # UPPERCASE here (SRC/DST/DPT), unlike CEF's lowercase src/dst/dpt.
       - match:
-          selector: '{job="unifi"} |= "CEF:"'
+          selector: '{job="unifi"} |= "DESCR="'
           stages:
+            # [CUSTOM2_LAN-D-10001] -> ruleset / verdict (D=drop, A=accept) / index
             - regex:
-                expression: 'UNIFIpolicyName=(?P<policy>\S+)'
+                expression: '\[(?P<ruleset>[A-Za-z0-9_]+)-(?P<verdict>[A-Za-z])-(?P<rule_index>\d+)\]'
             - regex:
-                expression: '\bact=(?P<action>\S+)'
+                expression: 'DESCR="(?P<policy>[^"]*)"'
             - regex:
-                expression: '\bapp=(?P<app>\S+)'
+                expression: '\bSRC=(?P<src>\S+)'
             - regex:
-                expression: 'UNIFIsrcClientAlias=(?P<src_client>.*?) UNIFI'
+                expression: '\bDST=(?P<dst>\S+)'
             - regex:
-                expression: '\bdst=(?P<dst>\S+)'
+                expression: '\bPROTO=(?P<proto>\S+)'
             - regex:
-                expression: '\bdpt=(?P<dport>\d+)'
-            # Only low-cardinality fields become labels. dst / dport /
-            # src_client stay as extracted fields for line filtering — a label
-            # per destination IP would blow up the index.
+                expression: '\bSPT=(?P<sport>\d+)'
+            - regex:
+                expression: '\bDPT=(?P<dport>\d+)'
+            # Only low-cardinality fields become labels. src / dst / sport /
+            # dport stay as extracted fields for line filtering — a label per
+            # IP or port would blow up the index.
             - labels:
                 policy:
-                action:
-                app:
+                proto:
+                verdict:
