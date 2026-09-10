@@ -1034,6 +1034,43 @@ Alternative considered: blocklisting LG's domains in Pi-hole
 blunt and keeps the TV's apps working, but leaky — LG can hardcode IPs and
 bypass DNS. Chosen against because the TV's apps are unused.
 
+### Hue Bridge stopped advertising HomeKit (2026-09-10)
+
+**Symptom:** Hue motion sensors report presence correctly in the Hue app, but
+HomeKit shows no presence and automations never fire. Previously worked.
+
+**Root cause found by mDNS probe, not by guessing.** Querying `_hap._tcp.local`
+from VLAN 20 over a 25 s window returns five accessories —
+`Aqara-Hub-E1-166D`, `Govee 9AE4`, `Homebridge F4DF 9F6E`, `Homebridge WoL C7C8`,
+`homebridge-daikin-cloud AF74` — and **no Hue Bridge**. The bridge advertises
+only `Hue Bridge - 9F4EED._hue._tcp.local → ecb5fa9f4eed.local:443`, its native
+API, which is exactly why the Hue app still works.
+
+Its A record and `_hue._tcp` both reflect into VLAN 20 correctly, so **mDNS
+reflection is fine** — the bridge is simply no longer offering the HomeKit
+service. A paired HAP accessory still advertises `_hap._tcp` (with `sf=0`);
+advertising nothing means the HomeKit side is gone, not merely paired-and-quiet.
+
+**Not a firewall problem.** `Trusted-to-IoT-allow` (index 10000) lets the hub
+reach the bridge, and HAP is controller-initiated, so `IoT → Trusted` being
+`Block All` except derived returns is the normal, working model — the Aqara Hub
+on the same VLAN works under identical rules.
+
+**Fix is HomeKit-side re-pairing, NOT a factory reset.** These are very different:
+
+| Action | Loses |
+|---|---|
+| Remove bridge from Home app, re-add via Hue app | HomeKit room assignments, accessory names, and **automations referencing them** |
+| Factory reset the Hue Bridge | Everything — all Zigbee pairings, scenes, the lot |
+
+Hue-side state (lights, sensors, Zigbee pairings, Hue scenes and Hue-native
+automations) is **untouched** by re-pairing. Only rebuild the HomeKit automations.
+
+**Diagnostic worth reusing:** when one app sees a device and HomeKit does not,
+query `_hap._tcp.local` and compare against a known-good accessory on the same
+VLAN. It separates "accessory stopped offering HomeKit" from "network is not
+carrying it" in one step.
+
 ### Guest control restricted subnets
 
 `guest_access` carries `restricted_subnet_1/2/3` = `192.168.0.0/16`,
