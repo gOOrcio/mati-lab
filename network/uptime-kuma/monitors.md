@@ -1,108 +1,185 @@
 # Uptime Kuma monitors
 
-Kuma's source of truth is its own SQLite DB. This file is a human inventory —
-keep it in rough sync after adding/removing monitors in the UI.
+Kuma's source of truth is its own SQLite DB. This file is a human inventory.
 
 URL: `https://uptime-kuma.mati-lab.online`
 
-## Phase 2 — NAS media stack
+**Reconciled against the live DB 2026-09-11.** The previous version had
+drifted badly in both directions — it listed monitors that did not exist
+under those names, marked live monitors as "to add", and omitted 14 that were
+running. That is worse than having no inventory: it is what made us believe a
+`gluetun-vpn-tunnel` monitor was watching the VPN when nothing of that name
+existed.
 
-| Name | Type | URL | Notes |
+## Re-running the reconcile
+
+Do this after any batch of UI changes. Read-only; never writes.
+
+```bash
+ssh gooral@192.168.1.252 'sudo python3 -c "
+import sqlite3,json
+con=sqlite3.connect(\"file:/opt/mati-lab/network/uptime-kuma/app/data/kuma.db?mode=ro\",uri=True)
+for r in con.execute(\"SELECT name,type,active,keyword,interval FROM monitor ORDER BY name\"): print(r)
+"'
+```
+
+**Never select `push_token`** — push URLs are secrets (anyone holding one can
+mark a monitor green). They live in the password manager under
+`homelab/uptime-kuma/push-<name>`.
+
+## Live inventory (48 monitors in 7 groups)
+
+### apps (15)
+
+| Name | Type | Target | Match / notes |
 |---|---|---|---|
-| jellyfin | HTTP | `https://jellyfin.mati-lab.online/health` | Returns body `Healthy` with 200 when alive |
-| qbittorrent | HTTP-Keyword | `http://192.168.1.65:30024/` | **Direct to NAS, not through Caddy.** Keyword `qBittorrent`. Through Caddy, Authelia 2FA blocks the probe (302 → login). Kuma is on `pihole-net` which falls in the qBit LAN subnet whitelist, so direct works |
+| authelia | HTTP | `https://authelia.mati-lab.online` | |
+| gitea | Keyword | `https://gitea.mati-lab.online/api/v1/version` | `version` — LAN `:30009` is SSH, HTTP only via Caddy |
+| grafana | Keyword | `http://grafana:3000/api/health` | `ok` |
+| homebridge | HTTP | `https://homebridge.mati-lab.online/health` | also a ping monitor in **servers** |
+| litellm | HTTP | `http://192.168.1.65:4000/health/liveliness` | ⚠ stray `keyword=qBittorrent` (inert on HTTP type). Only checks for 200, not `alive` |
+| loki | Keyword | `http://loki:3100/ready` | `ready` |
+| ntfy | HTTP | `https://ntfy.mati-lab.online` | |
+| obsidian-couchdb | HTTP | `http://192.168.1.65:30015/` | `accepted_statuscodes: ["401"]` — CouchDB 401s unauthenticated; 401 = alive. **Correct as configured** |
+| pihole | HTTP | `https://pihole.mati-lab.online/api/info/version` | |
+| prometheus | HTTP | `https://prometheus.mati-lab.online/-/healthy` | duplicate — see below |
+| prometheus | Keyword | `http://prometheus:9090/-/healthy` | `Healthy` — duplicate name |
+| proxmox | HTTP | `https://proxmox.mati-lab.online/api2/json/version` | accepts `200-299,400-499` (401s unauthenticated) |
+| qdrant | Keyword | `http://192.168.1.65:30017/healthz` | `passed` |
+| syncthing | Keyword | `http://192.168.1.65:30016/rest/noauth/health` | `OK` |
+| uptime-kuma | HTTP | `https://uptime-kuma.mati-lab.online` | self-check |
 
-Immich monitor deferred with Task 3.
+### devices (7)
 
-## Phase 2.r — *arr automation
+| Name | Type | Target | Notes |
+|---|---|---|---|
+| AppleTV | Ping | `192.168.20.161` | HomeKit hub — the Matter target in `IoT-to-HomeKit-hub-allow` |
+| Hue Bridge | HTTP | `https://192.168.30.221/api/config` | **This is the doc's old `hue-bridge-iot`.** Catches bridge down *and* loss of `Infra-to-IoT-allow` |
+| NetiaBox | Ping | `192.168.100.1` | ISP router |
+| PS5 | Ping | `192.168.20.248` | |
+| UDR | Ping | `192.168.1.1` | gateway |
+| camera-g5-flex | Ping | `192.168.40.243` | camera down *and* loss of `Infra-to-Cameras-allow` |
+| mati-gamer | Ping | `192.168.20.173` | **DISABLED, and the only monitor with no notification attached** |
 
-Each monitor uses the **direct LAN NodePort** (Caddy fronts return 302 →
-Authelia, useless for probing).
+### dns (3)
 
-| ☑ | Name | Type | URL | Match |
+| Name | Type | Query | Via | Notes |
 |---|---|---|---|---|
-| ☑ | prowlarr | HTTP-Keyword | `http://192.168.1.65:30025/login` | `Prowlarr` |
-| ☑ | sonarr | HTTP-Keyword | `http://192.168.1.65:30026/login` | `Sonarr` |
-| ☑ | radarr | HTTP-Keyword | `http://192.168.1.65:30027/login` | `Radarr` |
-| ☑ | bazarr | HTTP-Keyword | `http://192.168.1.65:30028/` | `Bazarr` |
-| ☑ | arr-config-backup | Push | minted in Kuma UI; URL in PM (`homelab/uptime-kuma/push-arr-config-backup`) and `/root/.backup-env` (`KUMA_URL_ARR_CONFIG`) | weekly heartbeat (interval 604800s, retry 259200s) |
+| dns-pihole-primary | DNS | `mati-lab.online` A | `192.168.1.252` | client-facing address |
+| dns-pihole2-nas | DNS | `mati-lab.online` A | `192.168.1.65` | secondary — the one that silently covers for the primary |
+| pihole-dns | DNS | `google.pl` A | `pihole` | tests the *service* by container name |
 
-## Phase 2.r extras Phase 1 — Recyclarr + Jellyseerr
+### media (8)
 
-| ☑ | Name | Type | URL | Match |
-|---|---|---|---|---|
-| ☑ | jellyseerr | HTTP-Keyword | `http://192.168.1.65:30029/status` | `version` (Jellyseerr's `/status` 307s to `/login`; the login HTML contains "version" in metadata. **Don't set Body Encoding to JSON** — Express strict-mode rejects GETs with `Content-Type: application/json`.) |
-| ☑ | recyclarr-sync | Push | minted in Kuma UI; URL in PM (`homelab/uptime-kuma/push-recyclarr-sync`) and `/root/.backup-env` (`KUMA_URL_RECYCLARR_SYNC`) | weekly heartbeat (interval 604800s, retry 259200s) |
+| Name | Type | Target | Match / notes |
+|---|---|---|---|
+| ` jellyfin` | HTTP | `https://jellyfin.mati-lab.online/health` | ⚠ leading space in name; stray `keyword=qBittorrent` (inert). Should keyword-check `Healthy` |
+| ` qbittorrent` | Keyword | `http://192.168.1.65:30024/` | `qBittorrent`. ⚠ leading space. **Direct to NAS, not via Caddy** — Authelia 2FA 302s the probe. Kuma sits in qBit's LAN whitelist |
+| bazarr | Keyword | `http://192.168.1.65:30028/login` | `Bazarr` |
+| jellyseerr | Keyword | `http://192.168.1.65:30029/v1/status` | `version`. **Don't set Body Encoding to JSON** — Express strict-mode rejects GETs with `Content-Type: application/json` |
+| prowlarr | Keyword | `http://192.168.1.65:30025/login` | `Prowlarr` |
+| public_ip | Keyword | `http://192.168.1.65:8000/v1/publicip/ip` | ⚠ **BROKEN + misfiled** — see VPN section |
+| radarr | Keyword | `http://192.168.1.65:30027/login` | `Radarr` |
+| sonarr | Keyword | `http://192.168.1.65:30026/login` | `Sonarr` |
 
-## vpn-stack — ProtonVPN tunnel
+All *arr monitors use the **direct LAN NodePort** — Caddy fronts return 302 to
+Authelia, useless for probing.
 
-| ☑ | Name | Type | URL | Match |
-|---|---|---|---|---|
-| ⚠ | gluetun-vpn-tunnel | HTTP-Keyword | `http://192.168.1.65:8000/v1/publicip/ip` | **BROKEN — keyword `public_ip` also matches the dead-tunnel response `{"public_ip":""}`, so this monitor is green with no tunnel (proven 2026-09-08). Change it to something that cannot match an empty value.** Original: `public_ip` — Gluetun's control API exposes the tunnel-side public IP. Auth on the control API is gated by `auth.toml` (allowlists this one route as `auth = "none"`); all mutating routes stay default-deny. Returns 200 with a JSON body containing `public_ip` (a Swiss IP) when the tunnel is up; 503/empty when handshake fails or container is down. **Bonus**: visit the URL manually after a deploy to confirm `public_ip` is NOT your home IP — that would indicate killswitch failure. |
-| ☐ | vpn-port-mismatch | Push | minted in Kuma UI; URL in PM (`homelab/uptime-kuma/push-vpn-port-mismatch`) and `/root/.backup-env` (`KUMA_URL_VPN_PORT_MISMATCH`) | every 30 min from `qbit-port-probe.sh` cron — pushes `down` when gluetun's `forwarded_port` and qBit's `listen_port` disagree, or when either is unreadable. See [`nas/vpn-stack/notes.md`](../../nas/vpn-stack/notes.md) "Port-consistency probe". (Heartbeat 1800s, retry 3600s.) |
+### push-monitors (8)
 
-## Phase 7 coverage gap list (to add)
+Push URLs are secrets; they live in PM under `homelab/uptime-kuma/push-<name>`
+and in `/root/.backup-env` on the NAS as `KUMA_URL_*`.
 
-Walk this top-down via the Kuma UI; tick each row when added. Match the
-endpoint pattern in the Phase 2 rows above (direct LAN whenever possible
-to bypass the Authelia 302-redirect on Caddy-fronted vhosts).
+| Name | Interval | Notes |
+|---|---|---|
+| ` backup-dev-pc-restic` | 86400 | ⚠ leading space. URL in dev-PC `~/.config/restic/kuma-push-url` |
+| ` backup-hermes-dump` | 90000 | ⚠ leading space |
+| ` backup-nas-zfs-health` | 90000 | ⚠ leading space |
+| backup-arr-config-backup | 604800 | `KUMA_URL_ARR_CONFIG` |
+| backup-gitea-pgdump | 90000 | |
+| backup-homebridge-dump | 604800 | `KUMA_URL_HOMEBRIDGE` |
+| backup-litellm-pgdump | 90000 | |
+| backup-recyclarr-sync | 604800 | `KUMA_URL_RECYCLARR_SYNC` |
 
-### Tier 1 — core flow
+### servers (4)
 
-| ☐ | Name | Type | Endpoint | Match |
-|---|---|---|---|---|
-| ☐ | authelia | HTTP-Keyword | `http://authelia:9091/api/health` | `OK` |
-| ☐ | litellm | HTTP-Keyword | `http://192.168.1.65:4000/health/liveliness` | `alive` (response is `"I'm alive!"`, not `healthy`) |
-| ☐ | qdrant | HTTP-Keyword | `http://192.168.1.65:30017/healthz` | `passed` |
-| ☐ | gitea | HTTP-Keyword | `https://gitea.mati-lab.online/api/v1/version` | `version` (LAN `:30009` is SSH; HTTP only via Caddy) |
-| ☐ | ollama-gpu | HTTP-Keyword | `http://192.168.1.48:11434/` | `Ollama is running` |
-| ☐ | caddy | HTTP | `http://caddy:80` | 200/400 acceptable |
-| ☐ | cloudflared (transitive) | HTTP-Keyword | `https://gitea.mati-lab.online/api/v1/version` | `version` |
+| Name | Type | Target |
+|---|---|---|
+| compute | Ping | `192.168.1.184` |
+| homebridge | Ping | `192.168.1.155` (duplicate name — HTTP monitor in **apps**) |
+| nas | Ping | `192.168.1.65` |
+| network | Ping | `192.168.1.252` |
 
-### Tier 2 — observability + persistence
+### vpn (3)
 
-| ☐ | Name | Type | Endpoint | Match |
-|---|---|---|---|---|
-| ☐ | loki | HTTP-Keyword | `http://loki:3100/ready` | `ready` |
-| ☐ | prometheus | HTTP-Keyword | `http://prometheus:9090/-/healthy` | `Healthy` |
-| ☐ | grafana | HTTP-Keyword | `http://grafana:3000/api/health` | `ok` |
-| ☐ | ntfy | HTTP-Keyword | `http://ntfy:80/v1/health` | `success` |
-| ☐ | obsidian-couchdb | HTTP (status code) | `http://192.168.1.65:30015/` | accept status `401` (CouchDB returns 401 on `/` and `/_up` for unauthenticated requests; 401 = "alive but auth required") |
-| ☐ | syncthing | HTTP-Keyword | `http://192.168.1.65:30016/rest/noauth/health` | `OK` |
+| Name | Type | Target | Catches |
+|---|---|---|---|
+| qbit-connectable | Keyword, 300s | `http://192.168.1.65:30024/api/v2/transfer/info` | `"connection_status":"connected"` — **the only working dead-tunnel detector**. Would have caught the 2026-09-10 NAT-PMP failure |
+| vpn-ip-not-home | Keyword, 300s, **INVERT** | `http://192.168.1.65:8000/v1/publicip/ip` | keyword = `<home WAN IP>`, inverted → UP when the body does *not* contain it. Catches **killswitch leak only**, not a dead tunnel (a killswitched tunnel returns an empty IP, which also lacks the home IP) |
+| vpn-port-mismatch | Push, 1800s | — | NAT-PMP loss / port drift, from `qbit-port-probe.sh` (NAS cron 19, `*/30`). See [`nas/vpn-stack/notes.md`](../../nas/vpn-stack/notes.md) |
 
-### Tier 3 — useful, not critical
+**`public_ip` is the monitor this file used to call `gluetun-vpn-tunnel`.** It
+is filed under **media**, not vpn, which is part of why it was hard to find.
 
-| ☐ | Name | Type | Endpoint | Match |
-|---|---|---|---|---|
-| ☐ | pi-hole (DNS) | DNS | `mati-lab.online` via `192.168.1.252` | resolves |
-| ☐ | hermes | HTTP | `http://192.168.1.65:30264/health` | Gateway API health. **Do not keyword-check `:30262`** — since v2026.9.7 the dashboard requires OIDC and answers 302, never an anonymous 200. A 502 here in Sept 2026 went unnoticed for want of this monitor. |
-| ☐ | homebridge | HTTP | `http://192.168.1.155:8581/health` | 200 |
-| ☐ | backup-homebridge-dump | Push | minted in Kuma UI; URL in PM (`homelab/uptime-kuma/push-homebridge-backup`) and `/root/.backup-env` (`KUMA_URL_HOMEBRIDGE`) | weekly heartbeat (interval 604800s, retry 259200s) |
-| ☐ | backup-dev-pc-restic | Push | minted in Kuma UI; URL in PM (`homelab/uptime-kuma/push-dev-pc-restic`) and dev-PC `~/.config/restic/kuma-push-url` | daily heartbeat (interval 86400s, retry 43200s, max retries 2) |
-| ☐ | homarr | HTTP | `http://homarr:7575/api/health` | 200 |
-| ☐ | rag-watcher | Push | (Kuma → new push monitor → cron in container) | within 12h |
-| ☐ | promtail-nas | Push | Same pattern | within 5 min |
+⚠ **It is broken.** Keyword `public_ip` also matches the dead-tunnel body
+`{"public_ip":""}`, so it stays **green with no tunnel** (proven 2026-09-08,
+still unfixed 2026-09-11).
 
-After ticking each row, also fold the Phase 2 table at the top of this
-file into a single combined inventory. Push-monitor URLs land in the
-password manager under `homelab/uptime-kuma/push-<name>` (anyone with
-the URL can mark the monitor green — treat as a secret).
+**Fix:** keyword `"public_ip":""` with **Invert Keyword ON** — UP when the
+body does *not* contain the empty-IP signature. Invert is already proven to
+work in this install (`vpn-ip-not-home` uses it). Then move it into the
+**vpn** group.
+
+Do *not* reach for the JSON Query monitor type here: on 2.1.0 there are open
+bugs where JSONata evaluates differently than jsonata.org and monitors go red
+after upgrade. Also note the endpoint returns **9 fields**, not just
+`public_ip` — so a naive keyword like `.` would match `datapacket.com` or the
+`location` value and reproduce the same false-green.
+
+## Known issues found in the 2026-09-11 reconcile
+
+1. **`public_ip` broken** (above) — the only item here that costs real coverage.
+2. **5 names have a leading space**: `jellyfin`, `qbittorrent`,
+   `backup-dev-pc-restic`, `backup-hermes-dump`, `backup-nas-zfs-health`.
+   They sort oddly and exact-name lookups miss them. Trim in the UI.
+3. **`litellm` and `jellyfin` carry a stray `keyword=qBittorrent`** copy-pasted
+   from the qbittorrent monitor. Inert on HTTP type, so nothing is broken
+   today — but both are only checking for a 200, not for the body they should.
+4. **Duplicate names**: `prometheus` ×2 and `homebridge` ×2. Both pairs are
+   deliberate (HTTP + ping / internal + external), but identical names make
+   alerts ambiguous. Rename rather than delete.
+5. **`mati-gamer` is disabled and has no notification.** Fine while off;
+   re-attach the notification if it is ever re-enabled.
+
+## Genuinely missing (verified absent 2026-09-11)
+
+| Name | Type | Endpoint | Match |
+|---|---|---|---|
+| hermes | HTTP | `http://192.168.1.65:30264/health` | Gateway API health. **Do not keyword-check `:30262`** — since v2026.9.7 the dashboard requires OIDC and answers 302, never an anonymous 200. A 502 in Sept 2026 went unnoticed for want of this monitor |
+| ollama-gpu | Keyword | `http://192.168.1.48:11434/` | `Ollama is running` |
+| caddy | HTTP | `http://caddy:80` | 200/400 acceptable |
+| cloudflared (transitive) | Keyword | `https://gitea.mati-lab.online/api/v1/version` | `version` |
+| homarr | HTTP | `http://homarr:7575/api/health` | 200 |
+| rag-watcher | Push | cron in container | within 12h |
+| promtail-nas | Push | same pattern | within 5 min |
+
+`hermes` is the one with a known past outage behind it — worth doing first.
 
 ## VLAN segmentation coverage (added 2026-09-08)
 
 Kuma runs on the Pi (`192.168.1.252`, VLAN 1 / Internal zone). **Every probe
-below therefore tests the path *from VLAN 1*.** That matters for what they can
-and cannot prove — see the caveat after the table.
+therefore tests the path *from VLAN 1*.** That matters for what they can and
+cannot prove.
 
-| ☑ | Name | Type | Endpoint | Expect | Catches |
-|---|---|---|---|---|---|
-| ☑ | `dns-pihole-primary` | DNS | `mati-lab.online` via `192.168.1.252`, A record | `192.168.1.252` | Pi-hole down/wedged |
-| ☑ | `dns-pihole2-nas` | DNS | `mati-lab.online` via `192.168.1.65`, A record | `192.168.1.252` | secondary resolver down — the one that silently covers for the primary |
-| ☑ | `camera-g5-flex` | Ping | `192.168.40.243` | up | camera down, **and** the `Infra-to-Cameras-allow` policy being lost |
-| ☑ | `hue-bridge-iot` | HTTP | `https://192.168.30.221/api/config` (ignore TLS) | 200 | Hue Bridge down, **and** the `Infra-to-IoT-allow` policy being lost (Homebridge depends on it) |
+| Monitor | Catches |
+|---|---|
+| `dns-pihole-primary` | Pi-hole down/wedged, at the client-facing address |
+| `dns-pihole2-nas` | secondary resolver down — the one that silently covers for the primary |
+| `camera-g5-flex` | camera down, **and** `Infra-to-Cameras-allow` being lost |
+| `Hue Bridge` | bridge down, **and** `Infra-to-IoT-allow` being lost |
 
-Interval 60 s, retries 2, notify via the ntfy channel like everything else.
-All four added and verified green 2026-09-08.
+Interval 60 s, retries 2, notify via ntfy. All four verified green 2026-09-08
+and still live 2026-09-11 (the last was renamed from `hue-bridge-iot`).
 
 > **`dns-pihole-primary` found a real bug on its first run.** It sat Down while
 > `dns-pihole2-nas` passed — the Pi's ufw admitted DNS from `172.18.0.0/16`, but
@@ -110,9 +187,9 @@ All four added and verified green 2026-09-08.
 > container on the Pi could query the Pi's own LAN DNS. Invisible before, because
 > containers reach Pi-hole by container name on the shared bridge and never touch
 > ufw — which is exactly why the older `pihole-dns` monitor stayed green. Fixed in
-> `network/ansible/group_vars/all/vars.yml`. See `network/unifi/notes.md`.
+> `network/ansible/group_vars/all/vars.yml`.
 >
-> Keep both DNS monitors: the older `pihole-dns` tests the service, these test the
+> Keep both DNS monitors: `pihole-dns` tests the service, the other two test the
 > **client-facing address** every VLAN actually resolves against. Only the latter
 > catches a host-firewall or binding fault.
 
@@ -124,15 +201,18 @@ the deny, every IoT device would lose name resolution and these monitors would
 stay green.
 
 That failure can only be proven from inside VLAN 30 — the manual TCP/dig matrix
-run from a laptop on `konewka_iot` (see `network/unifi/notes.md`, "IoT wall
-proven from inside VLAN 30"). **Re-run that matrix after any firewall or SSID
-change**; it is not something Kuma can replace.
+run from a laptop on `konewka_iot` (see `network/unifi/notes.md`). **Re-run that
+matrix after any firewall or SSID change**; Kuma cannot replace it.
 
-The two VLAN-crossing monitors (`camera-g5-flex`, `hue-bridge-iot`) are the
-closest continuous proxy: they fail if the corresponding `Infra-to-*-allow`
-policy disappears, which is the most likely way this config regresses.
+**Nor do they catch IoT→Trusted regressions.** The 2026-09-11 Matter failure —
+where the Hue bridge could not push motion events to the Apple TV — was invisible
+to every monitor here, because `Hue Bridge` probes Infra→IoT, the opposite
+direction. The `IoT-to-Trusted-deny` firewall log is what caught it. See
+`network/unifi/notes.md`.
 
 ## Notification routing
 
-All monitors route to the existing ntfy notification channel
-(`ntfy.mati-lab.online`), same as the rest of the homelab.
+One channel: **`Uptime`** (id 1, active) → `ntfy.mati-lab.online`.
+
+Every active monitor is attached to it. The only monitor without a
+notification is `mati-gamer`, which is disabled.
