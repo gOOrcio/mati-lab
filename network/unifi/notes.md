@@ -1383,8 +1383,14 @@ lease. Re-bound to the IoT network (`6a9eb78fe15a6380ee8dde3c`) at
   sensor -> Zigbee -> bridge -> Matter -> Apple TV -> automation. No Apple TV
   reboot was needed; the existing subscriptions recovered on their own.
 
-Caveat on the counter evidence: UniFi's stats snapshot froze at 08:43:27 for
-several minutes, so only one hit-counter sample was ever obtained, and the
-drop-free window at time of writing (~7 min) is shorter than one 600s report
-interval. The end-to-end test is what actually closes this out, not the
-counters.
+Counter evidence, corrected: UniFi's stats snapshot froze at 08:43:27 for
+several minutes, so the first write-up recorded only a single sample. It
+advanced at 08:48:38 and gave the confirming trend —
+`HomeKit-bridges-to-hub-allow` climbed **34 -> 125** (+91 in ~5 min) while
+`IoT-to-Trusted-deny` stayed **flat at 176**. Traffic that was being denied
+is now being allowed, and nothing new is reaching the deny.
+
+Note this means hit counters lag by minutes and move in steps. Do not
+conclude a rule is dead from a single stale sample — wait for the snapshot
+millisecond value to actually increase before comparing. The end-to-end test
+(light fires on motion) remains the authoritative check.
