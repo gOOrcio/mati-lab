@@ -1269,3 +1269,122 @@ the AppleTV's Matter subscription is alive, and die silently if the UDP
 conntrack entry expires. UDR SSH is disabled (port 22 refused), so conntrack
 can't be read. If sensors go stale again after a quiet period, that is the
 mechanism, and `IoT-to-Trusted-deny` will now log it.
+
+## Hallway motion sensor: HomeKit never saw the motion (2026-09-11)
+
+**Symptom.** A Hue motion sensor fired the hallway light via a HomeKit
+automation. Intermittent for days — sometimes instant, sometimes nothing.
+Motion was *always* visible in the Hue app.
+
+**That last fact is what cracked it.** Hue seeing the motion proves the Zigbee
+leg (sensor -> bridge) is healthy, so the mesh topology is irrelevant no
+matter how many routers sit between them. The break is bridge -> HomeKit.
+
+### Root cause
+
+The bridge pushes state to the Home hub over **Matter, udp/5540**. Those
+pushes were being dropped by `IoT-to-Trusted-deny`:
+
+```
+192.168.30.221:5540 -> 192.168.20.161:62097  UDP   295 dropped
+192.168.30.221:5540 -> 192.168.20.161:51980  UDP   205 dropped
+```
+
+The timing is the proof. Bursts of 5 packets at 0,1,2,3,5s — Matter's MRP
+retransmissions giving up — landing *exactly every 600s*:
+
+```
+20:28:47 …51   20:38:44 …48   20:48:43 …46   20:58:41 …44
+```
+
+600s is the Matter subscription report interval. **UDP conntrack expires in
+30–120s.** So by the time the bridge reports, the flow is `NEW`, and the
+`RESPOND_ONLY` return-allow at index 30000 (`RELATED,ESTABLISHED`) cannot
+match it.
+
+**This is the general lesson, and most guides get it wrong:** a stateful
+"return traffic" rule *cannot* carry Matter. Matter accessories must be
+allowed to **INITIATE** to the hub, because their report interval exceeds any
+conntrack lifetime. Expect this for every future Matter device.
+
+**Why intermittent:** it worked whenever the hub had recently touched the
+bridge (Home app opened, a light toggled) because that refreshed conntrack.
+Loki shows "working" gaps clustered 17:37–22:23 — evening, when the house was
+active — and unbroken 10-minute drops overnight.
+
+**Why it "worked for months":** VLAN segmentation landed 2026-09-07. Before
+that, bridge and hub shared a broadcast domain.
+
+The 2026-09-10 re-pair was not wasted — it cleared the bridge's stale
+pre-migration addresses (it had been pushing at `192.168.1.161`). That
+corrected the aim and left the firewall as the only remaining blocker.
+
+### Second affected bridge
+
+`Aqara Hub E1` (`192.168.30.99`) hits the same wall over **TCP** ->
+`192.168.20.161:49515`. That accounts for the other misbehaving sensors.
+
+Not affected: iPad/iPhone are not Home hubs (0 drops; all 475 targeted the
+Apple TV). `JBL Bar 1000` udp/8009 -> dev PC is Chromecast, not HomeKit, and
+stays blocked deliberately.
+
+### Fix
+
+`HomeKit-bridges-to-hub-allow` (`6aa3a244d8851de22f442d57`) — placed above
+`IoT-to-Trusted-deny`:
+
+| field | value |
+|---|---|
+| source | `192.168.30.221`, `192.168.30.99` (IoT zone) |
+| destination | `192.168.20.161` (Trusted zone) |
+| protocol | `tcp_udp`, ports **ANY** |
+| states | `ALL` — **must** include `NEW`, that is the entire point |
+
+Scoped by identity (2 bridges -> 1 hub), not by zone. The other 11 IoT
+devices still cannot initiate to Trusted.
+
+Ports are deliberately unrestricted: Matter and HAP both use ephemeral
+destination ports (`62097`, `51980`, `49515`), so a port rule would be
+fragile in exactly the way that caused this. IP scoping is the stronger
+control here.
+
+Keep `IoT-to-Trusted-deny` (NEW, `logging: true`) directly beneath it. That
+rule is why this took one query instead of days of guessing.
+
+Also fixed: the Aqara reservation was **misbound** — `fixed_ip
+192.168.20.99` on the *Trusted* network while the device lived on IoT at
+`.30.99`, leaving it inert and the address merely a coincidental dynamic
+lease. Re-bound to the IoT network (`6a9eb78fe15a6380ee8dde3c`) at
+`192.168.30.99`. Hue Bridge and Apple TV were already correctly pinned.
+
+### UniFi 10.6.101 gotchas found doing this
+
+- **Policy `index` is server-managed.** Requested 9999, got 10001. `PUT`s
+  changing `index` return `rc ok` and are **silently ignored**. Same family as
+  the `PUT firewall/policies/ordering` 500s.
+- **Displayed index is NOT evaluation order.** The ALLOW at 10001 takes
+  precedence over the BLOCK at 10000. Do not reason from the index — verify
+  with hit counters.
+- **`description` has a length cap.** ~700 chars is rejected with a raw Spring
+  validation error. Keep under ~200; put the reasoning here instead.
+- **Hit counters refresh in batches**, and every policy shares one snapshot
+  timestamp. `hits=None` immediately after creating a rule is *not* a failure
+  signal — wait for the snapshot to roll over.
+
+### Verified 2026-09-11
+
+- `HomeKit-bridges-to-hub-allow` matched traffic (34 hits) while
+  `IoT-to-Trusted-deny` stayed flat at 176 — i.e. packets that had been
+  denied were now being allowed.
+- Zero `udp/5540` drops after the rule went in at 08:41:04. Last drop was
+  08:36:08, which predates it.
+- **End-to-end confirmed by the user: the hallway light fires on motion.**
+  That is the authoritative check — a real motion event traversed
+  sensor -> Zigbee -> bridge -> Matter -> Apple TV -> automation. No Apple TV
+  reboot was needed; the existing subscriptions recovered on their own.
+
+Caveat on the counter evidence: UniFi's stats snapshot froze at 08:43:27 for
+several minutes, so only one hit-counter sample was ever obtained, and the
+drop-free window at time of writing (~7 min) is shorter than one 600s report
+interval. The end-to-end test is what actually closes this out, not the
+counters.
