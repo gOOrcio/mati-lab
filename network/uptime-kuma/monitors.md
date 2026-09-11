@@ -4,7 +4,10 @@ Kuma's source of truth is its own SQLite DB. This file is a human inventory.
 
 URL: `https://uptime-kuma.mati-lab.online`
 
-**Reconciled against the live DB 2026-09-11.** The previous version had
+**Reconciled against the live DB 2026-09-11 (second pass).** 51 monitors in 7
+groups; all 50 active ones UP at 08:26.
+
+**First pass 2026-09-11.** The previous version had
 drifted badly in both directions — it listed monitors that did not exist
 under those names, marked live monitors as "to add", and omitted 14 that were
 running. That is worse than having no inventory: it is what made us believe a
@@ -27,23 +30,26 @@ for r in con.execute(\"SELECT name,type,active,keyword,interval FROM monitor ORD
 mark a monitor green). They live in the password manager under
 `homelab/uptime-kuma/push-<name>`.
 
-## Live inventory (48 monitors in 7 groups)
+## Live inventory (51 monitors in 7 groups)
 
-### apps (15)
+### apps (18)
 
 | Name | Type | Target | Match / notes |
 |---|---|---|---|
 | authelia | HTTP | `https://authelia.mati-lab.online` | |
+| caddy | HTTP | `http://caddy:2019/config/` | Admin API, returns 200. **Do not probe `http://caddy:80`** — see the Caddy note below. ⚠ carries a stray `keyword=Ollama is running` copy-pasted from `ollama-gpu` (inert on HTTP type) |
 | gitea | Keyword | `https://gitea.mati-lab.online/api/v1/version` | `version` — LAN `:30009` is SSH, HTTP only via Caddy |
 | grafana | Keyword | `http://grafana:3000/api/health` | `ok` |
-| homebridge | HTTP | `https://homebridge.mati-lab.online/health` | also a ping monitor in **servers** |
-| litellm | HTTP | `http://192.168.1.65:4000/health/liveliness` | ⚠ stray `keyword=qBittorrent` (inert on HTTP type). Only checks for 200, not `alive` |
+| hermes | Keyword | `http://192.168.1.65:30264/health` | `"status":"ok"` — body is `{"status": "ok", "platform": "hermes-agent", ...}`. **Do not probe `:30262`** (OIDC, answers 302). Added 2026-09-11 |
+| homebridge-http | HTTP | `https://homebridge.mati-lab.online/health` | ignores TLS errors; ping twin in **servers** |
+| litellm | Keyword | `http://192.168.1.65:4000/health/liveliness` | `alive` — body is `"I'm alive!"`. Fixed 2026-09-11 (was HTTP-only with a stray `qBittorrent` keyword) |
 | loki | Keyword | `http://loki:3100/ready` | `ready` |
 | ntfy | HTTP | `https://ntfy.mati-lab.online` | |
+| ollama-gpu | Keyword | `http://192.168.1.48:11434/` | `Ollama is running` — verified exact body. Added 2026-09-11 |
 | obsidian-couchdb | HTTP | `http://192.168.1.65:30015/` | `accepted_statuscodes: ["401"]` — CouchDB 401s unauthenticated; 401 = alive. **Correct as configured** |
 | pihole | HTTP | `https://pihole.mati-lab.online/api/info/version` | |
-| prometheus | HTTP | `https://prometheus.mati-lab.online/-/healthy` | duplicate — see below |
-| prometheus | Keyword | `http://prometheus:9090/-/healthy` | `Healthy` — duplicate name |
+| prometheus-external | HTTP | `https://prometheus.mati-lab.online/-/healthy` | via Caddy |
+| prometheus-internal | Keyword | `http://prometheus:9090/-/healthy` | `Healthy` — direct |
 | proxmox | HTTP | `https://proxmox.mati-lab.online/api2/json/version` | accepts `200-299,400-499` (401s unauthenticated) |
 | qdrant | Keyword | `http://192.168.1.65:30017/healthz` | `passed` |
 | syncthing | Keyword | `http://192.168.1.65:30016/rest/noauth/health` | `OK` |
@@ -69,16 +75,15 @@ mark a monitor green). They live in the password manager under
 | dns-pihole2-nas | DNS | `mati-lab.online` A | `192.168.1.65` | secondary — the one that silently covers for the primary |
 | pihole-dns | DNS | `google.pl` A | `pihole` | tests the *service* by container name |
 
-### media (8)
+### media (7)
 
 | Name | Type | Target | Match / notes |
 |---|---|---|---|
-| ` jellyfin` | HTTP | `https://jellyfin.mati-lab.online/health` | ⚠ leading space in name; stray `keyword=qBittorrent` (inert). Should keyword-check `Healthy` |
+| ` jellyfin` | Keyword | `https://jellyfin.mati-lab.online/health` | `Healthy` — verified exact body. Fixed 2026-09-11. ⚠ still has a leading space in the name |
 | ` qbittorrent` | Keyword | `http://192.168.1.65:30024/` | `qBittorrent`. ⚠ leading space. **Direct to NAS, not via Caddy** — Authelia 2FA 302s the probe. Kuma sits in qBit's LAN whitelist |
 | bazarr | Keyword | `http://192.168.1.65:30028/login` | `Bazarr` |
 | jellyseerr | Keyword | `http://192.168.1.65:30029/v1/status` | `version`. **Don't set Body Encoding to JSON** — Express strict-mode rejects GETs with `Content-Type: application/json` |
 | prowlarr | Keyword | `http://192.168.1.65:30025/login` | `Prowlarr` |
-| public_ip | Keyword | `http://192.168.1.65:8000/v1/publicip/ip` | ⚠ **BROKEN + misfiled** — see VPN section |
 | radarr | Keyword | `http://192.168.1.65:30027/login` | `Radarr` |
 | sonarr | Keyword | `http://192.168.1.65:30026/login` | `Sonarr` |
 
@@ -106,64 +111,101 @@ and in `/root/.backup-env` on the NAS as `KUMA_URL_*`.
 | Name | Type | Target |
 |---|---|---|
 | compute | Ping | `192.168.1.184` |
-| homebridge | Ping | `192.168.1.155` (duplicate name — HTTP monitor in **apps**) |
+| homebridge-ping | Ping | `192.168.1.155` (HTTP twin in **apps**) |
 | nas | Ping | `192.168.1.65` |
 | network | Ping | `192.168.1.252` |
 
-### vpn (3)
+### vpn (4)
 
 | Name | Type | Target | Catches |
 |---|---|---|---|
 | qbit-connectable | Keyword, 300s | `http://192.168.1.65:30024/api/v2/transfer/info` | `"connection_status":"connected"` — **the only working dead-tunnel detector**. Would have caught the 2026-09-10 NAT-PMP failure |
 | vpn-ip-not-home | Keyword, 300s, **INVERT** | `http://192.168.1.65:8000/v1/publicip/ip` | keyword = `<home WAN IP>`, inverted → UP when the body does *not* contain it. Catches **killswitch leak only**, not a dead tunnel (a killswitched tunnel returns an empty IP, which also lacks the home IP) |
+| gluetun-vpn-tunnel | Keyword, 60s, **INVERT** | `http://192.168.1.65:8000/v1/publicip/ip` | keyword `"public_ip":""` inverted → UP when the tunnel is alive. **Fixed 2026-09-11** — see below |
 | vpn-port-mismatch | Push, 1800s | — | NAT-PMP loss / port drift, from `qbit-port-probe.sh` (NAS cron 19, `*/30`). See [`nas/vpn-stack/notes.md`](../../nas/vpn-stack/notes.md) |
 
-**`public_ip` is the monitor this file used to call `gluetun-vpn-tunnel`.** It
-is filed under **media**, not vpn, which is part of why it was hard to find.
+### `gluetun-vpn-tunnel` — FIXED 2026-09-11
 
-⚠ **It is broken.** Keyword `public_ip` also matches the dead-tunnel body
-`{"public_ip":""}`, so it stays **green with no tunnel** (proven 2026-09-08,
-still unfixed 2026-09-11).
+Formerly named `public_ip` and filed under **media**, which is part of why it
+was hard to find. Now renamed and in the **vpn** group.
 
-**Fix:** keyword `"public_ip":""` with **Invert Keyword ON** — UP when the
-body does *not* contain the empty-IP signature. Invert is already proven to
-work in this install (`vpn-ip-not-home` uses it). Then move it into the
-**vpn** group.
+It used to be **green with a dead tunnel**: keyword `public_ip` also matches
+the dead-tunnel body `{"public_ip":""}`.
 
-Do *not* reach for the JSON Query monitor type here: on 2.1.0 there are open
-bugs where JSONata evaluates differently than jsonata.org and monitors go red
-after upgrade. Also note the endpoint returns **9 fields**, not just
-`public_ip` — so a naive keyword like `.` would match `datapacket.com` or the
-`location` value and reproduce the same false-green.
+Now: keyword `"public_ip":""` with **Invert Keyword ON** — UP when the body
+does *not* contain the empty-IP signature. A healthy check reads
+`200 - OK, keyword not found`, which is the correct result for an inverted
+keyword.
 
-## Known issues found in the 2026-09-11 reconcile
+Do **not** reach for the JSON Query type: on 2.1.0 there are open bugs where
+JSONata evaluates differently than jsonata.org. And do not use a naive `.`
+keyword — the endpoint returns **9 fields**, so `.` matches
+`datapacket.com` or the `location` value and reproduces the same false-green.
 
-1. **`public_ip` broken** (above) — the only item here that costs real coverage.
-2. **5 names have a leading space**: `jellyfin`, `qbittorrent`,
-   `backup-dev-pc-restic`, `backup-hermes-dump`, `backup-nas-zfs-health`.
-   They sort oddly and exact-name lookups miss them. Trim in the UI.
-3. **`litellm` and `jellyfin` carry a stray `keyword=qBittorrent`** copy-pasted
-   from the qbittorrent monitor. Inert on HTTP type, so nothing is broken
-   today — but both are only checking for a 200, not for the body they should.
-4. **Duplicate names**: `prometheus` ×2 and `homebridge` ×2. Both pairs are
-   deliberate (HTTP + ping / internal + external), but identical names make
-   alerts ambiguous. Rename rather than delete.
-5. **`mati-gamer` is disabled and has no notification.** Fine while off;
+### Caddy: why `http://caddy:80` cannot be monitored directly
+
+Verified 2026-09-11 from inside the Kuma container:
+
+| Test | Result |
+|---|---|
+| `curl http://caddy:80` (no redirect follow) | clean **308** to `https://caddy/` |
+| `curl -L` (what Kuma does by default) | **`tlsv1 alert internal error`** |
+| `curl -L -k` (ignore TLS) | **still fails** |
+| `curl http://caddy:2019/config/` | **200** |
+
+Caddy 308-redirects port 80 to HTTPS. Kuma follows redirects, then does a TLS
+handshake with SNI `caddy` — for which Caddy holds no certificate, so it
+aborts the handshake server-side.
+
+**Ticking "Ignore TLS/SSL error" does not help**, because the failure is a
+server-side abort, not client-side cert validation. That is the first thing
+anyone tries, and it wastes time.
+
+Two working options:
+- **`http://caddy:2019/config/`** (admin API, 200) — what is configured now
+- `http://caddy:80` with **Max. Redirects = 0** and accepted codes
+  `200-299,300-399`, so the 308 itself is the answer
+
+Either only proves the Caddy process is alive. **Caddy's TLS path is already
+monitored transitively** — `gitea`, `authelia`, `ntfy`, `proxmox`,
+`prometheus-external` and `uptime-kuma` all probe `https://*.mati-lab.online`
+and therefore traverse Caddy's TLS termination.
+
+## Known issues (as of 2026-09-11 second pass)
+
+All 50 active monitors are UP. Remaining items are tidies, not outages.
+
+1. **4 names still carry a leading space**: ` jellyfin`, ` qbittorrent`,
+   ` backup-dev-pc-restic`, ` backup-hermes-dump`, ` backup-nas-zfs-health`.
+   They sort oddly and exact-name lookups miss them.
+2. **`caddy` carries a stray `keyword=Ollama is running`** copy-pasted from
+   `ollama-gpu`. Inert on HTTP type, but a landmine if the type ever changes.
+   Same class of error as the old `qBittorrent` keyword on `litellm`.
+3. **`obsidian-couchdb` has an inert `keyword=ok`** on an HTTP-type monitor.
+   Harmless; the `["401"]` accepted-code is what actually makes it correct.
+4. **`mati-gamer` is disabled and has no notification.** Fine while off;
    re-attach the notification if it is ever re-enabled.
+5. **`hermes` keyword has no space** (`"status":"ok"`) while the observed body
+   is `{"status": "ok", ...}`. It matches and is green — flagged only because
+   if the serialisation ever changes, this is where it would break.
 
-## Genuinely missing (verified absent 2026-09-11)
+## Genuinely missing (verified 2026-09-11)
 
-| Name | Type | Endpoint | Match |
-|---|---|---|---|
-| hermes | HTTP | `http://192.168.1.65:30264/health` | Gateway API health. **Do not keyword-check `:30262`** — since v2026.9.7 the dashboard requires OIDC and answers 302, never an anonymous 200. A 502 in Sept 2026 went unnoticed for want of this monitor |
-| ollama-gpu | Keyword | `http://192.168.1.48:11434/` | `Ollama is running` |
-| caddy | HTTP | `http://caddy:80` | 200/400 acceptable |
-| cloudflared (transitive) | Keyword | `https://gitea.mati-lab.online/api/v1/version` | `version` |
-| homarr | HTTP | `http://homarr:7575/api/health` | 200 |
-| rag-watcher | Push | cron in container | within 12h |
-| promtail-nas | Push | same pattern | within 5 min |
+| Name | Why not yet |
+|---|---|
+| rag-watcher | **Push** monitor — needs a cron in the container to push first. Creating the monitor alone just yields a red light |
+| promtail-nas | Same: needs an emitter before the monitor is meaningful |
 
-`hermes` is the one with a known past outage behind it — worth doing first.
+**Deliberately not added:**
+
+- **`homarr`** — verified **not deployed**: no container (not even stopped),
+  nothing listening on 7575, and `network/homarr/` holds only `appdata/` and a
+  `.env` with no compose file. The old gap list asked for a monitor on a
+  service that does not exist.
+- **`cloudflared`** — the suggested probe was
+  `https://gitea.mati-lab.online/api/v1/version`, byte-for-byte what the
+  `gitea` monitor already does. It adds no information and doubles the alert
+  noise.
 
 ## VLAN segmentation coverage (added 2026-09-08)
 
