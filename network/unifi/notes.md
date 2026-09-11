@@ -1394,3 +1394,98 @@ Note this means hit counters lag by minutes and move in steps. Do not
 conclude a rule is dead from a single stale sample — wait for the snapshot
 millisecond value to actually increase before comparing. The end-to-end test
 (light fires on motion) remains the authoritative check.
+
+## CORRECTION + the real fix: policy ordering (2026-09-11, supersedes the above)
+
+**The "Verified 2026-09-11" section above was wrong.** The allow was created
+at index 10001 while `IoT-to-Trusted-deny` sat at 10000. Lower index is
+evaluated first, and the deny matches `NEW` — so every `NEW` Matter report
+hit the deny and never reached the allow. The allow was only ever catching
+non-`NEW` traffic.
+
+Drops continued on the 600s cycle after that "fix": 09:01:13, 09:11:07.
+The end-to-end test passed only because the session happened to be fresh.
+
+### The trap worth internalising
+
+**A climbing hit counter does not mean a rule is effective.** The allow went
+34 -> 125 -> 198 -> 367 the whole time it was failing to do its job, because
+non-`NEW` packets fell past the `NEW`-only deny and matched it. That counter
+is exactly what convinced me it was working. Twice.
+
+A `NEW`-scoped BLOCK placed above an ALLOW silently swallows precisely the
+traffic the ALLOW was written for, while making the ALLOW look busy.
+
+### How ordering actually works on 10.6.101
+
+Index is **server-assigned as max+1 within the band, ignoring what you
+request**. Proven with a disabled throwaway policy: requested 9998, assigned
+10002. Earlier: deny requested 10002 -> got 10000; allow requested 9999 ->
+got 10001. It is purely creation order.
+
+`PUT`s that change `index` return `rc: ok` and are **silently ignored**.
+
+**So the only lever for ordering is creation order: delete the rule that must
+come later and re-create it.** It lands at max+1, i.e. below. During the gap
+the predefined "Block All Traffic" still applies, so posture is unchanged —
+only logging lapses for a few seconds.
+
+### Final layout (verified)
+
+```
+[10000] LG-TV-no-Internet          BLOCK  MAC-scoped -> Internet   log=OFF
+[10001] IoT-to-HomeKit-hub-allow   ALLOW  IoT -> 192.168.20.161    states=ALL
+[10002] IoT-to-Trusted-deny        BLOCK  IoT -> 192.168.20.0/24   states=NEW  log=ON
+```
+
+Allow above deny. Verified 28 min clean across the 09:21 / 09:31 / 09:41
+checkpoints — every one a boundary where a burst had been guaranteed — with
+zero denials, the allow climbing, and the owner confirming reliable walk-bys.
+
+### Verification discipline (the actual lesson)
+
+**The observation window must exceed the failure period.** The failure cycle
+was exactly 10 minutes (the Matter report interval). Both premature "verified"
+claims came from windows that ended just before the next burst — 18 min and
+~3 min. Neither was long enough to see a failure that recurs every 10.
+
+Rule of thumb: find the period of the failure first, then watch for at least
+2-3 times that, and refuse to call it early.
+
+### Design decisions
+
+- **Zone-wide allow, not enumeration.** 2 of 14 IoT devices use randomized
+  MACs (`60:74:f4` reports OUI "Private"; `7a:3e:07` has the
+  locally-administered bit set). MAC or IP enumeration would silently drop
+  such a device out of the rule. Any IoT device may reach the hub — and only
+  the hub.
+- **LG rule logging OFF.** It was 2,800 lines/day, 80% of all denials, and it
+  buried this failure for days. Principle: **log unexpected blocks, not
+  intentional ones.** NOTE: stored as `logging: false` (authoritative for
+  config) but *not* confirmed against live traffic — the TV showed no IP
+  during the observation window, so zero log lines proves nothing either way.
+- **JBL stays blocked.** 4 packets/day, Chromecast `:8009` at a dev PC.
+  Casting *to* the soundbar from Trusted already works (that direction is
+  allowed). Opening it buys nothing.
+
+### Adding a device later
+
+| Situation | Action |
+|---|---|
+| New HomeKit/Matter accessory | Nothing. Pair it; the hub rule covers it. |
+| IoT device needs something on Trusted *other than* the hub | Explicit allow **created after** the deny is re-created, or delete+recreate the deny so it sits below |
+| Device should lose internet | Copy the LG pattern: MAC-scoped, `logging: false` |
+| Something "sometimes works" | Check the deny log first — it is quiet now, so anything in it is the answer |
+| Always | Name the device, and pin its reservation **on the correct network** |
+
+Traps: **DHCP reservations are network-bound** (the Aqara one was inert on
+the Trusted network while the device lived on IoT). **Don't enumerate classes
+of devices by MAC** — randomized MACs fall out silently.
+
+### Not a network fault
+
+Hue motion sensors latch: PIR firmware rate-limits reporting to save battery,
+so a second walk-by within the cooldown produces **no event at all**. Owner
+confirmed reliable triggering with ~60s between walk-bys, and that this
+matches the sensor's normal behaviour. Do not mistake this for a firewall
+problem. Sensitivity is adjustable in the Hue app; the cooldown is not.
