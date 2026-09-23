@@ -39,7 +39,7 @@ working (it's on a docker bridge), LAN-direct callers need creds. See
 
 ## Config
 
-- Image: `gitea.mati-lab.online/gooral/qbittorrent-mcp:v1` (multi-arch,
+- Image: `gitea.mati-lab.online/gooral/qbittorrent-mcp:v2` (multi-arch,
   built via `docker buildx` from `compute/qbittorrent_mcp/Dockerfile`).
 - env_file: `/mnt/fast/databases/qbittorrent-mcp/.env` (mode 0600, owner
   568:568) — `MCP_BEARER_TOKEN=...`.
@@ -54,10 +54,10 @@ working (it's on a docker bridge), LAN-direct callers need creds. See
 | Tool | Purpose |
 |---|---|
 | `qbit_add_magnet(magnet, category?, save_path?, paused?)` | Queue a magnet or `.torrent` URL |
-| `qbit_list(filter?, category?, sort?, limit?)` | List torrents (filter: downloading/completed/paused/etc.) |
+| `qbit_list(filter?, category?, sort?, limit?)` | List torrents (filter: downloading/seeding/completed/stopped/running/…; unknown values return everything) |
 | `qbit_get(hash)` | Detail for one torrent |
-| `qbit_pause(hashes)` | Pause one or more (`hash1\|hash2\|…` or `all`) |
-| `qbit_resume(hashes)` | Resume |
+| `qbit_pause(hashes)` | Stop one or more (`hash1\|hash2\|…` or `all`) — calls `/torrents/stop` (qBit 5 removed `/pause`) |
+| `qbit_resume(hashes)` | Start — calls `/torrents/start` (qBit 5 removed `/resume`) |
 | `qbit_delete(hashes, delete_files?)` | Delete; `delete_files=False` keeps the data on disk |
 | `qbit_categories()` | List configured categories with their save paths |
 
