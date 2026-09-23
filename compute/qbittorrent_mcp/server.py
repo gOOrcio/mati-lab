@@ -133,15 +133,24 @@ def qbit_list(
     sort: str = "added_on",
     limit: int = 20,
 ) -> list[dict[str, Any]]:
-    """List torrents in qBittorrent.
+    """List torrents in qBittorrent, one summary row per torrent.
+
+    Each row has hash, name, state, progress (0..1), size (bytes), category,
+    save_path, added_on (unix time), dl/up speed (bytes/s), seed/leech counts
+    and eta (seconds). Use `qbit_get` for the full record of one torrent.
+    qBittorrent ignores an unknown `filter` value and returns every torrent,
+    so use only the values listed below.
 
     Args:
         filter: Optional state filter — one of "all" (default), "downloading",
-                "completed", "paused", "active", "inactive", "resumed",
-                "stalled", "stalled_uploading", "stalled_downloading", "errored".
+                "seeding", "completed", "stopped", "running", "active",
+                "inactive", "stalled", "stalled_uploading",
+                "stalled_downloading", "errored".
         category: Optional category filter.
-        sort: Field to sort by. Default `added_on` (newest first).
-        limit: Cap returned rows (default 20, max 200).
+        sort: Torrent field to sort by (e.g. `added_on`, `name`, `size`,
+              `progress`, `dlspeed`). Always descending, so the default
+              `added_on` lists newest first.
+        limit: Cap returned rows (default 20, clamped to 1..200).
     """
     limit = max(1, min(200, int(limit)))
     params: dict[str, Any] = {"sort": sort, "reverse": "true", "limit": limit}
@@ -172,7 +181,12 @@ def qbit_list(
 
 @mcp.tool()
 def qbit_get(hash: str) -> dict[str, Any]:
-    """Get details for a single torrent by its info-hash."""
+    """Get the full qBittorrent record for one torrent by its info-hash.
+
+    Returns every field qBittorrent's `/torrents/info` reports (a larger
+    payload than a `qbit_list` row — tracker, ratio, timestamps, limits,
+    paths), or `{"error": "not_found", "hash": ...}` when no torrent matches.
+    """
     rows = _get_json("/api/v2/torrents/info", {"hashes": hash})
     if not rows:
         return {"error": "not_found", "hash": hash}
@@ -181,24 +195,34 @@ def qbit_get(hash: str) -> dict[str, Any]:
 
 @mcp.tool()
 def qbit_pause(hashes: str) -> dict[str, Any]:
-    """Pause one or more torrents. Pass a single hash or `hash1|hash2|...`.
+    """Stop (pause) one or more torrents. Pass a single hash or `hash1|hash2|...`.
 
-    Use `all` to pause every torrent.
+    Use `all` to stop every torrent. Hashes that match nothing are ignored
+    without an error, so confirm with `qbit_list` when it matters.
     """
-    _post_form("/api/v2/torrents/pause", {"hashes": hashes})
+    # qBittorrent 5 (WebAPI 2.11) renamed torrents/pause -> torrents/stop.
+    _post_form("/api/v2/torrents/stop", {"hashes": hashes})
     return {"status": "paused", "hashes": hashes}
 
 
 @mcp.tool()
 def qbit_resume(hashes: str) -> dict[str, Any]:
-    """Resume one or more torrents. Pass a single hash or `hash1|hash2|...`."""
-    _post_form("/api/v2/torrents/resume", {"hashes": hashes})
+    """Start (resume) one or more torrents. Pass a single hash or `hash1|hash2|...`.
+
+    Use `all` to start every torrent. Hashes that match nothing are ignored
+    without an error.
+    """
+    # qBittorrent 5 (WebAPI 2.11) renamed torrents/resume -> torrents/start.
+    _post_form("/api/v2/torrents/start", {"hashes": hashes})
     return {"status": "resumed", "hashes": hashes}
 
 
 @mcp.tool()
 def qbit_delete(hashes: str, delete_files: bool = False) -> dict[str, Any]:
-    """Delete one or more torrents. Pass a single hash or `hash1|hash2|...`.
+    """Remove one or more torrents from qBittorrent. Pass a single hash or `hash1|hash2|...`.
+
+    Not reversible: with `delete_files=True` the downloaded data is deleted
+    from disk too.
 
     Args:
         hashes: Single hash or pipe-separated list.

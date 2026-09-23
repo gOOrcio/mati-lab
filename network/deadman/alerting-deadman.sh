@@ -29,6 +29,7 @@ set -uo pipefail
 TOKEN_FILE=/opt/mati-lab/network/alertmanager/ntfy-token
 NTFY_URL=http://localhost:8093/homelab-alerts
 ENV_FILE=/opt/mati-lab/network/deadman/.env
+# shellcheck source=/dev/null
 [ -f "$ENV_FILE" ] && . "$ENV_FILE"
 
 FAILURES=()

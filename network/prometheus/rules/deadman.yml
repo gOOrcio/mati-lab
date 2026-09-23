@@ -26,4 +26,7 @@ groups:
           severity: warning
         annotations:
           summary: "Alertmanager notification attempts are failing"
-          description: "alertmanager_notifications_failed_total increased over the last hour — check `docker logs alertmanager` on the Pi for the receiver error (last time this happened it was a 403 from ntfy)."
+          description: >-
+            alertmanager_notifications_failed_total increased over the last hour —
+            check `docker logs alertmanager` on the Pi for the receiver error
+            (last time this happened it was a 403 from ntfy).

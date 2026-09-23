@@ -99,11 +99,13 @@ def _embed(text: str) -> list[float]:
 def vault_search(query: str, limit: int = DEFAULT_LIMIT) -> list[dict[str, Any]]:
     """Search the Obsidian vault by semantic similarity.
 
-    Returns the top-N matching chunks with their source path, heading
-    breadcrumb, full text, similarity score, and any frontmatter tags.
-    Use this whenever the user asks about something that might be in
-    their notes — homelab config, project decisions, lessons-learned
-    entries, research notes, etc. — before falling back to web search.
+    Returns the top-N matching chunks (sections of notes, not whole files)
+    with their source path, heading breadcrumb, full chunk text, cosine
+    similarity score (higher is closer), and any frontmatter tags. Use it
+    when the answer may be in the user's own notes — homelab config,
+    project decisions, lessons learned, research notes. It is read-only and
+    reflects the vault as last synced and indexed, so very recent edits may
+    be missing; it cannot list or open files by path.
 
     Args:
         query: Natural-language question or phrase. Embedded with the same
