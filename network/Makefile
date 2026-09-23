@@ -5,7 +5,7 @@
 
 # Service definitions — ordered for dependency-safe deploys
 # pihole (DNS) → registry-mirror (Docker registry) → caddy (TLS reverse proxy) → rest
-SERVICES := pihole registry-mirror caddy authelia cloudflared uptime-kuma homepage prometheus grafana ntfy diun loki network-pi-metrics pve-exporter promtail grafana-ntfy-bridge graphite-exporter alertmanager nebula-sync
+SERVICES := pihole registry-mirror caddy authelia cloudflared mapa uptime-kuma homepage prometheus grafana ntfy diun loki network-pi-metrics pve-exporter promtail grafana-ntfy-bridge graphite-exporter alertmanager nebula-sync
 OPERATIONS := deploy update restart status logs stop start push save
 BRANCH ?= main
 
@@ -73,6 +73,10 @@ rebuild-caddy:
 rebuild-grafana-ntfy-bridge:
 	@echo "Rebuilding Grafana-Ntfy-Bridge..."
 	@cd scripts && BRANCH=$(BRANCH) ./manage-grafana-ntfy-bridge.sh rebuild
+
+sync-mapa:
+	@echo "Pulling the Wysowa map now..."
+	@cd scripts && ./manage-mapa.sh sync
 
 # Authelia user management — interactive prompts
 add-authelia-user:

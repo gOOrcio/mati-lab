@@ -1,0 +1,10 @@
+[Unit]
+Description=Pull the Wysowa map (gooral/wysowa) into /opt/wysowa
+Documentation=file:///opt/mati-lab/network/mapa/notes.md
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=gooral
+ExecStart=/opt/mati-lab/network/mapa/mapa-sync.sh

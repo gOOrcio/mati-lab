@@ -11,7 +11,7 @@ source "$SCRIPT_DIR/common.sh"
 # 2. registry-mirror (Docker registry, needed before caddy pushes images)
 # 3. caddy (reverse proxy + TLS, needed for registry HTTPS)
 # 4. everything else
-SERVICES=(pihole registry-mirror caddy authelia cloudflared uptime-kuma homarr prometheus grafana ntfy diun loki network-pi-metrics pve-exporter promtail grafana-ntfy-bridge)
+SERVICES=(pihole registry-mirror caddy authelia cloudflared mapa uptime-kuma homarr prometheus grafana ntfy diun loki network-pi-metrics pve-exporter promtail grafana-ntfy-bridge)
 
 log_success(){ printf "\033[0;32m[SUCCESS]\033[0m %s\n" "$*"; }
 log_warning(){ printf "\033[1;33m[WARNING]\033[0m %s\n" "$*"; }
