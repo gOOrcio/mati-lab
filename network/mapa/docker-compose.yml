@@ -1,5 +1,5 @@
-# Wysowa map (mapa.mati-lab.online): nginx over a read-only sparse checkout of
-# gooral/wysowa + a dedicated Cloudflare Tunnel whose only ingress is mapa:80.
+# Wysowa family site (mapa.mati-lab.online): nginx over a read-only sparse checkout of
+# gooral/wysowa public/ + a dedicated Cloudflare Tunnel whose only ingress is mapa:80.
 # Access (email OTP allow-list) sits in front at Cloudflare. See notes.md.
 networks:
   # nginx lives only here — no route out, no host port on the LAN.
@@ -16,7 +16,7 @@ services:
     security_opt: [no-new-privileges:true]
     networks: [mapa-internal]
     volumes:
-      - /opt/wysowa/mapa:/usr/share/nginx/html:ro
+      - /opt/wysowa/public:/usr/share/nginx/html:ro
       - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1/healthz"]

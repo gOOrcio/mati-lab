@@ -53,14 +53,14 @@ collides with it. The ports block therefore pins the host IP:
 Run this from any LAN host after changes. Both columns must agree:
 
 ```bash
-for q in mati-lab.online gitea-ssh.mati-lab.online wpad.mati-lab.online doubleclick.net; do
+for q in mati-lab.online mapa.mati-lab.online gitea-ssh.mati-lab.online wpad.mati-lab.online doubleclick.net; do
   printf '%-28s NAS=%s PI=%s\n' "$q" \
     "$(dig +short @192.168.1.65 "$q" | tr '\n' ' ')" \
     "$(dig +short @192.168.1.252 "$q" | tr '\n' ' ')"
 done
 ```
 
-Expected: `mati-lab.online` → `192.168.1.252`; `gitea-ssh.mati-lab.online` →
+Expected: `mati-lab.online` → `192.168.1.252`; `mapa.mati-lab.online` → Cloudflare IPs; `gitea-ssh.mati-lab.online` →
 `192.168.1.65`; `wpad.mati-lab.online` → NXDOMAIN; `doubleclick.net` →
 `0.0.0.0`. Verified matching at deploy time.
 
@@ -81,6 +81,14 @@ See `network/nebula-sync/`. Hourly at :17, `FULL_SYNC=true`.
 
 **Consequence:** treat the **Pi as the source of truth**. Make config changes
 there; this replica gets overwritten on the next sync.
+
+**Exception — `etc-dnsmasq.d/` is NOT synced.** nebula-sync doesn't carry
+dnsmasq drop-ins, so `99-host-overrides.conf` here is a manual copy of
+`network/pihole/etc-dnsmasq.d/99-host-overrides.conf`. After editing the Pi's
+copy: `scp` it to `/mnt/fast/databases/pihole2/etc-dnsmasq.d/` and
+`midclt call -j app.redeploy pihole2`, then re-run the parity check. (Pi-hole
+v6 re-reads dnsmasq drop-ins only on an FTL restart — on the Pi that means
+`docker restart pihole`; `pihole reloaddns` is not enough.)
 
 ## Blocklists — and the hagezi removal (2026-08-13)
 

@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
-# Pull the latest map from gooral/wysowa into /opt/wysowa (sparse: only
-# mapa/mapa.html + mapa/podklady/). nginx serves the files straight from
+# Pull the latest site from gooral/wysowa into /opt/wysowa (sparse:
+# public/ only — the family site). nginx serves the files straight from
 # here, so no container restart is needed.
 set -Eeuo pipefail
 
 REPO_DIR=/opt/wysowa
 REPO_URL=git@gitea-ssh.mati-lab.online:gooral/wysowa.git
 BRANCH=main
-PATHS=(/mapa/mapa.html /mapa/podklady/)
+PATHS=(/public/)
 
 if [ ! -d "$REPO_DIR/.git" ]; then
   git clone --quiet --filter=blob:none --no-checkout -b "$BRANCH" "$REPO_URL" "$REPO_DIR"
