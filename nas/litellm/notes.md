@@ -83,13 +83,15 @@ LiteLLM admin operations use the **master key** (`LITELLM_MASTER_KEY` in `.env`)
 PM labels follow `homelab/litellm/<alias>`.
 
 **The live keys hold explicit model lists, not access groups** (checked
-2026-09-24 via `/key/list`; the table above is that state). The group
-switch planned on 2026-09-08 never reached the keys, so a new model must be
-added to each key that should see it — otherwise the client gets
-`401 key not allowed to access model`. Do not run
-`nas/litellm/update-key-models.sh` as-is: it still targets the retired
-`openclaw` alias and would cut `claude-code` down to the Claude models only.
-`rag-watcher` keeps an explicit `embeddings` on purpose.
+2026-09-24; the group switch planned on 2026-09-08 never reached the keys).
+A model added to `config.yml` is therefore invisible to a client until its
+key lists it — the client gets `401 key not allowed to access model`.
+
+`nas/litellm/update-key-models.sh` is the source of truth for those lists:
+edit its `DESIRED` block, run it (dry run — shows per-key drift), then run
+it with `--apply`. It refuses to apply if a listed model isn't defined on
+the proxy, and leaves unlisted keys alone. `rag-watcher` keeps `embeddings`
+only, on purpose.
 
 ### Issue (initial or new consumer)
 
@@ -129,7 +131,7 @@ these are the "added later" layer.
 | Use a model that is already pulled on an Ollama host | Just request `pve-ollama/<tag>` (Proxmox VM) or `dev-ollama/<tag>` (dev PC). Wildcard deployments in `config.yml` map the suffix onto `ollama_chat/<tag>` for that host. `ollama pull` is the whole change. | n/a |
 | See what each host actually has | `GET /v1/models` — `litellm_settings.check_provider_endpoint: true` expands the wildcards from each host's `/api/tags`. If the dev PC is off, its wildcard falls back to LiteLLM's static Ollama list (cosmetic noise, not an error). | n/a |
 | Add a new Claude/DeepSeek alias without a deploy | Admin UI → Models + Endpoints → Add Model, or `POST /model/new` (master key). `general_settings.store_model_in_db: true` persists it in the Postgres sidecar; it is merged with `config.yml` at boot. Set `model_info.access_groups` there too so the right keys see it. | DB (`LiteLLM_ProxyModelTable`) — covered by the `litellm-pgdata` snapshots and Phase 8 pg_dump |
-| Grant a key a new model | Nothing, if the model carries the key's group. Otherwise `POST /key/update` with the key's alias and the new `models` list (see `update-key-models.sh`). | DB |
+| Grant a key a new model | Add it to that key's list in `DESIRED` in `update-key-models.sh`, run it (dry run), then `--apply`. Keys use explicit lists — the model's access group alone does nothing. | DB |
 
 **Rules that survive the convenience:**
 

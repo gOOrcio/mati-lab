@@ -1,87 +1,91 @@
 #!/usr/bin/env bash
-# Point the existing virtual keys at ACCESS GROUPS (and the Ollama wildcards)
-# instead of explicit model lists, so a model added to a group — via
-# config.yml, the Admin UI, or POST /model/new — is visible to every key
-# holding that group with no further key edits.
+# Declare which models each LiteLLM virtual key may use, and reconcile the
+# live keys against that declaration.
 #
-# Same conventions as issue-keys.sh: the master key is pulled into shell
-# memory via SSH + read -rs and never lands on disk locally. Idempotent —
-# /key/update replaces the `models` list, so re-running is harmless.
+#   bash nas/litellm/update-key-models.sh           # dry run: show drift only
+#   bash nas/litellm/update-key-models.sh --apply   # update keys that drift
 #
-# Groups are declared in config.yml under model_info.access_groups:
-#   agents      : agent-default, agent-smart, coding, embeddings
-#   claude-code : claude-opus-5-5, claude-opus-5, claude-opus-4-8,
-#                 claude-sonnet-5, claude-haiku-4-5
-# Wildcard deployments (pve-ollama/*, dev-ollama/*) cannot be in a group on
-# the free tier, so keys that should reach them list the pattern itself.
+# The live keys hold EXPLICIT model lists (access groups never reached them,
+# see notes.md "Virtual keys"), so a model added to config.yml is invisible
+# to a client until it is listed here and applied — otherwise the client gets
+# `401 key not allowed to access model`.
 #
-# rag-watcher is deliberately left alone: it keeps `embeddings` only.
+# The master key is pulled into shell memory via SSH + read -rs and never
+# lands on disk locally or in output. /key/update replaces a key's `models`
+# list, so re-running is idempotent. Keys not listed below are left alone.
 
 set -euo pipefail
 
-# STALE (2026-09-24): the live keys still use explicit model lists, the
-# `openclaw` alias below is now `hermes`, and `update claude-code claude-code`
-# would drop the agent-* aliases that key also serves. See nas/litellm/notes.md
-# ("Virtual keys") before re-running; refuse unless explicitly forced.
-if [[ "${FORCE_STALE_KEY_UPDATE:-}" != 1 ]]; then
-  echo "update-key-models.sh is stale — read nas/litellm/notes.md first (FORCE_STALE_KEY_UPDATE=1 to override)." >&2
-  exit 1
-fi
-
 LITELLM=http://192.168.1.65:4000
+APPLY=0
+[[ "${1:-}" == "--apply" ]] && APPLY=1
+
+AGENTS='"agent-default","agent-smart","coding","embeddings"'
+CLAUDE='"claude-opus-5-5","claude-opus-5","claude-opus-4-8","claude-sonnet-5","claude-haiku-4-5"'
+
+# alias -> JSON array of allowed models (the source of truth)
+DESIRED=$(cat <<JSON
+{
+  "hermes":          [$AGENTS],
+  "dev-pc-tools-v2": [$AGENTS],
+  "claude-code":     [$CLAUDE, $AGENTS],
+  "rag-watcher":     ["embeddings"]
+}
+JSON
+)
 
 read -rs LITELLM_MASTER_KEY < <(ssh truenas_admin@192.168.1.65 \
   'grep ^LITELLM_MASTER_KEY /mnt/fast/databases/litellm/.env | cut -d= -f2-')
-
 if [[ -z "${LITELLM_MASTER_KEY:-}" ]]; then
   echo "ERROR: failed to read LITELLM_MASTER_KEY from NAS .env" >&2
   exit 1
 fi
+export LITELLM LITELLM_MASTER_KEY APPLY DESIRED
 
-# update <alias> <model-or-group>...
-update() {
-  local alias=$1; shift
-  local models_json
-  models_json=$(printf '"%s",' "$@" | sed 's/,$//')
-  local body
-  printf -v body '{"key_alias":"%s","models":[%s]}' "$alias" "$models_json"
+python3 - <<'PY'
+import json, os, sys, urllib.request
 
-  curl -sS -X POST "$LITELLM/key/update" \
-    -H "Authorization: Bearer $LITELLM_MASTER_KEY" \
-    -H "Content-Type: application/json" \
-    --data-raw "$body" \
-  | python3 -c '
-import sys, json
-d = json.load(sys.stdin)
-if "models" not in d:
-    print("ERROR:", d, file=sys.stderr); sys.exit(1)
-print("alias:", d.get("key_alias"), " models:", d.get("models"))'
-}
+base, key = os.environ["LITELLM"], os.environ["LITELLM_MASTER_KEY"]
+apply = os.environ["APPLY"] == "1"
+desired = json.loads(os.environ["DESIRED"])
+hdr = {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
 
-update openclaw      agents
-update dev-pc-tools  agents "pve-ollama/*" "dev-ollama/*"
-update claude-code   claude-code
+def call(path, body=None):
+    req = urllib.request.Request(base + path, headers=hdr,
+                                 data=json.dumps(body).encode() if body else None)
+    with urllib.request.urlopen(req, timeout=30) as r:
+        return json.load(r)
 
-# ── Smoke tests (master key; proves routing, not key scoping) ──
-echo
-echo "== /v1/models as seen through the proxy (wildcards expanded via check_provider_endpoint):"
-curl -sS "$LITELLM/v1/models" -H "Authorization: Bearer $LITELLM_MASTER_KEY" \
-  | python3 -c 'import sys,json; print(sorted(m["id"] for m in json.load(sys.stdin)["data"]))'
+live = {k["key_alias"]: k for k in
+        call("/key/list?return_full_object=true&size=100")["keys"]
+        if isinstance(k, dict) and k.get("key_alias")}
 
-echo
-echo "== pve-ollama/qwen3.5:2b via wildcard (expect a short reply):"
-curl -sS "$LITELLM/v1/chat/completions" \
-  -H "Authorization: Bearer $LITELLM_MASTER_KEY" -H "Content-Type: application/json" \
-  -d '{"model":"pve-ollama/qwen3.5:2b","messages":[{"role":"user","content":"Reply with the single word: pong"}],"max_tokens":20}' \
-  | python3 -c 'import sys,json; d=json.load(sys.stdin); print(d.get("choices",[{}])[0].get("message",{}).get("content") or d)'
+# Every model named here must exist on the proxy, or the key update is a trap.
+known = {m["model_name"] for m in call("/model/info")["data"]}
+missing = sorted({m for ms in desired.values() for m in ms} - known)
+if missing:
+    sys.exit(f"ERROR: not defined in LiteLLM: {missing}")
 
-echo
-echo "== models stored in the DB (empty list until something is added via UI/API):"
-curl -sS "$LITELLM/model/info" -H "Authorization: Bearer $LITELLM_MASTER_KEY" \
-  | python3 -c '
-import sys,json
-rows=json.load(sys.stdin)["data"]
-db=[m["model_name"] for m in rows if m.get("model_info",{}).get("db_model")]
-print(db)'
+drift = 0
+for alias, want in desired.items():
+    k = live.get(alias)
+    if k is None:
+        print(f"{alias:16} MISSING (no such key — issue it first, see notes.md)")
+        drift += 1
+        continue
+    have = k.get("models") or []
+    add, drop = sorted(set(want) - set(have)), sorted(set(have) - set(want))
+    if not add and not drop:
+        print(f"{alias:16} ok")
+        continue
+    drift += 1
+    print(f"{alias:16} +{add} -{drop}")
+    if apply:
+        got = call("/key/update", {"key": k["token"], "models": want})
+        print(f"{'':16} applied -> {got.get('models')}")
+
+if drift and not apply:
+    print("\n(dry run — re-run with --apply to update the keys above)")
+PY
 
 unset LITELLM_MASTER_KEY
