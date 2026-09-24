@@ -14,7 +14,7 @@ install_sync() {
   # shellcheck disable=SC2029 # intentional client-side expansion of SERVER_USER
   ssh "${SSH_OPTS[@]}" "$REMOTE" "
     set -euo pipefail
-    sudo install -d -o $SERVER_USER -g $SERVER_USER /opt/wysowa
+    sudo install -d -o $SERVER_USER -g $SERVER_USER /opt/wysowa /opt/mati-lab/network/mapa/data
     sudo ln -sf /opt/mati-lab/network/mapa/mapa-sync.service /etc/systemd/system/mapa-sync.service
     sudo ln -sf /opt/mati-lab/network/mapa/mapa-sync.timer /etc/systemd/system/mapa-sync.timer
     sudo systemctl daemon-reload

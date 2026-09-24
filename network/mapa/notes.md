@@ -35,6 +35,16 @@ Pi: mapa-tunnel (cloudflared) ──mapa-internal (no egress)──▶ mapa (ngi
   (not `no-referrer` — tile.openstreetmap.org rejects requests without a
   Referer). No CSP: pages load Leaflet + marked.js from cdnjs and tiles/WMS
   from geoportal.gov.pl, gugik.gov.pl, gison.pl, openstreetmap.org.
+- **Shared checklist state** (`mapa-stan`, `stan.py`, stdlib Python): nginx
+  proxies exactly `/api/stan` to it. `GET` returns the checkbox state of
+  `plan.html`; `POST {"id","v"}` sets one box and records who (the
+  `Cf-Access-Authenticated-User-Email` header — trustworthy only because nginx
+  is reachable solely through the tunnel) and when. Data:
+  `network/mapa/data/stan.json` + append-only `historia.jsonl` (gitignored,
+  survives `git clean -fd`, backed up to the NAS via `backup-services.conf`).
+  Container: read-only rootfs, runs as gooral (1000:1003), no host port.
+  CLI: `docker exec mapa-stan python /app/stan.py pokaz` /
+  `… ustaw <id> 0|1 --kto <name>`.
 - **LAN DNS:** both Pi-holes' `*.mati-lab.online → Caddy` wildcard is
   overridden for `mapa` (`pihole/etc-dnsmasq.d/99-host-overrides.conf`) so home
   clients also go through Cloudflare + Access. Public DNS: the tunnel's
