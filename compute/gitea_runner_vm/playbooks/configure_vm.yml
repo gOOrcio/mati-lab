@@ -129,3 +129,49 @@
         enabled: true
         state: started
         daemon_reload: true
+
+    # Docker garbage, separate from the workflow-cache prune above. Every
+    # recreate of the DinD runner container leaves its old anonymous
+    # /var/lib/docker volume behind on the host (35 GB of them by 2026-09-24,
+    # disk at 85%). `volume prune` (Docker >= 23) removes only unused
+    # *anonymous* volumes, so the running runner's volume is kept. Inside
+    # DinD: unused volumes, and images unused for a week (big CI images such
+    # as Playwright stay cached between runs).
+    - name: Install runner docker-prune oneshot service
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/runner-docker-prune.service
+        mode: "0644"
+        content: |
+          [Unit]
+          Description=Prune unused Docker volumes/images on the runner host and inside DinD
+          After=docker.service
+
+          [Service]
+          Type=oneshot
+          ExecStart=/usr/bin/docker volume prune -f
+          ExecStart=/usr/bin/docker exec gitea-runner-runner-1 docker volume prune -f
+          ExecStart=/usr/bin/docker exec gitea-runner-runner-1 docker image prune -af --filter until=168h
+          ExecStart=/bin/sh -c 'df -h / | tail -1'
+
+    - name: Install runner docker-prune timer (daily)
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/runner-docker-prune.timer
+        mode: "0644"
+        content: |
+          [Unit]
+          Description=Daily prune of unused runner Docker volumes/images
+
+          [Timer]
+          OnCalendar=*-*-* 04:40:00
+          RandomizedDelaySec=15min
+          Persistent=true
+
+          [Install]
+          WantedBy=timers.target
+
+    - name: Enable runner docker-prune timer
+      ansible.builtin.systemd:
+        name: runner-docker-prune.timer
+        enabled: true
+        state: started
+        daemon_reload: true

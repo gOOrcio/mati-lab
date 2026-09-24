@@ -53,6 +53,9 @@ update() {
   log "Updating $SERVICE_NAME (pull only, no rebuild)"
   sync_from_gitea
   copy_env_file "../$SERVICE_NAME"
+  # Keep the running image as caddy-cloudflare:previous — rollback without
+  # pulling through Caddy (see network/caddy/notes.md).
+  ssh "${SSH_OPTS[@]}" "$REMOTE" 'img=$(sudo docker inspect -f "{{.Image}}" caddy 2>/dev/null) && sudo docker tag "$img" caddy-cloudflare:previous && echo "tagged running image as caddy-cloudflare:previous" || true'
   compose_cmd up -d --pull always --force-recreate
 }
 

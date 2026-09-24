@@ -1,0 +1,23 @@
+# Pre-merge validation of the network Pi's configs, using the same tool
+# versions the Pi runs (image tags are read from each compose file, so a
+# Renovate bump is checked by the new version). Validation only — deploys
+# stay manual (`make deploy-<svc>`); see network/README.md.
+name: config-checks
+on:
+  pull_request:
+    paths:
+      - "network/**"
+      - ".gitea/workflows/config-checks.yml"
+  push:
+    branches: [main]
+    paths:
+      - "network/**"
+      - ".gitea/workflows/config-checks.yml"
+
+jobs:
+  network-configs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate compose, Prometheus, Alertmanager, Caddy
+        run: bash network/scripts/check-configs.sh
