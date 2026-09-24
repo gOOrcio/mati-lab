@@ -7,7 +7,7 @@ volumes:
 
 services:
   alertmanager:
-    image: prom/alertmanager:v0.27.0
+    image: prom/alertmanager:v0.34.1
     container_name: alertmanager
     restart: always
     security_opt: [no-new-privileges:true]
