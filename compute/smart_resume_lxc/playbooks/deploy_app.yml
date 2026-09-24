@@ -55,6 +55,13 @@
           - "--exclude=.venv"
           - "--exclude=.ruff_cache"
           - "--exclude=tests"
+          # Server-owned state: with delete: true these would otherwise be
+          # removed or overwritten from the dev checkout on every deploy —
+          # .env is rendered by the template task below, logs/ holds the
+          # production chat.jsonl history.
+          - "--exclude=/.env"
+          - "--exclude=/logs"
+          - "--exclude=.pytest_cache"
           - "--no-owner"
           - "--no-group"
           - "--chown=www-data:www-data"
