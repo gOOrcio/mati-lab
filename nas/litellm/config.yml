@@ -218,6 +218,10 @@ model_list:
       model: "ollama_chat/*"
       api_base: http://192.168.1.48:11434
     model_info:
+      # Wildcards have no concrete model to probe, so /health tried a
+      # placeholder "llama2". Probe the model this host already keeps loaded
+      # for the coding fallback 2 — no extra VRAM churn.
+      health_check_model: ollama_chat/qwen3.5:9b
       input_cost_per_token: 0
       output_cost_per_token: 0
 
@@ -226,6 +230,10 @@ model_list:
       model: "ollama_chat/*"
       api_base: http://192.168.20.173:11434
     model_info:
+      # Wildcards have no concrete model to probe, so /health tried a
+      # placeholder "llama2". Probe the model this host already keeps loaded
+      # for the coding/agent-default local tier — no extra VRAM churn.
+      health_check_model: ollama_chat/gpt-oss:20b
       input_cost_per_token: 0
       output_cost_per_token: 0
 
