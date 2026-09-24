@@ -28,12 +28,17 @@ homelab.
     `pyproject.toml`, workflow file) or manual dispatch.
   - Main branch → `:dev`; git tags `v*` → `:vX.Y` + `:latest`.
   - Architecture: linux/amd64 only.
-- Container UID/GID: **`10000:10000`** — matches the stock Hermes Agent
-  image's native user and the ownership of `/opt/data/hermes-investor/` inside
-  the Hermes data volume. The dashboard bind-mounts that path read/write for
-  `portfolio.json` and read-only for `db.sqlite`; running as 568 would fail
-  on writes. Do **not** set `HERMES_UID=568` on Hermes if you expect this
-  mount to stay writable without a chown pass.
+- Container UID/GID: **`568:568`** (changed from `10000:10000` on
+  2026-09-24). It must match the UID the `hermes-agent` catalogue app runs as,
+  because the dashboard writes `portfolio.json` (atomic `.tmp` + rename) and
+  opens the WAL-mode `db.sqlite` (needs to create `-shm`/`-wal`) inside the
+  shared `/opt/data/hermes-investor/` mount. Chart 1.0.19 (auto-upgraded
+  2026-08-25) added `run_as` defaulting to **568** and re-owned the Hermes data
+  tree to 568, which silently broke both paths for a 10000-UID dashboard:
+  `/api/analysis/*` returned 500 (`attempt to write a readonly database`) and
+  the daily `portfolio.json` sync failed with `PermissionError` from 2026-08-26
+  to 2026-09-24 (portfolio.json frozen at 2026-08-25). **If Hermes's `run_as`
+  ever changes again, change this `user` to match.**
 - Internal port: 8000 → host port 30032.
 - Resource limits: TrueNAS Custom App default (1 CPU / 512 MB) — sufficient;
   idle near zero, peaks under a few hundred MB during price refresh.
@@ -60,13 +65,13 @@ midclt call zfs.dataset.create '{
 mkdir -p /mnt/fast/databases/investor-dashboard/data
 midclt call filesystem.setperm '{
   "path": "/mnt/fast/databases/investor-dashboard/data",
-  "uid": 10000, "gid": 10000, "mode": "0755",
+  "uid": 568, "gid": 568, "mode": "0755",
   "options": {"recursive": true, "stripacl": true}
 }'
 ```
 
 (Or via the TrueNAS UI — Datasets → fast/databases → Add Dataset
-`investor-dashboard`, then ACL editor → Owner 10000, Group 10000.)
+`investor-dashboard`, then ACL editor → Owner 568, Group 568.)
 
 The Hermes investor path already exists once Hermes is deployed; no extra
 dataset needed for the shared bind.

@@ -95,15 +95,20 @@ handles the gateway + dashboard process split internally; we don't author
 schema (verified shape documented inline in `app-config.json`'s sibling task
 brief / the migration spec below).
 
-## No `HERMES_UID` / `HERMES_GID`
+## Runtime UID: `run_as` = 568 (since chart 1.0.19)
 
-Do **not** set these anywhere in this app's config. The catalogue image runs
-at its **native UID 10000** — all host paths below must be pre-owned
-`10000:10000`. Setting `HERMES_UID=568` (the bespoke app's value) triggers a
-10+ minute chown storm on redeploy and breaks the `investor-dashboard` app's
-writes to the shared `hermes-investor/` subtree (also expects 10000:10000).
-This mirrors the rule already in force for `investor-dashboard` — see
-`nas/investor-dashboard/notes.md`.
+Chart **1.0.19** (auto-upgraded 2026-08-25 18:17 UTC) added a `run_as` field
+defaulting to **568:568**. On start the container logs `[stage2] Changing
+hermes UID to 568` and re-owns `/opt/data` to UID 568 (group left at 10000,
+dirs `750`, files `644`). The earlier "native UID 10000" model no longer
+applies; the tables below that say `10000:10000` describe the original
+pre-create state, the live tree is now `568`-owned.
+
+Consequence: anything else writing into the Hermes data tree must run as 568.
+`investor-dashboard` was switched to `user: "568:568"` on 2026-09-24 after a
+month of silent failures (see `nas/investor-dashboard/notes.md`). Still do
+**not** set `HERMES_UID`/`HERMES_GID` env vars; control the UID via `run_as`
+only, and if you ever change it, change the dashboard's `user` to match.
 
 ## ⚠️ Upgrade trap: `gateway_key` must be ≥16 chars before `app.upgrade`
 

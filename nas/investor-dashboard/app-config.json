@@ -7,7 +7,7 @@
       "investor-dashboard": {
         "image": "gitea.mati-lab.online/gooral/investor-dashboard:dev",
         "restart": "unless-stopped",
-        "user": "10000:10000",
+        "user": "568:568",
         "environment": {
           "TZ": "Europe/Warsaw",
           "DASHBOARD_DB_PATH": "/data/dashboard.sqlite",
