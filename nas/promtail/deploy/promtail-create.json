@@ -5,7 +5,7 @@
   "custom_compose_config": {
     "services": {
       "promtail": {
-        "image": "grafana/promtail:3.5.0",
+        "image": "grafana/promtail:3.6.11",
         "restart": "unless-stopped",
         "command": ["-config.file=/etc/promtail/config.yml"],
         "user": "0:0",

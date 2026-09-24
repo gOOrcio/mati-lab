@@ -15,6 +15,8 @@
 # passphrase. 8-week retention.
 
 set -euo pipefail
+# Never die silently: cron output goes to the log, so name the failing line.
+trap 'echo "$(date -u +%FT%TZ) ERROR: arr backup failed at line $LINENO (exit $?)" >&2' ERR
 
 DEST=/mnt/bulk/backups/arr
 PASSF=/mnt/bulk/backups/.secrets/dump-passphrase
@@ -92,7 +94,9 @@ backup_bazarr() {
     # Bazarr drops transient bazarr_temp.db/-journal files in the same dir
     # mid-backup; a multi-file diff turns $new into "a\nb" and cp mangles it.
     # Only the finished .zip counts.
-    new=$(comm -13 <(printf '%s\n' "$before") <(printf '%s\n' "$after") | grep -E '\.zip$' | tail -1)
+    # `|| true`: under pipefail a no-match grep (zip not written yet) would
+    # abort the whole script silently on the first poll.
+    new=$(comm -13 <(printf '%s\n' "$before") <(printf '%s\n' "$after") | { grep -E '\.zip$' || true; } | tail -1)
     [ -n "$new" ] && break
     sleep 1
   done

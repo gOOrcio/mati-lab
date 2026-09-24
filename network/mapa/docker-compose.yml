@@ -30,7 +30,7 @@ services:
       - "homepage.description=Private map via Cloudflare Tunnel + Access"
 
   mapa-tunnel:
-    image: cloudflare/cloudflared:2026.7.3
+    image: cloudflare/cloudflared:2026.9.1
     container_name: mapa-tunnel
     command: tunnel --no-autoupdate run
     restart: unless-stopped
