@@ -25,7 +25,7 @@ services:
       - "com.docker.compose.service=docker-socket-proxy"
 
   promtail:
-    image: grafana/promtail:3.5.0
+    image: grafana/promtail:3.6.11
     container_name: promtail
     restart: always
     security_opt: [no-new-privileges:true]
