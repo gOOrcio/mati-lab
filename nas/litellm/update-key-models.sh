@@ -10,13 +10,23 @@
 #
 # Groups are declared in config.yml under model_info.access_groups:
 #   agents      : agent-default, agent-smart, coding, embeddings
-#   claude-code : claude-opus-4-8, claude-sonnet-5, claude-haiku-4-5
+#   claude-code : claude-opus-5-5, claude-opus-5, claude-opus-4-8,
+#                 claude-sonnet-5, claude-haiku-4-5
 # Wildcard deployments (pve-ollama/*, dev-ollama/*) cannot be in a group on
 # the free tier, so keys that should reach them list the pattern itself.
 #
 # rag-watcher is deliberately left alone: it keeps `embeddings` only.
 
 set -euo pipefail
+
+# STALE (2026-09-24): the live keys still use explicit model lists, the
+# `openclaw` alias below is now `hermes`, and `update claude-code claude-code`
+# would drop the agent-* aliases that key also serves. See nas/litellm/notes.md
+# ("Virtual keys") before re-running; refuse unless explicitly forced.
+if [[ "${FORCE_STALE_KEY_UPDATE:-}" != 1 ]]; then
+  echo "update-key-models.sh is stale — read nas/litellm/notes.md first (FORCE_STALE_KEY_UPDATE=1 to override)." >&2
+  exit 1
+fi
 
 LITELLM=http://192.168.1.65:4000
 

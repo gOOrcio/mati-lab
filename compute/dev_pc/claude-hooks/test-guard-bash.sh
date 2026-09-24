@@ -33,6 +33,9 @@ check block 'git push origin +main:main'
 check block 'git push https://github.com/gOOrcio/mati-lab.git main'
 check block 'git push github main'
 check block 'cat /root/.backup-env'
+check block 'cat network/mapa/.env.example network/mapa/.env'
+check block 'cat .env.local'
+check block 'grep TOKEN network/mapa/.env.production'
 check block 'cat network/caddy/.env'
 check block 'grep LITELLM /mnt/fast/databases/hermes/.env'
 check block 'ssh truenas_admin@192.168.1.65 "cat /mnt/fast/databases/litellm/.env"'
@@ -79,6 +82,10 @@ check allow 'install -m 600 /tmp/new.env /mnt/fast/databases/x/.env'
 check allow 'git remote -v'
 check allow 'ssh gooral@192.168.1.252 "docker ps -a"'
 check allow 'wc -l docs/followups.md'
+check allow 'cat network/mapa/.env.example'
+check allow 'grep -n KEY nas/litellm/.env.sample'
+check allow "cat > network/mapa/.env.example <<'EOF'"
+check allow 'head .env.template'
 
 echo "== fail-open wrapper (python3 exits 2 on a missing file, which would"
 echo "   otherwise read as BLOCK and wedge every Bash call) =="

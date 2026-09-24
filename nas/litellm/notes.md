@@ -76,17 +76,20 @@ LiteLLM admin operations use the **master key** (`LITELLM_MASTER_KEY` in `.env`)
 | Alias | Consumer | Models | Budget | Where the key lives |
 |---|---|---|---|---|
 | `rag-watcher` | rag-watcher Custom App | `embeddings` | $1 / 30d | `/mnt/fast/databases/rag-watcher/.env` |
-| `openclaw` | OpenClaw Custom App | group `agents` | $20 / 30d | OpenClaw in-app config (LLM provider wizard) |
-| `dev-pc-tools` | Local CLI tooling on dev box (Claude Code MCP `vault-rag`, OpenCode, ad-hoc curl) | group `agents` + `pve-ollama/*` + `dev-ollama/*` | $30 / 30d | Dev-box `~/.claude.json` (vault-rag env block) + shell env |
-| `claude-code` | Claude Code / opencode / codex via the gateway (token-efficiency campaign) | group `claude-code` | $30 / 30d | Dev-box shell env + PM `homelab/litellm/claude-code` |
+| `hermes` | Hermes Agent | `agent-default`, `agent-smart`, `coding`, `embeddings` | $20 / 30d | Hermes config on the NAS |
+| `dev-pc-tools-v2` | Local CLI tooling on dev box (Claude Code MCP `vault-rag`, OpenCode, ad-hoc curl) | `agent-default`, `agent-smart`, `coding`, `embeddings` | $30 / 30d | Dev-box `~/.claude.json` (vault-rag env block) + shell env |
+| `claude-code` | Claude Code / opencode / codex via the gateway (token-efficiency campaign) | `claude-opus-5`, `claude-opus-5-5`, `claude-opus-4-8`, `claude-sonnet-5`, `claude-haiku-4-5` + the four `agent*`/`coding`/`embeddings` aliases | $50 / 30d | Dev-box shell env + PM `homelab/litellm/claude-code` |
 
 PM labels follow `homelab/litellm/<alias>`.
 
-Key model lists reference **access groups** (declared per deployment in
-`config.yml` as `model_info.access_groups`) since 2026-09-08, so adding a
-model to a group grants it to every key holding the group without touching
-the key. `bash nas/litellm/update-key-models.sh` (re)applies the mapping and
-runs smoke tests. `rag-watcher` keeps an explicit `embeddings` on purpose.
+**The live keys hold explicit model lists, not access groups** (checked
+2026-09-24 via `/key/list`; the table above is that state). The group
+switch planned on 2026-09-08 never reached the keys, so a new model must be
+added to each key that should see it — otherwise the client gets
+`401 key not allowed to access model`. Do not run
+`nas/litellm/update-key-models.sh` as-is: it still targets the retired
+`openclaw` alias and would cut `claude-code` down to the Claude models only.
+`rag-watcher` keeps an explicit `embeddings` on purpose.
 
 ### Issue (initial or new consumer)
 
@@ -180,6 +183,9 @@ validated safely with the real Claude Code client.
 Code's large, stable system prompt is cached at ~10% read cost even when
 the client doesn't set the breakpoint. `router_settings.optional_pre_call_checks:
 ["prompt_caching"]` pins cached calls to the writing deployment.
+Since 2026-09-23 the group also carries `claude-opus-5` and
+`claude-opus-5-5` (same shape, also in the forward list below), and
+`agent-smart` runs on `claude-sonnet-5` instead of Sonnet 4.6.
 
 **Step #2 (SHIPPED 2026-07-16):** subscription-OAuth forwarding scoped to
 the CC aliases only, deployed live (regression-verified: agent-default /

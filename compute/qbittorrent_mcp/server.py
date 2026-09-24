@@ -116,6 +116,9 @@ def qbit_add_magnet(
     if save_path:
         data["savepath"] = save_path
     if paused:
+        # qBittorrent 5 (WebAPI 2.11) calls this `stopped`; `paused` is the
+        # pre-5 name. Send both so the torrent never starts by accident.
+        data["stopped"] = "true"
         data["paused"] = "true"
     r = _post_form("/api/v2/torrents/add", data)
     body = r.text.strip()

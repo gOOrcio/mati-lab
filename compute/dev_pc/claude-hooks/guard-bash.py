@@ -65,6 +65,11 @@ SECRET_PATH = re.compile(
 # dumps the Claude Code process, whose --mcp-config embeds a live LiteLLM
 # key — exactly how one leaked into a transcript on 2026-09-06. PID-only and
 # comm-only forms stay allowed.
+# Committed placeholder templates (values are `<from password manager>`), not
+# secrets. Stripped before the SECRET_PATH check so reading `.env.example`
+# works, while a command that also names the real `.env` still blocks.
+ENV_PLACEHOLDER = re.compile(r"\.env\.(example|sample|template|dist)\b", re.I)
+
 PROC_DUMP = re.compile(
     r"(?<![\w./-])(ps\s+(aux|-ef|axww|auxww|aux?ww?)|pgrep\s+(-\w*[al]\w*))",
     re.I,
@@ -122,7 +127,7 @@ def violation(segment: str):
     if is_push and GITHUB_TARGET.search(segment):
         return BLOCK_GITHUB_PUSH
 
-    if READERS.search(segment) and SECRET_PATH.search(segment):
+    if READERS.search(segment) and SECRET_PATH.search(ENV_PLACEHOLDER.sub("", segment)):
         return BLOCK_SECRET_READ
 
     if PROC_DUMP.search(segment):

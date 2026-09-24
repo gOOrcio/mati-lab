@@ -5,8 +5,8 @@
 #   192.168.20.173 = Dev PC (Ubuntu-side only, Trusted VLAN 20) — health-flaps by design
 #
 # Aliases consumed by clients:
-#   agent-default : Hermes daily driver. DeepSeek > Claude > local Qwen 14B.
-#   agent-smart   : Hermes explicit escalation. Claude Sonnet 4.6 only.
+#   agent-default : Hermes daily driver. Claude > DeepSeek > local gpt-oss:20b.
+#   agent-smart   : Hermes explicit escalation. Claude > DeepSeek reasoner.
 #   coding        : OpenCode or ad-hoc code. Dev PC > DeepSeek > Proxmox.
 #   embeddings    : Phase 6 RAG consumer. Always Proxmox nomic-embed.
 #   claude-*      : Claude Code gateway (token-efficiency campaign #1). API-key
@@ -21,27 +21,32 @@
 # of listing models, so a model added to a group is instantly visible to every
 # key holding it (nas/litellm/update-key-models.sh):
 #   agents      : agent-default, agent-smart, coding, embeddings
-#   claude-code : claude-opus-4-8, claude-sonnet-5, claude-haiku-4-5
+#   claude-code : claude-opus-5-5, claude-opus-5, claude-opus-4-8,
+#                 claude-sonnet-5, claude-haiku-4-5
 # Wildcard deployments cannot join a group on the free tier; keys list the
 # pattern itself (e.g. "pve-ollama/*").
 
 model_list:
   # ── agent-default (Hermes session driver) ──
+  # Claude first, by preference. Hermes can't use the Max subscription, so
+  # this bills ANTHROPIC_API_KEY (capped by provider_budget_config below).
+  # When the key is unfunded or over budget, background health checks mark
+  # the deployment unhealthy and routing moves to DeepSeek on its own.
   - model_name: agent-default
     litellm_params:
-      model: deepseek/deepseek-chat
-      api_key: os.environ/DEEPSEEK_API_KEY
-    model_info:
-      order: 1
-      access_groups: ["agents"]
-
-  - model_name: agent-default           # fallback 1: Claude if DeepSeek 5xx
-    litellm_params:
-      model: anthropic/claude-sonnet-4-6
+      model: anthropic/claude-sonnet-5
       api_key: os.environ/ANTHROPIC_API_KEY
       cache_control_injection_points:   # cache Hermes's stable system prefix (#7)
         - location: message
           role: system
+    model_info:
+      order: 1
+      access_groups: ["agents"]
+
+  - model_name: agent-default           # fallback 1: DeepSeek
+    litellm_params:
+      model: deepseek/deepseek-chat
+      api_key: os.environ/DEEPSEEK_API_KEY
     model_info:
       order: 2
       access_groups: ["agents"]
@@ -57,14 +62,25 @@ model_list:
       output_cost_per_token: 0
 
   # ── agent-smart (explicit /smart or delegated subagents) ──
+  # Sonnet 5 first (newer and cheaper than 4.6: $2/$10 vs $3/$15 per MTok),
+  # DeepSeek's reasoning model when the Anthropic key is unfunded/over budget.
   - model_name: agent-smart
     litellm_params:
-      model: anthropic/claude-sonnet-4-6
+      model: anthropic/claude-sonnet-5
       api_key: os.environ/ANTHROPIC_API_KEY
       cache_control_injection_points:   # cache the stable system prefix (#7)
         - location: message
           role: system
     model_info:
+      order: 1
+      access_groups: ["agents"]
+
+  - model_name: agent-smart             # fallback: DeepSeek reasoner
+    litellm_params:
+      model: deepseek/deepseek-reasoner
+      api_key: os.environ/DEEPSEEK_API_KEY
+    model_info:
+      order: 2
       access_groups: ["agents"]
 
   # ── coding (OpenCode primary, code-specific model) ──
@@ -126,8 +142,32 @@ model_list:
   # zero-cost — otherwise LiteLLM's phantom list-price "spend" inflates BOTH the
   # claude-code key cap AND the anthropic provider budget (which Hermes shares),
   # eventually budget-blocking Hermes + claude-gw for $0 of real spend. Hermes's
-  # own Claude fallback rides agent-default→claude-sonnet-4-6, which keeps its
+  # own Claude route (agent-default/agent-smart → claude-sonnet-5) keeps its
   # real-cost tracking (different alias, uses the API key).
+  - model_name: claude-opus-5-5
+    litellm_params:
+      model: anthropic/claude-opus-5-5
+      api_key: os.environ/ANTHROPIC_API_KEY
+      cache_control_injection_points:
+        - location: message
+          role: system
+    model_info:
+      access_groups: ["claude-code"]
+      input_cost_per_token: 0
+      output_cost_per_token: 0
+
+  - model_name: claude-opus-5
+    litellm_params:
+      model: anthropic/claude-opus-5
+      api_key: os.environ/ANTHROPIC_API_KEY
+      cache_control_injection_points:
+        - location: message
+          role: system
+    model_info:
+      access_groups: ["claude-code"]
+      input_cost_per_token: 0
+      output_cost_per_token: 0
+
   - model_name: claude-opus-4-8
     litellm_params:
       model: anthropic/claude-opus-4-8
@@ -242,6 +282,8 @@ litellm_settings:
   # Max subscription is billed instead of ANTHROPIC_API_KEY. Campaign #2 Step #2.
   model_group_settings:
     forward_client_headers_to_llm_api:
+      - claude-opus-5-5
+      - claude-opus-5
       - claude-opus-4-8
       - claude-sonnet-5
       - claude-haiku-4-5
