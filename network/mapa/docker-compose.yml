@@ -54,7 +54,7 @@ services:
       retries: 3
 
   mapa-tunnel:
-    image: cloudflare/cloudflared:2026.9.1
+    image: cloudflare/cloudflared:2026.9.3
     container_name: mapa-tunnel
     command: tunnel --no-autoupdate run
     restart: unless-stopped
