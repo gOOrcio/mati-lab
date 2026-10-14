@@ -12,7 +12,10 @@ Blocks:
      .claudeignore filters the Read tool, Bash bypasses it)
   3. git push to GitHub (repos mirror Gitea->GitHub with force; a direct
      GitHub push is silently reverted on the next Gitea sync — this cost
-     us a commit on 2026-09-06)
+     us a commit on 2026-09-06). The push target is resolved through
+     `git remote get-url --push`, so `origin` pointing at GitHub in a repo
+     that also has a Gitea remote is caught too. Exception: GitHub repos in
+     NON_MIRRORED_GITHUB (no Gitea mirror exists, so nothing reverts them).
 
 Contract: exit 0 = allow (silent), exit 2 = block with stderr fed back to
 the model. Any internal error fails OPEN — a guard that wedges the agent
@@ -27,7 +30,10 @@ This guard catches accidents, not a determined bypass. That is the point.
 """
 
 import json
+import os
 import re
+import shlex
+import subprocess
 import sys
 
 # Split compound commands so `git push origin main && rm -f x` does not
@@ -38,6 +44,19 @@ GIT_PUSH = re.compile(r"\bgit\b.*\bpush\b", re.I)
 FORCE_FLAG = re.compile(r"(--force\b|--force-with-lease\b|(?<![\w-])-f(?=\s|$))", re.I)
 PLUS_REFSPEC = re.compile(r"\bpush\b.*\s\+[^\s:]+:", re.I)
 GITHUB_TARGET = re.compile(r"(github\.com|\bpush\s+github\b)", re.I)
+# Anchored: optional scheme, optional user@, host exactly github.com, then owner/repo and nothing else.
+GITHUB_SLUG = re.compile(
+    r"^(?:[a-z][a-z0-9+.-]*://)?(?:[^@/\s]+@)?github\.com(?::\d+)?[:/]+([^/\s:]+/[^/\s]+?)(?:\.git)?/?$", re.I)
+GITHUB_REF = re.compile(r"\S*github\.com\S*", re.I)
+# Flags that change where/how `git push` sends, which the simple parser below does not model.
+PUSH_OVERRIDES = re.compile(r"(--repo\b|--push-option\b|(?<![\w-])-o\b|--git-dir\b|\bGIT_DIR=|(?<![\w-])(?-i:-c)\s)", re.I)
+GITEA_HOST = "mati-lab.online"
+
+# GitHub repos that are NOT push-mirrored from Gitea: a direct push is the only
+# way to update them, and no sync will revert it. Lowercase "owner/repo".
+NON_MIRRORED_GITHUB = {
+    "wargovsky/portfolio",  # client's repo for kamilpiotrowski.actor (wara-portfolio), 2026-10-14
+}
 
 READERS = re.compile(
     r"(?<![\w./-])(cat|less|more|head|tail|strings|xxd|od|base64|nl|tac|bat|"
@@ -117,14 +136,73 @@ BLOCK_GITHUB_PUSH = (
 )
 
 
-def violation(segment: str):
+def _git(cwd: str, *args: str) -> str:
+    out = subprocess.run(["git", "-C", cwd, *args], capture_output=True, text=True, timeout=5)
+    return out.stdout.strip() if out.returncode == 0 else ""
+
+
+def push_target(segment: str, cwd: str):
+    """(push URLs, all remotes' URLs) for a `git push` segment, or None if unresolvable."""
+    try:
+        tokens = shlex.split(segment)
+        i = tokens.index("git")
+        rest = tokens[i + 1:]
+        while rest and rest[0] != "push":
+            if rest[0] == "-C" and len(rest) > 1:
+                cwd = os.path.join(cwd, rest[1])
+                rest = rest[2:]
+            else:
+                rest = rest[1:]
+        args = [t for t in rest[1:] if not t.startswith("-")]
+        remote = args[0] if args else ""
+        if not remote:
+            branch = _git(cwd, "branch", "--show-current")
+            remote = (_git(cwd, "config", f"branch.{branch}.pushRemote")
+                      or _git(cwd, "config", "remote.pushDefault")
+                      or _git(cwd, "config", f"branch.{branch}.remote") or "origin")
+        if re.search(r"(://|@|^/|^\.)", remote):
+            urls = [remote]
+        else:
+            urls = _git(cwd, "remote", "get-url", "--push", "--all", remote).splitlines()
+        remotes = [u for r in _git(cwd, "remote").split()
+                   for u in _git(cwd, "remote", "get-url", "--push", "--all", r).splitlines()]
+        return (urls, remotes) if urls else None
+    except Exception:
+        return None
+
+
+def _allowlisted(ref: str) -> bool:
+    slug = GITHUB_SLUG.match(ref.strip("'\""))
+    return bool(slug) and slug.group(1).lower() in NON_MIRRORED_GITHUB
+
+
+def github_push_blocked(segment: str, cwd: str) -> bool:
+    # The old text rule is the floor: anything it blocks stays blocked unless EVERY GitHub
+    # reference (in the text and in the resolved push URLs) parses as an allowlisted repo.
+    text_hit = bool(GITHUB_TARGET.search(segment))
+    if PUSH_OVERRIDES.search(segment):
+        return text_hit or bool(re.search(r"github", segment, re.I))  # unmodelled flags: stricter
+    target = push_target(segment, cwd) if cwd else None
+    if target is None:
+        return text_hit  # unresolvable or unmodelled flags: text rule only
+    urls, remotes = target
+    gh_refs = GITHUB_REF.findall(segment) + [u for u in urls if "github.com" in u.lower()]
+    if not gh_refs:
+        return text_hit  # e.g. `push github` naming a remote that resolves elsewhere: keep the floor
+    if all(_allowlisted(r) for r in gh_refs):
+        return False
+    # Named GitHub explicitly, or the repo lives on Gitea too (so a mirror may revert it).
+    return text_hit or any(GITEA_HOST in r for r in remotes)
+
+
+def violation(segment: str, cwd: str = ""):
     """Return a block message for this shell segment, or None."""
     is_push = bool(GIT_PUSH.search(segment))
 
     if is_push and (FORCE_FLAG.search(segment) or PLUS_REFSPEC.search(segment)):
         return BLOCK_FORCE_PUSH
 
-    if is_push and GITHUB_TARGET.search(segment):
+    if is_push and github_push_blocked(segment, cwd):
         return BLOCK_GITHUB_PUSH
 
     if READERS.search(segment) and SECRET_PATH.search(ENV_PLACEHOLDER.sub("", segment)):
@@ -140,6 +218,7 @@ def main() -> int:
     try:
         payload = json.load(sys.stdin)
         command = (payload.get("tool_input") or {}).get("command") or ""
+        cwd = payload.get("cwd") or os.getcwd()
     except Exception:
         return 0  # fail open: never wedge the agent on a parse error
 
@@ -147,7 +226,11 @@ def main() -> int:
         return 0
 
     for segment in SEGMENT_SPLIT.split(command):
-        message = violation(segment)
+        cd = re.match(r"\s*cd\s+(\S+)\s*$", segment)
+        if cd:
+            cwd = os.path.join(cwd, os.path.expanduser(cd.group(1).strip("'\"")))
+            continue
+        message = violation(segment, cwd)
         if message:
             sys.stderr.write(message + "\n")
             return 2

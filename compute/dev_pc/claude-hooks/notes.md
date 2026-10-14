@@ -17,7 +17,7 @@ Enforce where the isolation is weakest.
 |---|---|---|
 | force-push | `git push` + `--force` / `-f` / `--force-with-lease` / `+refspec` | Non-negotiable CLAUDE.md rule. Force does not scrub mirrored history; it only drops others' commits. |
 | secret read via shell | `cat/head/tail/less/grep/awk/strings/base64/…` targeting `.env`, `*.key`, `*.pem`, `vault.yml`, `dump-passphrase`, `.backup-env`, `.runner`, `id_ed25519`, token files — including over `ssh` | Closes the documented hole: `.claudeignore` filters the **Read tool only**; Bash bypasses it. |
-| push to GitHub | `git push` + `github.com` or a remote named `github` | Repos mirror Gitea→GitHub with **force**; a direct GitHub push is silently reverted on the next Gitea sync (cost a real commit 2026-09-06). |
+| push to GitHub | `git push` + `github.com` or a remote named `github`; also any push whose resolved target (`git remote get-url --push`) is GitHub in a repo that has a Gitea remote. **Exception:** repos in `NON_MIRRORED_GITHUB` (e.g. `wargovsky/portfolio`, the client repo with no Gitea mirror) | Repos mirror Gitea→GitHub with **force**; a direct GitHub push is silently reverted on the next Gitea sync (cost a real commit 2026-09-06). A non-mirrored repo has nothing to revert it. |
 
 Deliberately allowed: `sed -E 's/=.*/=<redacted>/'` (list key names safely),
 `stat`/`ls` (metadata), `install`/`chmod`/`printf >` (staging a secret),
