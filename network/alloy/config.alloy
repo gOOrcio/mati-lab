@@ -1,0 +1,133 @@
+// Grafana Alloy — Pi log shipper → Loki. Replaced Promtail (EOL; last
+// image 3.6.11 is go1.26.2, unpatched for CVE-2026-111943) on 2026-10-29.
+// Generated with `alloy convert --source-format=promtail` from the old
+// network/promtail/promtail-config.yml, then hand-tuned: self-drop rule
+// now names alloy, and the zero-valued syslog buffer knobs the converter
+// emitted were removed so defaults apply. Labels are unchanged
+// (container / compose_project / compose_service / host, job="unifi").
+//
+// UniFi sends RFC3164 (BSD), not RFC5424 — syslog_format is mandatory, the
+// default silently drops everything. Firewall events are iptables LOG
+// format, not CEF; see network/unifi/notes.md.
+
+discovery.docker "docker" {
+	host             = "tcp://docker-socket-proxy:2375"
+	refresh_interval = "10s"
+}
+
+discovery.relabel "docker" {
+	targets = []
+
+	rule {
+		source_labels = ["__meta_docker_container_name"]
+		regex         = "/(.*)"
+		target_label  = "container"
+	}
+
+	rule {
+		source_labels = ["__meta_docker_container_label_com_docker_compose_project"]
+		target_label  = "compose_project"
+	}
+
+	rule {
+		source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+		target_label  = "compose_service"
+	}
+
+	rule {
+		target_label = "host"
+		replacement  = "network-pi"
+	}
+
+	rule {
+		source_labels = ["__meta_docker_container_name"]
+		regex         = "/(alloy|docker-socket-proxy)"
+		action        = "drop"
+	}
+}
+
+loki.source.docker "docker" {
+	host          = "tcp://docker-socket-proxy:2375"
+	targets       = discovery.docker.docker.targets
+	forward_to    = [loki.write.default.receiver]
+	relabel_rules = discovery.relabel.docker.rules
+}
+
+loki.process "unifi_syslog" {
+	forward_to = [loki.write.default.receiver]
+
+	stage.match {
+		selector = "{job=\"unifi\"} |= \"DESCR=\""
+
+		stage.regex {
+			expression = "\\[(?P<ruleset>[A-Za-z0-9_]+)-(?P<verdict>[A-Za-z])-(?P<rule_index>\\d+)\\]"
+		}
+
+		stage.regex {
+			expression = "DESCR=\"(?P<policy>[^\"]*)\""
+		}
+
+		stage.regex {
+			expression = "\\bSRC=(?P<src>\\S+)"
+		}
+
+		stage.regex {
+			expression = "\\bDST=(?P<dst>\\S+)"
+		}
+
+		stage.regex {
+			expression = "\\bPROTO=(?P<proto>\\S+)"
+		}
+
+		stage.regex {
+			expression = "\\bSPT=(?P<sport>\\d+)"
+		}
+
+		stage.regex {
+			expression = "\\bDPT=(?P<dport>\\d+)"
+		}
+
+		stage.labels {
+			values = {
+				policy  = null,
+				proto   = null,
+				verdict = null,
+			}
+		}
+	}
+}
+
+discovery.relabel "unifi_syslog" {
+	targets = []
+
+	rule {
+		source_labels = ["__syslog_message_hostname"]
+		target_label  = "unifi_host"
+	}
+
+	rule {
+		source_labels = ["__syslog_message_severity"]
+		target_label  = "severity"
+	}
+}
+
+loki.source.syslog "unifi_syslog" {
+	listener {
+		address      = "0.0.0.0:1514"
+		protocol     = "udp"
+		idle_timeout = "1m0s"
+		labels       = {
+			host = "udr",
+			job  = "unifi",
+		}
+		syslog_format       = "rfc3164"
+	}
+	forward_to    = [loki.process.unifi_syslog.receiver]
+	relabel_rules = discovery.relabel.unifi_syslog.rules
+}
+
+loki.write "default" {
+	endpoint {
+		url = "http://loki:3100/loki/api/v1/push"
+	}
+}

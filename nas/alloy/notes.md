@@ -1,11 +1,14 @@
-# Promtail (NAS)
+# Alloy (NAS)
+
+> **2026-10-29:** Promtail (EOL; last image go1.26.2, unpatched for CVE-2026-111943) was replaced by Grafana Alloy v1.21.3. Config converted with `alloy convert --source-format=promtail`; labels unchanged. The old `promtail` Custom App was deleted; `/mnt/fast/databases/promtail/` is left on disk. Alloy reads container logs via the Docker API, so the `/mnt/.ix-apps/docker/containers` mount was dropped.
+
 
 TrueNAS Scale Apps, **Custom App** (not in catalog). Installed 2026-04-30
 as Phase 7 Task 1—5. Headless log shipper; tails Docker container logs
 on the NAS and pushes to the Pi-side Loki at `192.168.1.252:3100`. No
 ports exposed, no UI.
 
-The Pi runs a parallel Promtail (`network/promtail/`) doing the same job
+The Pi runs a parallel Alloy (`network/alloy/`) doing the same job
 for Pi-side containers. Both push to the same Loki, distinguished in
 queries by the `host` label (`nas` vs `network-pi`).
 
@@ -22,14 +25,14 @@ curl -sS -G 'http://192.168.1.252:3100/loki/api/v1/series' \
 
 | Path (NAS) | Content |
 |---|---|
-| `/mnt/fast/databases/promtail/config.yml` | Scrape config + clients + relabel rules. Source of truth: `nas/promtail/promtail-config.yml` in this repo (scp on changes). |
-| `/mnt/fast/databases/promtail/positions/positions.yaml` | Tail-position checkpoint (Promtail-managed; persists across restarts so we don't re-ship history) |
+| `/mnt/fast/databases/alloy/config.alloy` | Scrape config + clients + relabel rules. Source of truth: `nas/alloy/config.alloy` in this repo (scp on changes). |
+| `/mnt/fast/databases/alloy/data/(Alloy storage)` | Tail-position checkpoint (Alloy-managed; persists across restarts so we don't re-ship history) |
 
 The container also bind-mounts:
 - `/var/run/docker.sock:ro` — service discovery via Docker API
-- `/mnt/.ix-apps/docker/containers:ro` — Docker's per-container log files (Promtail tails them directly)
+- `/mnt/.ix-apps/docker/containers:ro` — Docker's per-container log files (Alloy tails them directly)
 
-Runs as `0:0` (root). Promtail is the only thing using the docker socket
+Runs as `0:0` (root). Alloy is the only thing using the docker socket
 on the NAS, so the Pi's `tecnativa/docker-socket-proxy` least-privilege
 pattern was skipped here. If we ever add a second consumer, switch to
 the proxy pattern (Phase 7.x followup).
@@ -38,16 +41,16 @@ the proxy pattern (Phase 7.x followup).
 
 ```bash
 # 1. Stage config + positions dir on NAS (root-owned because container runs as root)
-ssh truenas_admin@192.168.1.65 'mkdir -p /mnt/fast/databases/promtail/positions'
-scp nas/promtail/promtail-config.yml truenas_admin@192.168.1.65:/mnt/fast/databases/promtail/config.yml
+ssh truenas_admin@192.168.1.65 'mkdir -p /mnt/fast/databases/alloy/data'
+scp nas/alloy/config.alloy truenas_admin@192.168.1.65:/mnt/fast/databases/alloy/config.alloy
 ssh truenas_admin@192.168.1.65 'midclt call -j filesystem.chown "{
-  \"path\":\"/mnt/fast/databases/promtail\",\"uid\":0,\"gid\":0,
+  \"path\":\"/mnt/fast/databases/alloy\",\"uid\":0,\"gid\":0,
   \"options\":{\"recursive\":true}
 }"'
 
 # 2. Create the Custom App
-scp nas/promtail/deploy/promtail-create.json truenas_admin@192.168.1.65:/tmp/
-ssh truenas_admin@192.168.1.65 'midclt call -j app.create "$(cat /tmp/promtail-create.json)"'
+scp nas/alloy/deploy/alloy-create.json truenas_admin@192.168.1.65:/tmp/
+ssh truenas_admin@192.168.1.65 'midclt call -j app.create "$(cat /tmp/alloy-create.json)"'
 
 # 3. Verify
 curl -sS 'http://192.168.1.252:3100/loki/api/v1/label/host/values' \
@@ -58,38 +61,38 @@ curl -sS 'http://192.168.1.252:3100/loki/api/v1/label/host/values' \
 
 | Action | Command |
 |---|---|
-| Edit scrape config | Edit `nas/promtail/promtail-config.yml`, `scp` to NAS, `midclt call app.redeploy promtail` |
-| Bump image tag | Edit compose JSON, `midclt call app.update promtail '{...}'` (or use `app.pull_images` if just bumping `:latest`) |
-| Restart | `midclt call app.redeploy promtail` |
-| Stop / start | `midclt call app.stop promtail` / `midclt call app.start promtail` |
+| Edit scrape config | Edit `nas/alloy/config.alloy`, `scp` to NAS, `midclt call app.redeploy alloy` |
+| Bump image tag | Edit compose JSON, `midclt call app.update alloy '{...}'` (or use `app.pull_images` if just bumping `:latest`) |
+| Restart | `midclt call app.redeploy alloy` |
+| Stop / start | `midclt call app.stop alloy` / `midclt call app.start alloy` |
 | Inspect what containers it sees | `curl -sS -G 'http://192.168.1.252:3100/loki/api/v1/series' --data-urlencode 'match[]={host="nas"}'` |
 
 ## How discovery works
 
-Promtail's `docker_sd_configs` polls the Docker API every 10s and emits
+Alloy's `docker_sd_configs` polls the Docker API every 10s and emits
 a target per container. New containers (e.g. on `app.create`) get picked
-up automatically — no Promtail restart needed. Containers that exit are
+up automatically — no Alloy restart needed. Containers that exit are
 dropped on next refresh.
 
 Each container's logs come from
 `/mnt/.ix-apps/docker/containers/<container-id>/<container-id>-json.log`
-(Docker's default JSON file driver). Promtail tails these via its
+(Docker's default JSON file driver). Alloy tails these via its
 filesystem mount and ships to Loki.
 
 Idle containers don't show up as Loki **series** until they emit their
-first log line — that's a Loki property, not a Promtail one. If a
+first log line — that's a Loki property, not a Alloy one. If a
 container looks "missing" from Loki, provoke a log line (e.g.
 `midclt call app.redeploy <name>`) and re-query.
 
 ## Backup
 
-Stateful surface is `/mnt/fast/databases/promtail/positions/`
+Stateful surface is `/mnt/fast/databases/alloy/data/`
 (small file, megabytes at most). Loses tail-position on data loss —
-Promtail will re-tail from the start of each container's current log
+Alloy will re-tail from the start of each container's current log
 file, which means duplicate log lines in Loki for as much history as the
 log-rotation retains. Annoyance, not a real problem; not Phase 8 scope.
 
-The config file (`config.yml`) is source-controlled in `nas/promtail/`,
+The config file (`config.yml`) is source-controlled in `nas/alloy/`,
 so a fresh-NAS rebuild just re-runs the install trace.
 
 ## Lessons
@@ -106,19 +109,19 @@ so a fresh-NAS rebuild just re-runs the install trace.
   syncthing, openclaw, obsidian-couchdb, cloudflared) will appear when
   they next emit a line. Don't panic when an idle container is "missing."
 
-- **The Pi Promtail uses tecnativa/docker-socket-proxy; the NAS one
+- **The Pi Alloy uses tecnativa/docker-socket-proxy; the NAS one
   doesn't.** Trade-off documented at the top of the config. Keep them in
   sync on label conventions (`container`, `compose_project`,
   `compose_service`, `host`) so existing Grafana queries work for both.
 
 - **Run as `0:0` is required** for raw `unix:///var/run/docker.sock`
-  access. Acceptable here because Promtail is read-only (bind-mounts are
-  `:ro`, Promtail itself doesn't issue write API calls). If we add a
+  access. Acceptable here because Alloy is read-only (bind-mounts are
+  `:ro`, Alloy itself doesn't issue write API calls). If we add a
   second docker-socket consumer, switch to the proxy pattern instead of
   granting more containers root.
 
 - **`could not inspect container info` errors after `app.redeploy`** are
-  benign. When TrueNAS recreates a container, Promtail's tail target
+  benign. When TrueNAS recreates a container, Alloy's tail target
   briefly outlives the container ID; the next 10s discovery refresh
   drops it and adds the replacement. If you see *persistent* inspect
   errors (the same container ID failing repeatedly minute over minute),

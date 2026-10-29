@@ -2,7 +2,7 @@
 set -Eeuo pipefail
 
 # shellcheck disable=SC2034 # used by common.sh after source
-SERVICE_NAME="promtail"
+SERVICE_NAME="alloy"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=network/scripts/common.sh
 source "$SCRIPT_DIR/common.sh"

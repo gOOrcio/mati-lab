@@ -1,0 +1,62 @@
+// Grafana Alloy — NAS log shipper → Loki on the Pi. Replaced Promtail (EOL,
+// go1.26.2) on 2026-10-29; converted with `alloy convert --source-format=promtail`
+// from the old nas/promtail/promtail-config.yml. Labels unchanged
+// (container / compose_project / compose_service, host="nas", job="nas-docker").
+//
+// Mounts /var/run/docker.sock read-only directly (no socket proxy) — single
+// consumer on the NAS; switch to the proxy pattern if a second one appears.
+
+discovery.docker "nas_docker" {
+	host             = "unix:///var/run/docker.sock"
+	refresh_interval = "10s"
+}
+
+discovery.relabel "nas_docker" {
+	targets = []
+
+	rule {
+		source_labels = ["__meta_docker_container_name"]
+		regex         = "/(.*)"
+		target_label  = "container"
+	}
+
+	rule {
+		source_labels = ["__meta_docker_container_label_com_docker_compose_project"]
+		target_label  = "compose_project"
+	}
+
+	rule {
+		source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+		target_label  = "compose_service"
+	}
+
+	rule {
+		target_label = "host"
+		replacement  = "nas"
+	}
+
+	rule {
+		target_label = "job"
+		replacement  = "nas-docker"
+	}
+
+	rule {
+		source_labels = ["__meta_docker_container_name"]
+		regex         = "/(alloy|ix-alloy-alloy-1)"
+		action        = "drop"
+	}
+}
+
+loki.source.docker "nas_docker" {
+	host          = "unix:///var/run/docker.sock"
+	targets       = discovery.docker.nas_docker.targets
+	forward_to    = [loki.write.default.receiver]
+	relabel_rules = discovery.relabel.nas_docker.rules
+}
+
+loki.write "default" {
+	endpoint {
+		url                = "http://192.168.1.252:3100/loki/api/v1/push"
+		max_backoff_period = "5s"
+	}
+}

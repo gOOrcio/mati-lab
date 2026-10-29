@@ -192,73 +192,73 @@
         - pg_backup.timer
       become: true
 
-    # ── Promtail ─────────────────────────────────────────────────────────────
-    - name: Download Promtail binary
+    # ── Alloy (log shipper → Loki; replaced EOL Promtail 2026-10-29) ───────
+    - name: Add Grafana APT key
       ansible.builtin.get_url:
-        url: "https://github.com/grafana/loki/releases/download/v3.5.0/promtail-linux-amd64.zip"
-        dest: /tmp/promtail.zip
+        url: https://apt.grafana.com/gpg.key
+        dest: /etc/apt/keyrings/grafana.asc
+        mode: "0644"
       become: true
 
-    - name: Unzip Promtail
-      ansible.builtin.unarchive:
-        src: /tmp/promtail.zip
-        dest: /usr/local/bin/
-        remote_src: true
-        mode: "0755"
+    - name: Add Grafana APT repository
+      ansible.builtin.apt_repository:
+        repo: "deb [signed-by=/etc/apt/keyrings/grafana.asc] https://apt.grafana.com stable main"
+        filename: grafana
       become: true
 
-    - name: Rename Promtail binary
-      ansible.builtin.command:
-        cmd: mv /usr/local/bin/promtail-linux-amd64 /usr/local/bin/promtail
-        creates: /usr/local/bin/promtail
+    # state: latest so re-runs pick up Go/security rebuilds (cf. nodejs above).
+    - name: Install Alloy
+      ansible.builtin.apt:
+        name: alloy
+        state: latest
+        update_cache: true
       become: true
+      notify: Restart Alloy
 
-    - name: Create Promtail directories
-      ansible.builtin.file:
-        path: "{{ item }}"
-        state: directory
-        mode: "0755"
-      loop:
-        - /etc/promtail
-        - /var/lib/promtail
+    # The package runs as user alloy; journal reads need systemd-journal.
+    - name: Let alloy read the journal
+      ansible.builtin.user:
+        name: alloy
+        groups: systemd-journal
+        append: true
       become: true
+      notify: Restart Alloy
 
-    - name: Write Promtail config
+    - name: Write Alloy config
       ansible.builtin.template:
-        src: ../templates/promtail-config.yml.j2
-        dest: /etc/promtail/config.yml
+        src: ../templates/config.alloy.j2
+        dest: /etc/alloy/config.alloy
         owner: root
         mode: "0644"
       become: true
-      notify: Restart Promtail
+      notify: Restart Alloy
 
-    - name: Write Promtail systemd unit
-      ansible.builtin.copy:
-        dest: /etc/systemd/system/promtail.service
-        content: |
-          [Unit]
-          Description=Promtail Log Agent
-          After=network.target
-
-          [Service]
-          Type=exec
-          ExecStart=/usr/local/bin/promtail -config.file=/etc/promtail/config.yml
-          Restart=on-failure
-          RestartSec=5
-
-          [Install]
-          WantedBy=multi-user.target
-        mode: "0644"
-      become: true
-      notify: Restart Promtail
-
-    - name: Enable and start Promtail
+    - name: Enable and start Alloy
       ansible.builtin.systemd:
-        name: promtail
+        name: alloy
         enabled: true
         state: started
-        daemon_reload: true
       become: true
+
+    - name: Stop and disable legacy Promtail
+      ansible.builtin.systemd:
+        name: promtail
+        enabled: false
+        state: stopped
+      become: true
+      failed_when: false
+
+    - name: Remove legacy Promtail files
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /etc/systemd/system/promtail.service
+        - /usr/local/bin/promtail
+        - /etc/promtail
+        - /var/lib/promtail
+      become: true
+      notify: Daemon reload
 
   handlers:
     - name: Daemon reload
@@ -290,8 +290,8 @@
         state: reloaded
       become: true
 
-    - name: Restart Promtail
+    - name: Restart Alloy
       ansible.builtin.systemd:
-        name: promtail
+        name: alloy
         state: restarted
       become: true
