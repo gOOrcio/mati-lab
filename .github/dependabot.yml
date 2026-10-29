@@ -71,7 +71,7 @@ updates:
       interval: "weekly"
 
   - package-ecosystem: "docker"
-    directory: "/network/promtail"
+    directory: "/network/alloy"
     schedule:
       interval: "weekly"
 
