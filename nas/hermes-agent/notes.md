@@ -128,6 +128,37 @@ sibling field or they zero out). `gateway_key` is a secret; changing it affects
 anything authenticating to the Hermes gateway. Resolved 2026-07-31 by rotating
 14 → 32 chars, then upgrading cleanly to 1.0.9.
 
+## ⚠️ Upgrade trap: root-owned files in `/opt/data` crash-loop the gateway
+
+Image **v0.22.4** (chart 1.0.33, 2026-10-22) added per-install state under
+`/opt/data/installs/<id>/`, and **v0.22.5** (chart 1.0.34, auto-upgraded
+2026-10-27 08:00) made the gateway take `installs/<id>/.install.lock`
+(`O_RDWR`) at startup. Our nightly `hermes-backup.sh` ran `docker exec`
+**as root** (no `-u`), so on 2026-10-23 its `hermes backup` created that
+lock `root:568 0600`. After the upgrade the runtime UID 568 got EACCES,
+logged `hermes: install state is not writable by this user (...install.lock)`
+×3, and s6 tore the container down every ~60 s. The app sat in `DEPLOYING`
+until **2026-10-29**, and the 10-28/10-29 backups failed (`container is
+restarting`).
+
+Fix: chown every non-568 path under `/mnt/fast/databases/hermes/data` to
+`568:568` (root via the temp-cron channel — `find ... ! -uid 568 -exec chown
+568:568 {} +`; `.backup.lock` from 2026-08-26 was root-owned too). The
+container came up on the next restart cycle without a redeploy. Recurrence is
+prevented by `docker exec -u 568:568` in `nas/backup-jobs/hermes-backup.sh`.
+
+**Rule:** anything that runs the `hermes` CLI inside the container must use
+`docker exec -u 568:568`. Quick check before or after an upgrade:
+`find /mnt/fast/databases/hermes/data ! -uid 568` (as root) should print nothing.
+
+The same image bump also broke the `hermes-investor` plugin: the bundle was
+built against the pre-v0.22.4 Python, and it failed with `No module named
+'pydantic_core._pydantic_core'`, which also skips the
+`hermes-investor-daily-watch` cron. Rebuild it after every image bump (see
+"Plugin bundle" below). Since v0.22.5, `uv` is no longer on `PATH` in the
+image (`/opt/hermes/tools/uv-<ver>/uv`); the build script handles that as of
+hermes-investor `fix/bundle-uv-path`.
+
 ## Storage
 
 | Role | Type | Path (host → container) | Owner | Read-only? |

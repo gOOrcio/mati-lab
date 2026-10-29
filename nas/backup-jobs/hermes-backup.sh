@@ -48,7 +48,12 @@ fi
 # NOT using `-q` (--quick): quick mode writes an internal state snapshot to
 # /opt/data/state-snapshots/ and ignores `-o`. We need a real portable zip,
 # which is what the full backup produces.
-docker exec "$HERMES_CONTAINER" /opt/hermes/.venv/bin/hermes backup -o "/opt/data/$TMP_BASENAME"
+#
+# `-u 568:568` is load-bearing: `docker exec` defaults to root, and any lock
+# or state file the CLI creates then lands root-owned 0600 in /opt/data. A
+# root-owned installs/<id>/.install.lock (created by this script 2026-10-23)
+# crash-looped the gateway after the v0.22.5 upgrade (2026-10-27 → 10-29).
+docker exec -u 568:568 "$HERMES_CONTAINER" /opt/hermes/.venv/bin/hermes backup -o "/opt/data/$TMP_BASENAME"
 
 TMP_HOST="$DATA_DIR/$TMP_BASENAME"
 if [ ! -s "$TMP_HOST" ]; then
