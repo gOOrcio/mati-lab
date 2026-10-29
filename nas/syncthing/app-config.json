@@ -1,0 +1,30 @@
+{
+  "app_name": "syncthing",
+  "custom_app": true,
+  "values": {
+    "ix_context": {}
+  },
+  "custom_compose_config": {
+    "services": {
+      "syncthing": {
+        "image": "syncthing/syncthing:2.1.7",
+        "hostname": "syncthing-nas",
+        "restart": "unless-stopped",
+        "environment": {
+          "PUID": "568",
+          "PGID": "568"
+        },
+        "ports": [
+          { "mode": "host", "protocol": "tcp", "published": 30016, "target": 8384 },
+          { "mode": "host", "protocol": "tcp", "published": 22000, "target": 22000 },
+          { "mode": "host", "protocol": "udp", "published": 22000, "target": 22000 },
+          { "mode": "host", "protocol": "udp", "published": 21027, "target": 21027 }
+        ],
+        "volumes": [
+          { "type": "bind", "source": "/mnt/bulk/syncthing-config", "target": "/var/syncthing" },
+          { "type": "bind", "source": "/mnt/bulk/obsidian-vault", "target": "/var/syncthing/Sync/obsidian-vault" }
+        ]
+      }
+    }
+  }
+}

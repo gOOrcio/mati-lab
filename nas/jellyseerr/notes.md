@@ -1,5 +1,9 @@
 # Jellyseerr (NAS)
 
+> **2026-10-29: migrated to Seerr** (`ghcr.io/seerr-team/seerr:v3.5.1`, the maintained successor; the Jellyseerr image is deprecated and shipped Node 22.23.3, below the CVE-2026-111497 fix). Same app name, NodePort 30029 and `/app/config` path, so Caddy/Kuma/backups are unchanged. Seerr needs `init: true` (no init in the image). Its v3 migration renames *arr tags containing spaces to hyphens. Rollback point: `fast/databases@manual-pre-oct2026-upgrades` (Jellyseerr can't read the migrated DB).
+>
+> **Open issue (pre-existing):** the scheduled Jellyfin library sync fails with HTTP 401 (288×/24h before the migration) — re-enter the Jellyfin API key in Settings → Jellyfin.
+
 TrueNAS Scale Custom App. Image `fallenbagel/jellyseerr:latest` (v2.7.x at
 install). Installed 2026-05-01 as Phase 1 of the *arr-extras follow-on.
 
