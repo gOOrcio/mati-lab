@@ -146,9 +146,12 @@
           https://deb.nodesource.com/node_22.x
           nodistro main
 
+    # state: latest — otherwise a re-run never picks up NodeSource security
+    # releases (the LXC sat on 22.22.2 through the Oct 2026 Brotli RCE).
     - name: Install Node.js
       ansible.builtin.apt:
         name: nodejs
+        state: latest
         update_cache: true
 
     # ── Caddy ────────────────────────────────────────────────────────────────
