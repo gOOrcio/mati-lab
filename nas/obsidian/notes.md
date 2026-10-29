@@ -199,7 +199,8 @@ Phase 6 file watcher should index `*.md` only; ignore `.obsidian/`
 | Field | Value |
 |---|---|
 | App name | `syncthing` (TrueNAS Custom App, deployed via `midclt`) |
-| Image | `syncthing/syncthing:1.30` |
+| Image | `syncthing/syncthing:2.1.7` (v2 since 2026-10-29; DB auto-migrated to SQLite) |
+| Compose | [`nas/syncthing/app-config.json`](../syncthing/app-config.json) — full payload for `app.update` (it replaces the whole block) |
 | GUI (Caddy + Authelia 2FA) | `https://syncthing.mati-lab.online` |
 | GUI (direct LAN backstop) | `http://192.168.1.65:30016` (set Syncthing's own GUI auth) |
 | Sync port | `22000/tcp+udp` (peer-to-peer Syncthing protocol; not through Caddy) |
