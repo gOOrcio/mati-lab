@@ -1,0 +1,11 @@
+# Fingerprints of gitleaks findings verified as dead or never-secret.
+# Add a line only after the value is confirmed rotated/defunct, with the reason.
+# Format: <commit>:<file>:<rule>:<line>
+
+# jtl-reporter sample compose (2022): upstream placeholder JWTs ("please change this"); file long removed.
+6f5f8f31fffea6ebbf2ec197721e2e4c9f4b1331:ci/jtl-reporter/docker-compose.yml:generic-api-key:34
+6f5f8f31fffea6ebbf2ec197721e2e4c9f4b1331:ci/jtl-reporter/docker-compose.yml:generic-api-key:35
+6f5f8f31fffea6ebbf2ec197721e2e4c9f4b1331:ci/jtl-reporter/docker-compose.yml:generic-api-key:52
+
+# CouchDB admin password in SETUP.md (2026-04-29): rotated 2026-09-06 (secrets-inventory).
+e6e29290c1dcd7b43e50a05ce991fb9292c0ca92:nas/obsidian/SETUP.md:generic-api-key:17

@@ -1,0 +1,7 @@
+# gitleaks config (used by ci-workflows secrets-scan). Default rules plus:
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "detect-secrets baseline stores hashes of audited findings, not secrets"
+paths = ['''^\.secrets\.baseline$''']
