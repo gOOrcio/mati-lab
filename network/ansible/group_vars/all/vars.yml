@@ -146,3 +146,18 @@ backup_keep_days: 30
 # it). See notes.md "Postmortem — 2026-06-06". USB bridge passes TRIM.
 nvme_uuid: "8e6eed31-52db-4707-a8bf-a1b574399c1a"
 nvme_mount_point: "/mnt/nvme"
+
+# State that used to sit on the SD card, bind-mounted from the SSD (2026-10-29).
+# Docker 29 uses the containerd image store, so images/layers live in
+# /var/lib/containerd — docker_data_root alone left 23G of layer writes on the
+# SD (pulls stalled the Pi, DNS timed out). /opt/mati-lab holds every compose
+# bind mount (Pi-hole FTL DB, Uptime Kuma SQLite, Authelia + Redis, ntfy, Caddy
+# certs); the journal was 1.2G of steady writes. Paths stay the same, so compose
+# files, deploy scripts and backups are untouched. Binds are `nofail` (the host
+# must still boot if the SSD dies — 2026-06-06 postmortem); docker/containerd
+# carry RequiresMountsFor= so they refuse to start on empty SD dirs instead.
+nvme_bind_mounts:
+  - { src: "/mnt/nvme/containerd", path: "/var/lib/containerd" }
+  - { src: "/mnt/nvme/opt/mati-lab", path: "/opt/mati-lab" }
+  - { src: "/mnt/nvme/opt/wysowa", path: "/opt/wysowa" }
+  - { src: "/mnt/nvme/journal", path: "/var/log/journal" }

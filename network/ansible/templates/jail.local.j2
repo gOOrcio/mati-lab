@@ -8,4 +8,5 @@ banaction = ufw
 enabled  = true
 port     = ssh
 filter   = sshd
-logpath  = /var/log/auth.log
+# Read sshd from the journal: rsyslog (auth.log) is disabled.
+backend  = systemd

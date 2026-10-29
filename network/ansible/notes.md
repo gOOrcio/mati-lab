@@ -213,3 +213,35 @@ the NVMe `nofail` fix are for entirely different failure modes.
 - `playbooks/backup.yml` — service backups to NAS NFS (see Phase 5).
 - `templates/` — Jinja2 sources rendered into `/etc/...` on the Pi.
 - `group_vars/all/vars.yml` — all tunables; vault file holds secrets.
+
+## SD → SSD state move (2026-10-29)
+
+**Why:** Docker 29 uses the containerd image store, so `daemon.json`'s
+`data-root: /mnt/nvme/docker` only covered volumes/logs — images and layers
+(23G) lived in `/var/lib/containerd` on the SD. Every pull hammered the SD
+(w_await ~900ms, load 50+, Pi-hole DNS answering 3/8). `/opt/mati-lab` (all
+compose bind mounts: Pi-hole FTL DB, Uptime Kuma SQLite, Authelia + Redis,
+ntfy, Caddy certs), `/opt/wysowa` and the 1.2G persistent journal were on the SD
+too. Measured SD writes: **4.9 MB/min → 0.37 MB/min** after the move, then
+rsyslog (a pure duplicate of the journal into `/var/log/{syslog,auth.log}`)
+was disabled as well.
+
+**Layout:** `nvme_bind_mounts` in `group_vars/all/vars.yml` — `nofail` bind
+mounts from `/mnt/nvme/...` onto the original paths, so compose files, deploy
+scripts and backups are unchanged. `containerd.service` / `docker.service` carry
+`RequiresMountsFor=` drop-ins (`10-require-ssd.conf`): if the SSD is missing
+the host still boots (network, SSH, eth0 self-heal — see the 2026-06-06
+postmortem) but Docker refuses to start instead of coming up on empty SD dirs.
+fail2ban reads sshd from the journal (`backend = systemd`).
+
+**Migrating a live box** (what was done): pre-copy with
+`ionice -c3 rsync -aHAX --numeric-ids` while running; then stop
+`docker.socket docker containerd`, `journalctl --rotate`, final
+`rsync --delete`, move each original to `<path>.sd-old`, recreate the empty
+mountpoint with `chown/chmod --reference`, `ansible-playbook configure.yml
+--tags nvme`, restart journald. Verified with a reboot: all binds mounted from
+`/dev/sda1`, docker active ~50s after boot, 25/25 containers, all vhosts
+unchanged. The `*.sd-old` copies (~26G) are the rollback; delete once stable.
+
+**Rollback:** stop docker/containerd, `umount` the four binds, remove their
+fstab lines and the two drop-ins, `mv <path>.sd-old <path>`, start.
