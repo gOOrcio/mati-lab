@@ -26,10 +26,17 @@ vm_cidr: 24
 vm_ssh_user: "gitea-runner"
 vm_ssh_key_path: "~/.ssh/id_ed25519.pub"
 
-# gitea-runner (formerly act_runner — image moved gitea/act_runner → gitea/runner
-# at the 0.5/0.6 line; binary, metrics, and S3 release paths renamed too. Config
-# YAML, env vars, and labels are unchanged, so the migration is a tag swap.)
-gitea_runner_version: "0.6.1"   # pin; bump intentionally
+# gitea-runner (formerly act_runner — renamed at 1.0.0: binary gitea-runner,
+# metrics gitea_runner_*). Config YAML keys, GITEA_* env vars, labels and the
+# .runner registration file are unchanged, so 0.6.1 → 5.2.4 was a tag swap.
+# Behaviour changes that matter here: 3.2 stopped sharing RUNNER_TOOL_CACHE
+# (tool_cache_mode: none — `shared` corrupts with capacity 2, so setup-*
+# re-download per job); 4.0 says bridge jobs can't reach a cache server
+# outside bridge — under DinD the runner is the inner host so it should hold;
+# not exercised yet (only setup-go caches, and its one caller has no go.sum).
+# 5.2.4 = act_runner on go1.27.3 (CVE-2026-111943); its inner dind dockerd is
+# docker 29.9.1 (go1.26.9) until upstream rebuilds on 29.9.2.
+gitea_runner_version: "5.2.4"   # pin; bump intentionally
 gitea_instance_url: "https://gitea.mati-lab.online"
 
 # Pull-through Docker Hub cache served from the Pi (network/registry-mirror/).
