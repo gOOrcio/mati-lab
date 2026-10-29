@@ -244,7 +244,30 @@
         path: "{{ nvme_mount_point }}"
         fstype: ext4
         opts: "defaults,noatime,nofail,x-systemd.device-timeout=10"
+        passno: "2"
         state: mounted
+      tags: [base, nvme]
+
+    # SD-era state moved to the SSD — see nvme_bind_mounts in vars.yml. On a
+    # fresh install these run before the repo is cloned into /opt/mati-lab, so
+    # nothing is hidden under the mount. Migrating a live box: stop docker +
+    # containerd, rsync each path to its src first, then mount.
+    # No mode: keep what rsync copied from the original (containerd root is 0711).
+    - name: Create SSD-backed bind sources
+      ansible.builtin.file:
+        path: "{{ item.src }}"
+        state: directory
+      loop: "{{ nvme_bind_mounts }}"
+      tags: [base, nvme]
+
+    - name: Bind-mount SD-era state dirs from the SSD
+      ansible.posix.mount:
+        src: "{{ item.src }}"
+        path: "{{ item.path }}"
+        fstype: none
+        opts: "bind,nofail,x-systemd.requires-mounts-for={{ nvme_mount_point }}"
+        state: mounted
+      loop: "{{ nvme_bind_mounts }}"
       tags: [base, nvme]
 
     # ── Gitea SSH key (for git sync from NAS-hosted repo) ─────────────────
@@ -350,6 +373,32 @@
         groups: docker
         append: true
       tags: [docker]
+
+    # Refuse to start on the SD fallback dirs if the SSD binds didn't mount.
+    - name: Ensure containerd/docker drop-in directories exist
+      ansible.builtin.file:
+        path: "/etc/systemd/system/{{ item }}.service.d"
+        state: directory
+        mode: "0755"
+      loop: [containerd, docker]
+      tags: [docker, nvme]
+
+    - name: Make containerd and docker require the SSD mounts
+      ansible.builtin.copy:
+        dest: "/etc/systemd/system/{{ item }}.service.d/10-require-ssd.conf"
+        content: |
+          [Unit]
+          RequiresMountsFor={{ (nvme_bind_mounts | map(attribute='path') | list + [docker_data_root]) | join(' ') }}
+        mode: "0644"
+      loop: [containerd, docker]
+      register: ssd_dropins
+      tags: [docker, nvme]
+
+    - name: Reload systemd after SSD drop-ins
+      ansible.builtin.systemd:
+        daemon_reload: true
+      when: ssd_dropins.changed
+      tags: [docker, nvme]
 
     - name: Configure Docker daemon
       ansible.builtin.template:
@@ -476,6 +525,17 @@
         name: fail2ban
         state: present
       tags: [security, fail2ban]
+
+    # rsyslog only duplicated the journal into /var/log/{syslog,auth.log} on
+    # the SD card (~0.5G/day). The journal is persistent on the SSD
+    # (nvme_bind_mounts) and fail2ban reads sshd from it (backend = systemd);
+    # UniFi syslog goes straight to Alloy on 1514/udp, not rsyslog.
+    - name: Disable rsyslog (journal on the SSD is the system log)
+      ansible.builtin.systemd:
+        name: rsyslog
+        enabled: false
+        state: stopped
+      tags: [base, nvme]
 
     - name: Configure fail2ban
       ansible.builtin.template:
