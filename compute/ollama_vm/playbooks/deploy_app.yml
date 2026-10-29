@@ -44,11 +44,24 @@
       when: ollama_version not in ((ollama_current_version.stdout | default('')) ~ (ollama_current_version.stderr | default('')))
       become: true
       block:
+        # Root-only staging dir + release checksum: root extracts this into
+        # /usr/local, so a predictable world-writable /tmp path could be
+        # planted by another local user.
+        - name: Create Ollama download dir
+          ansible.builtin.file:
+            path: /var/cache/ollama-dl
+            state: directory
+            owner: root
+            group: root
+            mode: "0700"
+
         - name: Download Ollama release archive
           ansible.builtin.get_url:
             url: "https://github.com/ollama/ollama/releases/download/v{{ ollama_version }}/ollama-linux-amd64.tar.zst"
-            dest: "/tmp/ollama-{{ ollama_version }}.tar.zst"
-            mode: "0644"
+            dest: "/var/cache/ollama-dl/ollama-{{ ollama_version }}.tar.zst"
+            checksum: "sha256:https://github.com/ollama/ollama/releases/download/v{{ ollama_version }}/sha256sum.txt"
+            force: true
+            mode: "0600"
 
         - name: Stop Ollama
           ansible.builtin.systemd:
@@ -66,7 +79,7 @@
         - name: Extract Ollama release into /usr/local
           ansible.builtin.shell: |
             set -o pipefail
-            zstd -dc /tmp/ollama-{{ ollama_version }}.tar.zst | tar -x -C /usr/local
+            zstd -dc /var/cache/ollama-dl/ollama-{{ ollama_version }}.tar.zst | tar -x --no-same-owner -C /usr/local
           args:
             executable: /bin/bash
           changed_when: true
@@ -74,7 +87,7 @@
 
         - name: Remove downloaded Ollama archive
           ansible.builtin.file:
-            path: "/tmp/ollama-{{ ollama_version }}.tar.zst"
+            path: "/var/cache/ollama-dl/ollama-{{ ollama_version }}.tar.zst"
             state: absent
 
     - name: Install Ollama systemd service
