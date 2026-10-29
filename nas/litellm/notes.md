@@ -1,5 +1,7 @@
 # LiteLLM (NAS)
 
+> **2026-10-29: v1.83.7-stable → 1.106.6** (no `-stable` suffix since 1.84; image ships Node 26.12.1 — 1.83.7's Node 25.9.0 line never gets the CVE-2026-111497 fix). Config adjusted for the breaking changes: `require_auth_for_metrics_endpoint: false` (1.85 made /metrics auth-by-default — Prometheus scrapes keyless), `budget_exceeded_status_code: 429` (1.104 returns 422 otherwise), `timeout: 600` on the claude-* aliases (1.94 enforces litellm_params timeouts on /v1/messages; router default 30s would cut long Claude Code turns), zero-cost fields mirrored into `litellm_params` (1.102). Prisma migrated 1.84→1.106 automatically; the 1.104 SpendLogs indexes already existed. **Admin UI users must log in again** (1.104 session-token format). `/v1/models` hides wildcard routes unless `return_wildcard_routes=True` (1.101). Rollback: `fast/databases@manual-pre-litellm-1.106` + old tag.
+
 TrueNAS Scale Apps, **Custom App** (not in catalog). Installed 2026-04-24
 via `midclt`. Paired with Hermes (`nas/hermes/`) — they live on the same
 host so Hermes hits LiteLLM over loopback with no network glue.
@@ -254,7 +256,7 @@ ssh truenas_admin@192.168.1.65 "midclt call app.custom.create '$(python3 <<'PY'
 import json
 compose = '''services:
   litellm:
-    image: litellm/litellm:v1.83.7-stable
+    image: litellm/litellm:1.106.6
     restart: unless-stopped
     command: [\"--config\", \"/etc/litellm/config.yml\", \"--port\", \"4000\"]
     env_file:

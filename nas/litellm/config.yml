@@ -54,6 +54,8 @@ model_list:
   - model_name: agent-default           # fallback 2: dev-PC local — gpt-oss:20b,
     litellm_params:                      # best-fit for the 5070 Ti (100% GPU, ~12GB)
       model: ollama_chat/gpt-oss:20b
+      input_cost_per_token: 0    # v1.102+: price overrides belong in litellm_params (kept in model_info too)
+      output_cost_per_token: 0
       api_base: http://192.168.20.173:11434
     model_info:
       order: 3
@@ -90,6 +92,8 @@ model_list:
   - model_name: coding
     litellm_params:
       model: ollama_chat/gpt-oss:20b
+      input_cost_per_token: 0    # v1.102+: price overrides belong in litellm_params (kept in model_info too)
+      output_cost_per_token: 0
       api_base: http://192.168.20.173:11434
     model_info:
       order: 1
@@ -108,6 +112,8 @@ model_list:
   - model_name: coding                  # fallback 2: Proxmox local — qwen3.5:9b,
     litellm_params:                      # best-fit for the 3070 (8GB, ~6.6GB, 48 tok/s)
       model: ollama_chat/qwen3.5:9b
+      input_cost_per_token: 0    # v1.102+: price overrides belong in litellm_params (kept in model_info too)
+      output_cost_per_token: 0
       api_base: http://192.168.1.48:11434
     model_info:
       order: 3
@@ -148,6 +154,9 @@ model_list:
   - model_name: claude-opus-5-5
     litellm_params:
       model: anthropic/claude-opus-5-5
+      timeout: 600   # v1.94+ enforces litellm_params timeouts on /v1/messages; keep long Claude Code turns alive (router default is 30s)
+      input_cost_per_token: 0    # v1.102+: price overrides belong in litellm_params (kept in model_info too)
+      output_cost_per_token: 0
       api_key: os.environ/ANTHROPIC_API_KEY
       cache_control_injection_points:
         - location: message
@@ -160,6 +169,9 @@ model_list:
   - model_name: claude-opus-5
     litellm_params:
       model: anthropic/claude-opus-5
+      timeout: 600   # v1.94+ enforces litellm_params timeouts on /v1/messages; keep long Claude Code turns alive (router default is 30s)
+      input_cost_per_token: 0    # v1.102+: price overrides belong in litellm_params (kept in model_info too)
+      output_cost_per_token: 0
       api_key: os.environ/ANTHROPIC_API_KEY
       cache_control_injection_points:
         - location: message
@@ -172,6 +184,9 @@ model_list:
   - model_name: claude-opus-4-8
     litellm_params:
       model: anthropic/claude-opus-4-8
+      timeout: 600   # v1.94+ enforces litellm_params timeouts on /v1/messages; keep long Claude Code turns alive (router default is 30s)
+      input_cost_per_token: 0    # v1.102+: price overrides belong in litellm_params (kept in model_info too)
+      output_cost_per_token: 0
       api_key: os.environ/ANTHROPIC_API_KEY
       cache_control_injection_points:
         - location: message
@@ -184,6 +199,9 @@ model_list:
   - model_name: claude-sonnet-5
     litellm_params:
       model: anthropic/claude-sonnet-5
+      timeout: 600   # v1.94+ enforces litellm_params timeouts on /v1/messages; keep long Claude Code turns alive (router default is 30s)
+      input_cost_per_token: 0    # v1.102+: price overrides belong in litellm_params (kept in model_info too)
+      output_cost_per_token: 0
       api_key: os.environ/ANTHROPIC_API_KEY
       cache_control_injection_points:
         - location: message
@@ -196,6 +214,9 @@ model_list:
   - model_name: claude-haiku-4-5
     litellm_params:
       model: anthropic/claude-haiku-4-5-20251001
+      timeout: 600   # v1.94+ enforces litellm_params timeouts on /v1/messages; keep long Claude Code turns alive (router default is 30s)
+      input_cost_per_token: 0    # v1.102+: price overrides belong in litellm_params (kept in model_info too)
+      output_cost_per_token: 0
       api_key: os.environ/ANTHROPIC_API_KEY
       cache_control_injection_points:
         - location: message
@@ -216,6 +237,8 @@ model_list:
   - model_name: "pve-ollama/*"
     litellm_params:
       model: "ollama_chat/*"
+      input_cost_per_token: 0    # v1.102+: price overrides belong in litellm_params (kept in model_info too)
+      output_cost_per_token: 0
       api_base: http://192.168.1.48:11434
     model_info:
       # Wildcards have no concrete model to probe, so /health tried a
@@ -228,6 +251,8 @@ model_list:
   - model_name: "dev-ollama/*"
     litellm_params:
       model: "ollama_chat/*"
+      input_cost_per_token: 0    # v1.102+: price overrides belong in litellm_params (kept in model_info too)
+      output_cost_per_token: 0
       api_base: http://192.168.20.173:11434
     model_info:
       # Wildcards have no concrete model to probe, so /health tried a
@@ -275,6 +300,11 @@ general_settings:
 # network/prometheus/prometheus.yml. Without this the endpoint 404s.
 litellm_settings:
   callbacks: ["prometheus"]
+  # v1.85+: /metrics requires a key by default; Prometheus scrapes without one.
+  require_auth_for_metrics_endpoint: false
+  # v1.104+: exhausted budgets return 422 unless this restores 429 (clients
+  # and Hermes treat 429 as rate-limit/backoff).
+  budget_exceeded_status_code: 429
   # Expand wildcard deployments in /v1/models by asking each provider for its
   # live model list (Ollama: GET /api/tags). Clients with a model picker
   # (OpenCode, Admin UI) then see what is actually pulled on each host.
