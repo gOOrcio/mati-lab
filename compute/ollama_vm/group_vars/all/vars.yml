@@ -42,7 +42,7 @@ vm_ssh_key_path: "~/.ssh/id_ed25519.pub"
 nvidia_driver_package: "nvidia-driver-590-open"
 
 # Ollama
-ollama_version: "0.17.5"
+ollama_version: "0.40.13"  # first release on Go >=1.26.10 is 0.40.9 (CVE-2026-111943)
 ollama_host: "0.0.0.0:11434"
 
 # Models to pull — pulled in order, large models last

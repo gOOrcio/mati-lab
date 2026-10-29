@@ -30,15 +30,65 @@
       failed_when: false
       changed_when: false
 
-    - name: Download Ollama binary
-      ansible.builtin.get_url:
-        url: "https://github.com/ollama/ollama/releases/download/v{{ ollama_version }}/ollama-linux-amd64"
-        dest: /usr/local/bin/ollama
-        mode: "0755"
-        owner: root
-        group: root
+    # Since v0.14 the only Linux asset is a .tar.zst holding bin/ollama plus
+    # lib/ollama (CUDA runners). Extract into /usr/local like the official
+    # install.sh. Rollback = set ollama_version back and re-run (no local copy:
+    # the VM disk is 62G and lib/ollama alone is ~4G).
+    - name: Install zstd
+      ansible.builtin.apt:
+        name: zstd
+        state: present
       become: true
-      when: ollama_version not in (ollama_current_version.stdout | default(''))
+
+    - name: Upgrade Ollama release
+      when: ollama_version not in ((ollama_current_version.stdout | default('')) ~ (ollama_current_version.stderr | default('')))
+      become: true
+      block:
+        # Root-only staging dir + release checksum: root extracts this into
+        # /usr/local, so a predictable world-writable /tmp path could be
+        # planted by another local user.
+        - name: Create Ollama download dir
+          ansible.builtin.file:
+            path: /var/cache/ollama-dl
+            state: directory
+            owner: root
+            group: root
+            mode: "0700"
+
+        - name: Download Ollama release archive
+          ansible.builtin.get_url:
+            url: "https://github.com/ollama/ollama/releases/download/v{{ ollama_version }}/ollama-linux-amd64.tar.zst"
+            dest: "/var/cache/ollama-dl/ollama-{{ ollama_version }}.tar.zst"
+            checksum: "sha256:https://github.com/ollama/ollama/releases/download/v{{ ollama_version }}/sha256sum.txt"
+            force: true
+            mode: "0600"
+
+        - name: Stop Ollama
+          ansible.builtin.systemd:
+            name: ollama
+            state: stopped
+          failed_when: false
+
+        # lib/ollama's runner layout changes between releases; stale runners
+        # would be picked up alongside the new ones.
+        - name: Remove old Ollama libs
+          ansible.builtin.file:
+            path: /usr/local/lib/ollama
+            state: absent
+
+        - name: Extract Ollama release into /usr/local
+          ansible.builtin.shell: |
+            set -o pipefail
+            zstd -dc /var/cache/ollama-dl/ollama-{{ ollama_version }}.tar.zst | tar -x --no-same-owner -C /usr/local
+          args:
+            executable: /bin/bash
+          changed_when: true
+          notify: Restart Ollama
+
+        - name: Remove downloaded Ollama archive
+          ansible.builtin.file:
+            path: "/var/cache/ollama-dl/ollama-{{ ollama_version }}.tar.zst"
+            state: absent
 
     - name: Install Ollama systemd service
       ansible.builtin.copy:
