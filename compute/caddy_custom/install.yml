@@ -1,0 +1,37 @@
+# Replace the apt-packaged caddy binary with our own build (see Makefile).
+# Keeps the package's systemd unit + caddy user; dpkg-divert moves the
+# packaged binary to /usr/bin/caddy.default so apt upgrades land there and
+# never overwrite ours. Include right after the "Install Caddy" apt task.
+- name: Build custom Caddy binary on the controller
+  ansible.builtin.command:
+    cmd: make build
+    chdir: "{{ playbook_dir }}/../../caddy_custom"
+  delegate_to: localhost
+  run_once: true
+  become: false
+  register: caddy_custom_build
+  changed_when: "'xcaddy build' in caddy_custom_build.stdout"
+
+- name: Divert packaged caddy binary
+  become: true
+  ansible.builtin.command:
+    cmd: dpkg-divert --divert /usr/bin/caddy.default --rename /usr/bin/caddy
+  register: caddy_divert
+  changed_when: "'Adding' in caddy_divert.stdout"
+
+- name: Install custom caddy binary
+  become: true
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../../caddy_custom/dist/caddy-linux-amd64"
+    dest: /usr/bin/caddy
+    mode: "0755"
+    owner: root
+    group: root
+  register: caddy_custom_bin
+
+- name: Restart caddy on binary change
+  become: true
+  ansible.builtin.systemd:
+    name: caddy
+    state: restarted
+  when: caddy_custom_bin.changed
