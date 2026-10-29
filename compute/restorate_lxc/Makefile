@@ -33,11 +33,12 @@ deploy:
 	@$(MAKE) annotate-deploy 2>/dev/null || echo "[WARN] Deploy annotation failed (non-fatal)"
 
 annotate-deploy:
+	@# Credentials stay inside the grafana container: curl authenticates with
+	@# its own GF_SECURITY_ADMIN_* env (from network/grafana/.env). The JSON is
+	@# built here and piped over stdin, so no secret lives in this repo.
 	@COMMIT=$$(cd ~/Projects/resto-rate && git log -1 --format='%h' 2>/dev/null || echo "unknown"); \
-	$(SSH_GRAFANA) "docker exec grafana curl -sf -X POST http://localhost:3000/api/annotations \
-	  -u 'goorcio:gOOral3714!@#' \
-	  -H 'Content-Type: application/json' \
-	  -d '{\"tags\":[\"deploy\",\"restorate\"],\"text\":\"Restorate deploy: $$COMMIT\"}'" \
+	printf '{"tags":["deploy","restorate"],"text":"Restorate deploy: %s"}' "$$COMMIT" \
+	  | $(SSH_GRAFANA) 'docker exec -i grafana sh -c '\''curl -sf -X POST http://localhost:3000/api/annotations -u "$$GF_SECURITY_ADMIN_USER:$$GF_SECURITY_ADMIN_PASSWORD" -H "Content-Type: application/json" --data-binary @- >/dev/null # env refs only, gitleaks:allow'\''' \
 	  && echo "[OK] Deploy annotation created" \
 	  || echo "[WARN] Could not create annotation"
 
