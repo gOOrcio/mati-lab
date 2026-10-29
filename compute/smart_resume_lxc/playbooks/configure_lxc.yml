@@ -64,6 +64,9 @@
         name: caddy
         update_cache: true
 
+    - name: Install custom Caddy build (patched Go; see compute/caddy_custom)
+      ansible.builtin.include_tasks: ../../caddy_custom/install.yml
+
     # ── Firewall ─────────────────────────────────────────────────────────────
     - name: Configure UFW — allow SSH
       community.general.ufw:

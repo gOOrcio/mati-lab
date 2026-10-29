@@ -173,6 +173,9 @@
         name: caddy
         update_cache: true
 
+    - name: Install custom Caddy build (patched Go; see compute/caddy_custom)
+      ansible.builtin.include_tasks: ../../caddy_custom/install.yml
+
     # ── Application user ─────────────────────────────────────────────────────
     - name: Create restorate system user
       ansible.builtin.user:
