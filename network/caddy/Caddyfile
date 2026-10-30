@@ -427,6 +427,25 @@
 		}
 	}
 
+	@stirling host pdf.mati-lab.online
+	handle @stirling {
+		# Stirling PDF, `stirling-pdf` catalogue app on NAS at host port 30124.
+		# Two layers of the SAME identity, like Hermes: Authelia 2FA gates the
+		# vhost here, then Stirling runs its own OIDC login against Authelia
+		# (client `stirling-pdf`). The callback lands on
+		# /login/oauth2/code/authelia, which must stay reachable through this
+		# handle. LAN-direct to :30124 bypasses Caddy but NOT Stirling's login.
+		forward_auth http://authelia:9091 {
+			uri /api/authz/forward-auth
+			copy_headers Remote-User Remote-Groups Remote-Name Remote-Email
+		}
+		reverse_proxy http://192.168.1.65:30124 {
+			header_up Host {host}
+			header_up X-Forwarded-Proto https
+			header_up X-Forwarded-Ssl on
+		}
+	}
+
 	@gitea host gitea.mati-lab.online
 	handle @gitea {
 		# NO forward_auth here. Authelia handles web SSO via Gitea's

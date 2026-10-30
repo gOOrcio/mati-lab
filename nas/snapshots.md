@@ -24,6 +24,8 @@ is a human inventory — keep roughly in sync after UI/API changes.
 | 17 | `fast/databases/gitea` (non-recursive, Postgres data) | hourly (min 0) | 2 weeks | `auto-%Y-%m-%d_%H-%M` | Phase 8 |
 | 18 | `bulk/backups` (non-recursive — captures Phase-8 dumps + Pi rsync target + Proxmox vzdump) | daily 02:30 | 90 days | `auto-daily-%Y-%m-%d_%H-%M` | Phase 8 |
 | 19 | `bulk/backups` (non-recursive) | hourly (min 0) | 2 weeks | `auto-%Y-%m-%d_%H-%M` | Phase 8 |
+| 21 | `bulk/stirling-pdf` **(recursive)** | hourly (min 0) | 2 weeks | `auto-%Y-%m-%d_%H-%M` | Stirling PDF (2026-10-30) |
+| 22 | `bulk/stirling-pdf` **(recursive)** | daily 02:30 | 90 days | `auto-daily-%Y-%m-%d_%H-%M` | Stirling PDF (2026-10-30) |
 
 **Pattern:** every protected dataset gets the same hourly+daily pair
 (2w / 90d). Different services occupy different id-blocks because of
