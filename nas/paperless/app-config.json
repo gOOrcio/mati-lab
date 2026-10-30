@@ -60,6 +60,16 @@
           "container": "paperless",
           "name": "PAPERLESS_SOCIAL_AUTO_SIGNUP",
           "value": "false"
+        },
+        {
+          "container": "paperless",
+          "name": "PAPERLESS_DISABLE_REGULAR_LOGIN",
+          "value": "true"
+        },
+        {
+          "container": "paperless",
+          "name": "PAPERLESS_REDIRECT_LOGIN_TO_SSO",
+          "value": "true"
         }
       ]
     },
