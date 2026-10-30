@@ -1,0 +1,187 @@
+{
+  "app_name": "stirling-pdf",
+  "catalog_app": "stirling-pdf",
+  "train": "community",
+  "version": "1.1.41",
+  "values": {
+    "TZ": "Europe/Warsaw",
+    "stirling": {
+      "enable_security": true,
+      "langs": [
+        "en_GB",
+        "pl_PL"
+      ],
+      "additional_envs": [
+        {
+          "name": "SECURITY_ENABLELOGIN",
+          "value": "true"
+        },
+        {
+          "name": "SECURITY_LOGINMETHOD",
+          "value": "all"
+        },
+        {
+          "name": "SECURITY_OAUTH2_ENABLED",
+          "value": "true"
+        },
+        {
+          "name": "SECURITY_OAUTH2_PROVIDER",
+          "value": "authelia"
+        },
+        {
+          "name": "SECURITY_OAUTH2_ISSUER",
+          "value": "https://authelia.mati-lab.online"
+        },
+        {
+          "name": "SECURITY_OAUTH2_CLIENTID",
+          "value": "stirling-pdf"
+        },
+        {
+          "name": "SECURITY_OAUTH2_SCOPES",
+          "value": "openid, profile, email"
+        },
+        {
+          "name": "SECURITY_OAUTH2_USEASUSERNAME",
+          "value": "preferred_username"
+        },
+        {
+          "name": "SECURITY_OAUTH2_AUTOCREATEUSER",
+          "value": "false"
+        },
+        {
+          "name": "SECURITY_OAUTH2_BLOCKREGISTRATION",
+          "value": "true"
+        },
+        {
+          "name": "SECURITY_OAUTH2_REDIRECTBASEURL",
+          "value": "https://pdf.mati-lab.online"
+        },
+        {
+          "name": "SYSTEM_FRONTENDURL",
+          "value": "https://pdf.mati-lab.online"
+        },
+        {
+          "name": "SYSTEM_ENABLEANALYTICS",
+          "value": "false"
+        },
+        {
+          "name": "STORAGE_ENABLED",
+          "value": "true"
+        },
+        {
+          "name": "STORAGE_PROVIDER",
+          "value": "local"
+        },
+        {
+          "name": "STORAGE_LOCAL_BASEPATH",
+          "value": "/storage"
+        },
+        {
+          "name": "STORAGE_SHARING_ENABLED",
+          "value": "true"
+        },
+        {
+          "name": "STORAGE_SHARING_LINKENABLED",
+          "value": "true"
+        }
+      ]
+    },
+    "run_as": {
+      "user": 568,
+      "group": 568
+    },
+    "network": {
+      "web_port": {
+        "bind_mode": "published",
+        "port_number": 30124,
+        "host_ips": []
+      },
+      "host_network": false,
+      "networks": []
+    },
+    "storage": {
+      "tesseract_data": {
+        "type": "host_path",
+        "host_path_config": {
+          "acl_enable": false,
+          "path": "/mnt/bulk/stirling-pdf/tessdata"
+        }
+      },
+      "configs": {
+        "type": "host_path",
+        "host_path_config": {
+          "acl_enable": false,
+          "path": "/mnt/bulk/stirling-pdf/configs"
+        }
+      },
+      "custom_files": {
+        "type": "host_path",
+        "host_path_config": {
+          "acl_enable": false,
+          "path": "/mnt/bulk/stirling-pdf/customFiles"
+        }
+      },
+      "logs": {
+        "type": "ix_volume",
+        "ix_volume_config": {
+          "acl_enable": false,
+          "dataset_name": "logs"
+        }
+      },
+      "pipeline": {
+        "type": "host_path",
+        "host_path_config": {
+          "acl_enable": false,
+          "path": "/mnt/bulk/stirling-pdf/pipeline"
+        }
+      },
+      "additional_storage": [
+        {
+          "type": "host_path",
+          "host_path_config": {
+            "acl_enable": false,
+            "path": "/mnt/bulk/stirling-pdf/storage"
+          },
+          "mount_path": "/storage"
+        }
+      ]
+    },
+    "labels": [
+      {
+        "key": "homepage.group",
+        "value": "NAS",
+        "containers": [
+          "stirling-pdf"
+        ]
+      },
+      {
+        "key": "homepage.name",
+        "value": "Stirling PDF",
+        "containers": [
+          "stirling-pdf"
+        ]
+      },
+      {
+        "key": "homepage.icon",
+        "value": "stirling-pdf.png",
+        "containers": [
+          "stirling-pdf"
+        ]
+      },
+      {
+        "key": "homepage.href",
+        "value": "https://pdf.mati-lab.online",
+        "containers": [
+          "stirling-pdf"
+        ]
+      },
+      {
+        "key": "homepage.description",
+        "value": "PDF tools & working shelf",
+        "containers": [
+          "stirling-pdf"
+        ]
+      }
+    ]
+  }
+}
