@@ -54,7 +54,7 @@
         {
           "container": "paperless",
           "name": "PAPERLESS_SOCIALACCOUNT_PROVIDERS",
-          "value": "{\"openid_connect\":{\"SCOPE\":[\"openid\",\"profile\",\"email\"],\"OAUTH_PKCE_ENABLED\":true,\"APPS\":[{\"provider_id\":\"authelia\",\"name\":\"Authelia\",\"client_id\":\"paperless\",\"secret\":\"__FROM_PM__homelab/authelia/oidc-paperless-clientsecret\",\"settings\":{\"server_url\":\"https://authelia.mati-lab.online\",\"token_auth_method\":\"client_secret_basic\"}}]}}"
+          "value": "{\"openid_connect\":{\"SCOPE\":[\"openid\",\"profile\",\"email\"],\"OAUTH_PKCE_ENABLED\":true,\"APPS\":[{\"provider_id\":\"authelia\",\"name\":\"Authelia\",\"client_id\":\"paperless\",\"secret\":\"\",\"settings\":{\"server_url\":\"https://authelia.mati-lab.online\",\"token_auth_method\":\"none\"}}]}}"
         },
         {
           "container": "paperless",

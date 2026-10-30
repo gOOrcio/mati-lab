@@ -27,7 +27,7 @@ copy_data() {
   # local (gitignored) data/ dir like every other secret. It is skipped when
   # absent locally, which is the case if the key was staged straight onto the
   # Pi — see nas/secrets-inventory.md (Authelia SMTP row).
-  for oidc_file in oidc.key oidc_hmac_secret.txt oidc_proxmox_client_secret.txt oidc_gitea_client_secret.txt oidc_litellm_client_secret.txt oidc_stirling_client_secret.txt oidc_paperless_client_secret.txt smtp_password.txt; do
+  for oidc_file in oidc.key oidc_hmac_secret.txt oidc_proxmox_client_secret.txt oidc_gitea_client_secret.txt oidc_litellm_client_secret.txt oidc_stirling_client_secret.txt smtp_password.txt; do
     if [[ -f "${SERVICE_DIR}/data/${oidc_file}" ]]; then
       log "Copying ${oidc_file} to server..."
       scp "${SSH_OPTS[@]}" "${SERVICE_DIR}/data/${oidc_file}" "$REMOTE:$REMOTE_DATA/"
