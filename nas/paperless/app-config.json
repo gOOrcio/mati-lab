@@ -1,0 +1,146 @@
+{
+  "app_name": "paperless-ngx",
+  "catalog_app": "paperless-ngx",
+  "train": "community",
+  "version": "1.6.72",
+  "values": {
+    "TZ": "Europe/Warsaw",
+    "paperless": {
+      "postgres_image_selector": "postgres_18_image",
+      "db_password": "__FROM_PM__homelab/paperless/db-password",
+      "redis_password": "__FROM_PM__homelab/paperless/redis-password",
+      "secret_key": "__FROM_PM__homelab/paperless/secret-key",
+      "admin_user": "admin",
+      "admin_mail": "mateusz.goral92@gmail.com",
+      "admin_password": "__FROM_PM__homelab/paperless/admin-password",
+      "enable_trash": true,
+      "enable_tika_gotenberg": true,
+      "additional_envs": [
+        {
+          "name": "PAPERLESS_URL",
+          "value": "https://paperless.mati-lab.online"
+        },
+        {
+          "name": "PAPERLESS_OCR_LANGUAGES",
+          "value": "pol"
+        },
+        {
+          "name": "PAPERLESS_OCR_LANGUAGE",
+          "value": "pol+eng"
+        },
+        {
+          "name": "PAPERLESS_FILENAME_FORMAT",
+          "value": "{{ owner_username }}/{{ correspondent }}/{{ created_year }}/{{ title }}"
+        },
+        {
+          "name": "PAPERLESS_FILENAME_FORMAT_REMOVE_NONE",
+          "value": "true"
+        },
+        {
+          "name": "PAPERLESS_CONSUMER_RECURSIVE",
+          "value": "true"
+        },
+        {
+          "name": "PAPERLESS_APPS",
+          "value": "allauth.socialaccount.providers.openid_connect"
+        },
+        {
+          "name": "PAPERLESS_SOCIALACCOUNT_PROVIDERS",
+          "value": "{\"openid_connect\":{\"SCOPE\":[\"openid\",\"profile\",\"email\"],\"OAUTH_PKCE_ENABLED\":true,\"APPS\":[{\"provider_id\":\"authelia\",\"name\":\"Authelia\",\"client_id\":\"paperless\",\"secret\":\"__FROM_PM__homelab/authelia/oidc-paperless-clientsecret\",\"settings\":{\"server_url\":\"https://authelia.mati-lab.online\",\"token_auth_method\":\"client_secret_basic\"}}]}}"
+        },
+        {
+          "name": "PAPERLESS_SOCIAL_AUTO_SIGNUP",
+          "value": "false"
+        }
+      ]
+    },
+    "run_as": {
+      "user": 568,
+      "group": 568
+    },
+    "network": {
+      "web_port": {
+        "bind_mode": "published",
+        "port_number": 30125,
+        "host_ips": []
+      },
+      "host_network": false,
+      "networks": []
+    },
+    "storage": {
+      "data": {
+        "type": "host_path",
+        "host_path_config": {
+          "acl_enable": false,
+          "path": "/mnt/bulk/paperless/data"
+        }
+      },
+      "media": {
+        "type": "host_path",
+        "host_path_config": {
+          "acl_enable": false,
+          "path": "/mnt/bulk/paperless/media"
+        }
+      },
+      "consume": {
+        "type": "host_path",
+        "host_path_config": {
+          "acl_enable": false,
+          "path": "/mnt/bulk/paperless/consume"
+        }
+      },
+      "trash": {
+        "type": "host_path",
+        "host_path_config": {
+          "acl_enable": false,
+          "path": "/mnt/bulk/paperless/trash"
+        }
+      },
+      "postgres_data": {
+        "type": "ix_volume",
+        "ix_volume_config": {
+          "acl_enable": false,
+          "dataset_name": "postgres_data"
+        }
+      },
+      "additional_storage": []
+    },
+    "labels": [
+      {
+        "key": "homepage.group",
+        "value": "NAS",
+        "containers": [
+          "paperless"
+        ]
+      },
+      {
+        "key": "homepage.name",
+        "value": "Paperless",
+        "containers": [
+          "paperless"
+        ]
+      },
+      {
+        "key": "homepage.icon",
+        "value": "paperless-ngx.png",
+        "containers": [
+          "paperless"
+        ]
+      },
+      {
+        "key": "homepage.href",
+        "value": "https://paperless.mati-lab.online",
+        "containers": [
+          "paperless"
+        ]
+      },
+      {
+        "key": "homepage.description",
+        "value": "Document archive",
+        "containers": [
+          "paperless"
+        ]
+      }
+    ]
+  }
+}
