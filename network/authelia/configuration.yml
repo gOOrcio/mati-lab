@@ -162,3 +162,24 @@ identity_providers:
           - 'code'
         userinfo_signed_response_alg: 'none'
         token_endpoint_auth_method: 'none'
+
+      # Stirling PDF (NAS catalogue app). Spring Security OAuth2 client;
+      # redirect path is /login/oauth2/code/<provider>, provider = authelia.
+      # Plaintext secret lives in Stirling's /configs/settings.yml on the NAS.
+      - client_id: 'stirling-pdf'
+        client_name: 'Stirling PDF'
+        client_secret: '{{ secret "/config/data/oidc_stirling_client_secret.txt" }}'
+        authorization_policy: 'two_factor'
+        redirect_uris:
+          - 'https://pdf.mati-lab.online/login/oauth2/code/authelia'
+        scopes:
+          - 'openid'
+          - 'profile'
+          - 'email'
+          - 'groups'
+        grant_types:
+          - 'authorization_code'
+        response_types:
+          - 'code'
+        userinfo_signed_response_alg: 'none'
+        token_endpoint_auth_method: 'client_secret_basic'
