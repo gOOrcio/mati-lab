@@ -30,9 +30,9 @@ for r in con.execute(\"SELECT name,type,active,keyword,interval FROM monitor ORD
 mark a monitor green). They live in the password manager under
 `homelab/uptime-kuma/push-<name>`.
 
-## Live inventory (52 monitors in 7 groups)
+## Live inventory (54 monitors in 7 groups)
 
-### apps (19)
+### apps (20)
 
 | Name | Type | Target | Match / notes |
 |---|---|---|---|
@@ -55,6 +55,7 @@ mark a monitor green). They live in the password manager under
 | stirling | Keyword | `http://192.168.1.65:30124/api/v1/info/status` | `"status":"UP"` — body is `{"version":"3.2.2","status":"UP"}`, unauthenticated. Added 2026-10-30 |
 | syncthing | Keyword | `http://192.168.1.65:30016/rest/noauth/health` | `OK` |
 | uptime-kuma | HTTP | `https://uptime-kuma.mati-lab.online` | self-check |
+| vaultwarden | HTTP | `https://vaultwarden.mati-lab.online/alive` | via Caddy; body is a timestamp. Stray `keyword=passed` is inert on HTTP type. Added 2026-10-30 |
 
 ### devices (7)
 
@@ -91,7 +92,7 @@ mark a monitor green). They live in the password manager under
 All *arr monitors use the **direct LAN NodePort** — Caddy fronts return 302 to
 Authelia, useless for probing.
 
-### push-monitors (8)
+### push-monitors (9)
 
 Push URLs are secrets; they live in PM under `homelab/uptime-kuma/push-<name>`
 and in `/root/.backup-env` on the NAS as `KUMA_URL_*`.
@@ -102,6 +103,7 @@ and in `/root/.backup-env` on the NAS as `KUMA_URL_*`.
 | ` backup-hermes-dump` | 90000 | ⚠ leading space |
 | ` backup-nas-zfs-health` | 90000 | ⚠ leading space |
 | backup-arr-config-backup | 604800 | `KUMA_URL_ARR_CONFIG` |
+| vaultwarden-dump | 86400 | `KUMA_URL_VAULTWARDEN_DUMP`, from `vaultwarden-backup.sh` (NAS cron 60, 03:45 UTC). Added 2026-10-30 |
 | backup-gitea-pgdump | 90000 | |
 | backup-homebridge-dump | 604800 | `KUMA_URL_HOMEBRIDGE` |
 | backup-litellm-pgdump | 90000 | |

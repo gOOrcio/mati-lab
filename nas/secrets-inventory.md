@@ -1,6 +1,6 @@
 # Secrets inventory
 
-The single source of truth for "where every long-lived secret lives, what depends on it, and how to rotate it." **Values are NEVER in this file** — they live in the password manager under `homelab/<service>/<role>` labels. This doc is the index.
+The single source of truth for "where every long-lived secret lives, what depends on it, and how to rotate it." **Values are NEVER in this file** — they live in the password manager (**Vaultwarden**, `https://vaultwarden.mati-lab.online`, folder `homelab`) as items named by their `homelab/<service>/<role>` label. This doc is the index.
 
 If you rotate a secret, update its row's "Last rotated" date.
 
@@ -9,11 +9,12 @@ If you rotate a secret, update its row's "Last rotated" date.
 - **Rotation triggered by a leak** → find the row, follow Procedure, then update Last rotated.
 - **Rotation triggered by calendar** → annual sweep of every row whose Procedure cost is < 10 minutes.
 - **Adding a new service** → add a row before the service ships. If the row would have no dependents, the secret probably doesn't need to exist.
+- **Migration to Vaultwarden is incremental** (started 2026-10-30): when you touch a service, move its `homelab/*` items from Apple Passwords into Vaultwarden and add any missing row here. Break-glass items (`homelab/backups/dump-passphrase`, `homelab/nas/root`, `homelab/proxmox/root`, `homelab/dev-pc/restic-repo-password`, Authelia users) go first, since they are the ones needed when something is broken.
 - **Forgotten where something lives** → search this file first. Per-service notes add detail; this is the index.
 
 ## Conventions
 
-- **PM label** is the password-manager entry name. The value lives there, never here.
+- **PM label** is the Vaultwarden item name (folder `homelab`). The value lives there, never here. Apple Passwords is personal-only and holds no `homelab/*` entries. See [`vaultwarden/notes.md`](vaultwarden/notes.md).
 - **Dependents** = what breaks if this secret rotates without coordination.
 - **Procedure** = the minimum sequence to change the value end-to-end. Cross-references to per-service notes for nuance.
 - **Last rotated** = ISO date. Empty = never rotated since install.
@@ -209,11 +210,23 @@ future rebuild.
 
 ---
 
+## Vaultwarden (the password manager itself)
+
+| Role | File on disk | PM label | Dependents | Procedure | Last rotated |
+|---|---|---|---|---|---|
+| **Master password** | Nowhere on disk. Memory + paper recovery kit. | (none: it unlocks the PM) | Every `homelab/*` item. **Loss = loss of the vault** (zero-knowledge; backups can't decrypt without it). | Web vault → Settings → Security → Master password. Re-login every client. Update the paper copy. Don't rotate casually. | (pending install) |
+| **2FA (TOTP) seed + recovery code** | Authenticator app; recovery code on the paper kit | (none) | Vaultwarden login. | Web vault → Settings → Security → Two-step login → re-enrol; save the new recovery code. | (pending install) |
+| **Postgres password** | NAS `/mnt/fast/databases/vaultwarden-apply/values.conf` (root 600) → app value `db_password` (inside `DATABASE_URL`) | `homelab/vaultwarden/db-password` | Vaultwarden ↔ bundled Postgres. | (1) `openssl rand -hex 32`. (2) `docker exec ix-vaultwarden-postgres-1 psql -U vaultwarden -c "ALTER USER vaultwarden PASSWORD '<new>'"`. (3) Update `values.conf`. (4) `nas/vaultwarden/deploy.sh update`. (5) PM. | (pending install) |
+| **Admin token** | None: `/admin` disabled (`admin_token: ""`) | `homelab/vaultwarden/admin-token` (only while break-glass is active) | Nothing. | Break-glass procedure in `vaultwarden/notes.md`; remove afterwards. | n/a |
+| **Kuma push URL — `vaultwarden-dump`** | NAS `/root/.backup-env` (`KUMA_URL_VAULTWARDEN_DUMP=`, root:root 600) | `homelab/uptime-kuma/push-vaultwarden-dump` | `vaultwarden-backup.sh` nightly heartbeat. | Same shape as `arr-config-backup`. | (pending install) |
+
+---
+
 ## Backups
 
 | Role | File on disk | PM label | Dependents | Procedure | Last rotated |
 |---|---|---|---|---|---|
-| **Backup encryption passphrase** | NAS `/mnt/bulk/backups/.secrets/dump-passphrase` (root:root 600) | `homelab/backups/dump-passphrase` | Every cron under `nas/backup-jobs/*.sh` (`gpg --symmetric --passphrase-file ...`), now including `arr-config-backup.sh`. **Loss = unrecoverable backups (intentional security property — encryption is meaningful precisely because the only key holder is the password manager).** | (1) `openssl rand -base64 48` for new value. (2) **Decrypt + re-encrypt every existing dump under `bulk/backups/{gitea,litellm,hermes,arr}*` with the new passphrase** — they were written under the old one. (3) Re-stage via `bash nas/backup-jobs/stage-passphrase.sh` (silent prompt + stdin pipe). (4) Update PM. | 2026-04-30 (issued at Phase 8 install) |
+| **Backup encryption passphrase** | NAS `/mnt/bulk/backups/.secrets/dump-passphrase` (root:root 600) | `homelab/backups/dump-passphrase` | Every cron under `nas/backup-jobs/*.sh` (`gpg --symmetric --passphrase-file ...`), now including `arr-config-backup.sh`. **Loss = unrecoverable backups (intentional security property — encryption is meaningful precisely because the only key holder is the password manager).** | (1) `openssl rand -base64 48` for new value. (2) **Decrypt + re-encrypt every existing dump under `bulk/backups/{gitea,litellm,hermes,arr,vaultwarden}*` with the new passphrase** — they were written under the old one. (3) Re-stage via `bash nas/backup-jobs/stage-passphrase.sh` (silent prompt + stdin pipe). (4) Update PM. | 2026-04-30 (issued at Phase 8 install) |
 | **Kuma push URL — `arr-config-backup`** | NAS `/root/.backup-env` (`KUMA_URL_ARR_CONFIG=`, root:root 600) | `homelab/uptime-kuma/push-arr-config-backup` | `arr-config-backup.sh` weekly heartbeat. | Mint a new push monitor in Kuma UI; copy the bare URL (strip query string per `feedback_kuma_push_url_query_string`). Stage via `read -rs URL && ssh truenas_admin@nas "sudo tee -a /root/.backup-env <<<\"KUMA_URL_ARR_CONFIG=$URL\""`. PM. | 2026-05-01 (issued at install) |
 | **Kuma push URL — `homebridge-backup`** | NAS `/root/.backup-env` (`KUMA_URL_HOMEBRIDGE=`, root:root 600) | `homelab/uptime-kuma/push-homebridge-backup` | `homebridge-backup.sh` weekly heartbeat. | Same shape as `arr-config-backup`. | 2026-05-04 (issued at install) |
 | **Kuma push URL — `dev-pc-restic`** | Dev PC `~/.config/restic/kuma-push-url` (mode 0600) | `homelab/uptime-kuma/push-dev-pc-restic` | `restic-backup.sh` (dev PC, daily heartbeat). | Mint push monitor in Kuma UI (interval 86400s); paste bare URL into the file via `compute/dev_pc/backup/install.sh`. PM. | 2026-05-04 (issued at install) |
