@@ -427,6 +427,27 @@
 		}
 	}
 
+	@vaultwarden host vaultwarden.mati-lab.online
+	handle @vaultwarden {
+		# Vaultwarden, `vaultwarden` catalogue app on NAS at host port 30126.
+		# NO forward_auth here, like Gitea: Bitwarden desktop/mobile/CLI clients
+		# call the API directly and can't follow a 2FA browser redirect.
+		# Vaultwarden's master password + TOTP is the gate. /admin is disabled
+		# (empty admin token) and blocked here too. LAN/VPN-only: no
+		# Cloudflared route.
+		handle /admin* {
+			respond 403
+		}
+		reverse_proxy http://192.168.1.65:30126 {
+			# Vaultwarden takes the client IP (login rate limit, logs) from
+			# X-Real-IP; overwrite it so a client can't spoof its own.
+			header_up X-Real-IP {remote_host}
+			header_up Host {host}
+			header_up X-Forwarded-Proto https
+			header_up X-Forwarded-Ssl on
+		}
+	}
+
 	@paperless host paperless.mati-lab.online
 	handle @paperless {
 		# Paperless-ngx, `paperless-ngx` catalogue app on NAS at host port 30125.

@@ -100,3 +100,7 @@ sweep found four silent credential failures and zero of any other class.
   env, repo/live re-sync of backup scripts, inventory rows updated.
 - Next (needs a green light): `secrets-drift-check.sh` + Kuma monitor
   (`secrets-drift`) + weekly cron on NAS and Pi. Tracked in followups.
+- 2026-10-30: the PM is now **Vaultwarden** on the NAS (`nas/vaultwarden/notes.md`),
+  replacing the ad-hoc PM so the human source of truth is reachable from Linux.
+  It also gives option A a cheap later path: a read-only bot user plus the `bw`
+  CLI or Ansible `community.general.bitwarden` lookup (followup vw.1).

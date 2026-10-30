@@ -131,6 +131,15 @@ See [`docs/sweep-2026-09-06.md`](sweep-2026-09-06.md) for the full findings reco
 | sw.5 | ~~**Inventory cleanup pending confirmation**~~ → resolved 2026-09-06 (user confirmed): sentinel-trader + sonarqube host rows removed from `~/.claude/CLAUDE.md`; Sentinel secrets section marked decommissioned (**user still owes provider-side revocation** of the anthropic/telegram/xtb creds); `compute/sentinel_trader_vm/DECOMMISSIONED.md` marker added. VM 100 turned out to be the ollama-gpu **template**, not a dup — renamed `ollama-gpu-template`, dropped from the weekly vzdump job (its Sep 6 + Aug 30 archives remain on NAS as the permanent copy). `restorate-dev` kept as a scrape target but excluded from ScrapeTargetDown/MissingForLong alerts (mati-gamer is off by design most of the time). | 2026-09-06 sweep | `docs/sweep-2026-09-06.md` |
 | sw.6 | **Pi fail2ban runs a held Debian 1.1.0 deb** (`apt-mark hold fail2ban`) because noble's 1.0.2 is broken on Python 3.12. Unhold + return to distro package at the next Ubuntu LTS upgrade. | 2026-09-06 sweep | `docs/sweep-2026-09-06.md` |
 
+## Vaultwarden followups (2026-10-30)
+
+| # | Item | Origin | Source |
+|---|---|---|---|
+| vw.1 | **Machine access to Vaultwarden.** A `homelab-bot` user in an org with a read-only `homelab-machine` collection. Consumers: `bw` CLI / `bw serve` on the NAS and Pi, Ansible `community.general.bitwarden` lookup (would replace `compute/*/group_vars/all/vault.yml`). Mind the bootstrap order: nothing needed to *boot* the NAS may depend on it. | Vaultwarden | `nas/vaultwarden/notes.md` |
+| vw.2 | **Authelia OIDC login for Vaultwarden** (SSO is in 1.35+; the master password is still needed to decrypt, so it's low value for one user). | Vaultwarden | `nas/vaultwarden/notes.md` |
+| vw.3 | **SMTP for Vaultwarden** (reuse the Authelia Resend key) for new-device login alerts. | Vaultwarden | `nas/vaultwarden/notes.md` |
+| vw.4 | **Quarterly encrypted JSON export** of the vault to the dev PC as break-glass if the NAS is down. Add to the restore-drill schedule. | Vaultwarden | `nas/vaultwarden/notes.md` |
+
 ## Out of scope, no phase named
 
 | # | Item | Origin | Source |

@@ -1,0 +1,107 @@
+{
+  "app_name": "vaultwarden",
+  "catalog_app": "vaultwarden",
+  "train": "community",
+  "version": "1.6.46",
+  "values": {
+    "TZ": "Europe/Warsaw",
+    "vaultwarden": {
+      "postgres_image_selector": "postgres_18_image",
+      "db_password": "__FROM_PM__homelab/vaultwarden/db-password",
+      "admin_token": "",
+      "enable_websocket": true,
+      "additional_envs": [
+        {
+          "name": "SIGNUPS_ALLOWED",
+          "value": "false"
+        },
+        {
+          "name": "INVITATIONS_ALLOWED",
+          "value": "false"
+        },
+        {
+          "name": "SHOW_PASSWORD_HINT",
+          "value": "false"
+        },
+        {
+          "name": "PASSWORD_HINTS_ALLOWED",
+          "value": "false"
+        }
+      ]
+    },
+    "run_as": {
+      "user": 568,
+      "group": 568
+    },
+    "network": {
+      "web_port": {
+        "bind_mode": "published",
+        "port_number": 30126,
+        "host_ips": []
+      },
+      "certificate_id": null,
+      "domain": "https://vaultwarden.mati-lab.online",
+      "networks": []
+    },
+    "storage": {
+      "data": {
+        "type": "host_path",
+        "host_path_config": {
+          "acl_enable": false,
+          "path": "/mnt/fast/databases/vaultwarden/data"
+        }
+      },
+      "postgres_data": {
+        "type": "ix_volume",
+        "ix_volume_config": {
+          "acl_enable": false,
+          "dataset_name": "postgres_data"
+        }
+      },
+      "additional_storage": []
+    },
+    "labels": [
+      {
+        "key": "homepage.group",
+        "value": "NAS",
+        "containers": [
+          "vaultwarden"
+        ]
+      },
+      {
+        "key": "homepage.name",
+        "value": "Vaultwarden",
+        "containers": [
+          "vaultwarden"
+        ]
+      },
+      {
+        "key": "homepage.icon",
+        "value": "vaultwarden.png",
+        "containers": [
+          "vaultwarden"
+        ]
+      },
+      {
+        "key": "homepage.href",
+        "value": "https://vaultwarden.mati-lab.online",
+        "containers": [
+          "vaultwarden"
+        ]
+      },
+      {
+        "key": "homepage.description",
+        "value": "Homelab password manager",
+        "containers": [
+          "vaultwarden"
+        ]
+      }
+    ],
+    "resources": {
+      "limits": {
+        "cpus": 2,
+        "memory": 1024
+      }
+    }
+  }
+}
