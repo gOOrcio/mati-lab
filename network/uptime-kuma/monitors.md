@@ -52,7 +52,7 @@ mark a monitor green). They live in the password manager under
 | prometheus-internal | Keyword | `http://prometheus:9090/-/healthy` | `Healthy` — direct |
 | proxmox | HTTP | `https://proxmox.mati-lab.online/api2/json/version` | accepts `200-299,400-499` (401s unauthenticated) |
 | qdrant | Keyword | `http://192.168.1.65:30017/healthz` | `passed` |
-| stirling-pdf | Keyword | `http://192.168.1.65:30124/api/v1/info/status` | `"status":"UP"` — body is `{"version":"3.2.2","status":"UP"}`, unauthenticated. Added 2026-10-30 |
+| stirling | Keyword | `http://192.168.1.65:30124/api/v1/info/status` | `"status":"UP"` — body is `{"version":"3.2.2","status":"UP"}`, unauthenticated. Added 2026-10-30 |
 | syncthing | Keyword | `http://192.168.1.65:30016/rest/noauth/health` | `OK` |
 | uptime-kuma | HTTP | `https://uptime-kuma.mati-lab.online` | self-check |
 
