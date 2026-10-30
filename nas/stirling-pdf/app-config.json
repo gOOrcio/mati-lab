@@ -18,7 +18,11 @@
         },
         {
           "name": "SECURITY_LOGINMETHOD",
-          "value": "all"
+          "value": "oauth2"
+        },
+        {
+          "name": "SECURITY_SSOAUTOLOGIN",
+          "value": "true"
         },
         {
           "name": "SECURITY_OAUTH2_ENABLED",
