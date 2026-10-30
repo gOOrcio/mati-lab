@@ -12,7 +12,7 @@ Dataset `bulk/stirling-pdf` (owned `568:568`, mode 755), all mounts are host pat
 | Host path | Container path | Contents |
 |---|---|---|
 | `/mnt/bulk/stirling-pdf/storage` | `/storage` | Server-side file storage (*My Files*), `STORAGE_LOCAL_BASEPATH` |
-| `/mnt/bulk/stirling-pdf/configs` | `/configs` | `settings.yml` (holds the OIDC client secret), embedded user DB |
+| `/mnt/bulk/stirling-pdf/configs` | `/configs` | `settings.yml`, `custom_settings.yml` (holds the OIDC client secret, overrides settings.yml), embedded user DB |
 | `/mnt/bulk/stirling-pdf/customFiles` | `/customFiles` | Custom static files |
 | `/mnt/bulk/stirling-pdf/pipeline` | `/pipeline` | Pipeline watch folders (unused) |
 | `/mnt/bulk/stirling-pdf/tessdata` | `/usr/share/tessdata` | Extra OCR languages (`pol`) |
@@ -55,7 +55,8 @@ Stored files survive `app.redeploy`.
 
 The container starts as root and `init-without-ocr.sh` chowns `/configs`,
 `/customFiles`, `/pipeline`, `/storage`, `/logs` to `stirlingpdfuser`,
-remapped by `PUID`/`PGID`. Both are set to `568` so host files stay `apps:apps`.
+remapped by `PUID`/`PGID`. The TrueNAS library sets those from the app's `run_as`
+(568), so host files stay `apps:apps`.
 
 ## Deploy / update
 
@@ -96,12 +97,21 @@ Gotchas:
   Stirling can sign in. `USEASUSERNAME=preferred_username` = Authelia username.
 - `SECURITY_LOGINMETHOD=oauth2` + `SECURITY_SSOAUTOLOGIN=true` (since 2026-10-30):
   no password login; the login page goes straight to Authelia. `gooral` is Org Owner.
-  The bootstrap local `admin` is suspended (password in PM `homelab/stirling-pdf/admin`).
+  The bootstrap local `admin` is the break-glass account (see below).
 
-**Rollback / break-glass** (SSO broken → nobody can log in): set
-`SECURITY_LOGINMETHOD=all`, drop `SECURITY_SSOAUTOLOGIN`, `app.update`, then log in
-locally (un-suspend `admin` from the DB if needed). For claim debugging, add
-`SECURITY_OAUTH2_DEBUGLOGGING=true` temporarily (logs personal data, so remove after).
+**Rollback / break-glass** (SSO broken → nobody can log in):
+1. Precondition: the local `admin` account is **active, not suspended**, with its
+   password in PM `homelab/stirling-pdf/admin`. `gooral` is an SSO-only account with no
+   local password, so `admin` is the only way in. While `loginMethod=oauth2`, the
+   password form is disabled, so keeping `admin` active costs nothing.
+2. In `app-config.json` set `SECURITY_LOGINMETHOD=all` **and**
+   `SECURITY_SSOAUTOLOGIN=false` (set it explicitly; dropping it falls back to whatever
+   `settings.yml` persisted). Run the update command above.
+3. Check `/api/v1/proprietary/ui-data/login` → `"loginMethod":"all"`, then log in
+   as `admin` at `http://192.168.1.65:30124/login` and fix SSO.
+4. Revert both envs and update again.
+For claim debugging, add `SECURITY_OAUTH2_DEBUGLOGGING=true` temporarily (logs
+personal data, so remove after).
 
 ## Adding the second user
 

@@ -165,7 +165,7 @@ identity_providers:
 
       # Stirling PDF (NAS catalogue app). Spring Security OAuth2 client;
       # redirect path is /login/oauth2/code/<provider>, provider = authelia.
-      # Plaintext secret lives in Stirling's /configs/settings.yml on the NAS.
+      # Plaintext secret lives in Stirling's /configs/custom_settings.yml on the NAS.
       - client_id: 'stirling-pdf'
         client_name: 'Stirling PDF'
         client_secret: '{{ secret "/config/data/oidc_stirling_client_secret.txt" }}'
