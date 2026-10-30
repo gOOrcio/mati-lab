@@ -427,6 +427,20 @@
 		}
 	}
 
+	@paperless host paperless.mati-lab.online
+	handle @paperless {
+		# Paperless-ngx, `paperless-ngx` catalogue app on NAS at host port 30125.
+		# NO forward_auth here, like Gitea: the Paperless mobile apps and API
+		# tokens can't follow a 2FA browser redirect. Paperless's own login
+		# (Authelia OIDC, client `paperless`, plus API tokens) is the gate.
+		# LAN/VPN-only: no Cloudflared route.
+		reverse_proxy http://192.168.1.65:30125 {
+			header_up Host {host}
+			header_up X-Forwarded-Proto https
+			header_up X-Forwarded-Ssl on
+		}
+	}
+
 	@stirling host pdf.mati-lab.online
 	handle @stirling {
 		# Stirling PDF, `stirling-pdf` catalogue app on NAS at host port 30124.

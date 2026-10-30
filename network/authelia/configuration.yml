@@ -183,3 +183,24 @@ identity_providers:
           - 'code'
         userinfo_signed_response_alg: 'none'
         token_endpoint_auth_method: 'client_secret_basic'
+
+      # Paperless-ngx (NAS catalogue app). django-allauth openid_connect,
+      # provider_id = authelia, so the callback is /accounts/oidc/authelia/login/callback/.
+      # Plaintext secret lives in the NAS secrets file read by nas/paperless/apply.sh.
+      - client_id: 'paperless'
+        client_name: 'Paperless-ngx'
+        client_secret: '{{ secret "/config/data/oidc_paperless_client_secret.txt" }}'
+        authorization_policy: 'two_factor'
+        redirect_uris:
+          - 'https://paperless.mati-lab.online/accounts/oidc/authelia/login/callback/'
+        scopes:
+          - 'openid'
+          - 'profile'
+          - 'email'
+          - 'groups'
+        grant_types:
+          - 'authorization_code'
+        response_types:
+          - 'code'
+        userinfo_signed_response_alg: 'none'
+        token_endpoint_auth_method: 'client_secret_basic'
