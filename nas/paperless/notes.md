@@ -90,3 +90,30 @@ Gotchas:
 **Swift Paperless** (App Store): server `https://paperless.mati-lab.online` (home
 Wi-Fi or VPN), login type **OpenID Connect → Authelia**. No API token needed.
 Verified 2026-10-30.
+
+## Gmail ingestion (per user)
+
+Google Cloud project **`mati-lab-paperless`** (separate from restorate's on purpose:
+consent-screen scopes and verification status are project-wide). Gmail API
+enabled. Consent screen External, **In production, unverified** (Testing mode
+expires refresh tokens after 7 days). Production needs a homepage + privacy URL
+on an authorised domain (`mati-lab.online`); **no logo**, because a logo forces
+verification. Scope `https://mail.google.com/`. Web client `paperless`, redirect
+`https://paperless.mati-lab.online/api/oauth/callback/`. Client id in
+`app-config.json`, secret via values.conf.
+
+Per user:
+1. Gmail: labels `paperless` and `paperless/done`; filter
+   `category:primary has:attachment filename:pdf` → apply label `paperless` (no
+   "also apply to existing"; the backfill is done in batches, see below).
+   Paperless can't see Gmail categories over IMAP, which is why the label is needed.
+2. Paperless (as that user): Mail → **Connect Gmail Account** → click through
+   "unverified app" → rename the account `gmail-<user>`.
+3. Mail rule `gmail-pdfs`: folder `paperless`, max age 2200 days, consumption
+   scope + attachment type *Only process attachments*, include `*.pdf`, action
+   **Move to specified folder** `paperless/done` (over Gmail IMAP this swaps
+   the label), tag `gmail`, title from attachment filename, correspondent *do not
+   assign*, **Assign owner from rule** ticked.
+
+Verified 2026-10-30 for `gooral`: test mail → filter label → document tagged
+`gmail`, owned by `gooral`, mail moved to `paperless/done`.
