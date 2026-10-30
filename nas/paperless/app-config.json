@@ -17,38 +17,47 @@
       "enable_tika_gotenberg": true,
       "additional_envs": [
         {
+          "container": "paperless",
           "name": "PAPERLESS_URL",
           "value": "https://paperless.mati-lab.online"
         },
         {
+          "container": "paperless",
           "name": "PAPERLESS_OCR_LANGUAGES",
           "value": "pol"
         },
         {
+          "container": "paperless",
           "name": "PAPERLESS_OCR_LANGUAGE",
           "value": "pol+eng"
         },
         {
+          "container": "paperless",
           "name": "PAPERLESS_FILENAME_FORMAT",
           "value": "{{ owner_username }}/{{ correspondent }}/{{ created_year }}/{{ title }}"
         },
         {
+          "container": "paperless",
           "name": "PAPERLESS_FILENAME_FORMAT_REMOVE_NONE",
           "value": "true"
         },
         {
+          "container": "paperless",
           "name": "PAPERLESS_CONSUMER_RECURSIVE",
           "value": "true"
         },
         {
+          "container": "paperless",
           "name": "PAPERLESS_APPS",
           "value": "allauth.socialaccount.providers.openid_connect"
         },
         {
+          "container": "paperless",
           "name": "PAPERLESS_SOCIALACCOUNT_PROVIDERS",
           "value": "{\"openid_connect\":{\"SCOPE\":[\"openid\",\"profile\",\"email\"],\"OAUTH_PKCE_ENABLED\":true,\"APPS\":[{\"provider_id\":\"authelia\",\"name\":\"Authelia\",\"client_id\":\"paperless\",\"secret\":\"__FROM_PM__homelab/authelia/oidc-paperless-clientsecret\",\"settings\":{\"server_url\":\"https://authelia.mati-lab.online\",\"token_auth_method\":\"client_secret_basic\"}}]}}"
         },
         {
+          "container": "paperless",
           "name": "PAPERLESS_SOCIAL_AUTO_SIGNUP",
           "value": "false"
         }
