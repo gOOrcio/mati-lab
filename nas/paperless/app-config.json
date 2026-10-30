@@ -70,6 +70,16 @@
           "container": "paperless",
           "name": "PAPERLESS_REDIRECT_LOGIN_TO_SSO",
           "value": "true"
+        },
+        {
+          "container": "paperless",
+          "name": "PAPERLESS_GMAIL_OAUTH_CLIENT_ID",
+          "value": "612964911406-8f6thapdc7955bq3471ce0et5tohj8sp.apps.googleusercontent.com"
+        },
+        {
+          "container": "paperless",
+          "name": "PAPERLESS_GMAIL_OAUTH_CLIENT_SECRET",
+          "value": "__FROM_PM__homelab/paperless/gmail-oauth-client-secret"
         }
       ]
     },
