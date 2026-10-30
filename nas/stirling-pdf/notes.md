@@ -41,6 +41,16 @@ run with `cronjob.create` (disabled) → `cronjob.run -j` → `cronjob.delete`.
 `tessdata_fast` matches the speed/accuracy class of the Debian-packaged
 bundled models.
 
+Verify inside the container: `tesseract --list-langs` lists `pol`; startup log
+shows `Found user-mounted tessdata in /usr/share/tessdata, copying ...`.
+**Users must tick Polish in the OCR tool.** The default is English only, which
+flattens Polish (`ą`→`g`, `ł`→`t`). Verified 2026-10-30 with `pol` ticked:
+"Zażółć gęślą jaźń" survives OCR with diacritics intact.
+
+Verification 2026-10-30: share links opened LAN-direct without login return only
+the SPA shell, and every `/api/v1/storage/share-links/<token>[/*]` returns 401.
+Stored files survive `app.redeploy`.
+
 ## Ownership
 
 The container starts as root and `init-without-ocr.sh` chowns `/configs`,
