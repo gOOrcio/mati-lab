@@ -80,6 +80,11 @@
           "container": "paperless",
           "name": "PAPERLESS_GMAIL_OAUTH_CLIENT_SECRET",
           "value": "__FROM_PM__homelab/paperless/gmail-oauth-client-secret"
+        },
+        {
+          "container": "paperless",
+          "name": "PAPERLESS_CONSUMER_IGNORE_DIRS",
+          "value": "[\".stirling\"]"
         }
       ]
     },
