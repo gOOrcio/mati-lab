@@ -62,3 +62,31 @@ Gotchas:
   `midclt call app.config paperless-ngx | jq '.paperless | {db:(.db_password|length), key:(.secret_key|length)}'`.
 - OCR: `PAPERLESS_OCR_LANGUAGES=pol` installs Polish at start; `tesseract --list-langs`
   in the container shows `pol` (verified 2026-10-30).
+
+## Accounts and SSO
+
+- `admin`: break-glass **superuser** (catalogue `admin_user`, password in PM
+  `homelab/paperless/admin-password`).
+- `gooral`: **ordinary user** (no superuser/staff) with view/add/change/delete on
+  documents, tags, correspondents, document types, storage paths, saved views,
+  mail accounts, mail rules, workflows, custom fields, share links and notes. Sees
+  only own and shared documents.
+- SSO: Authelia client `paperless` is **public + PKCE (S256), no secret**
+  (`token_endpoint_auth_method: none`). Swift Paperless (iOS) exchanges the code
+  itself using the client_id Paperless advertises, and can't hold a secret.
+  django-allauth strips the empty secret, so web login uses the same client.
+  Redirect URIs: `https://paperless.mati-lab.online/accounts/oidc/authelia/login/callback/`
+  and `x-paperless://oidc-callback`.
+- **SSO-only web login** (`PAPERLESS_DISABLE_REGULAR_LOGIN=true`,
+  `PAPERLESS_REDIRECT_LOGIN_TO_SSO=true`). `/admin/login/` also redirects to SSO,
+  so there is no web password route at all. The API still accepts local
+  credentials (basic auth).
+- **Break-glass** (Authelia/SSO broken): drop those two envs from
+  `app-config.json` → `nas/paperless/deploy.sh update` → log in as `admin` with
+  the password. Or use the API with `admin` basic auth.
+
+## Mobile (iPhone)
+
+**Swift Paperless** (App Store): server `https://paperless.mati-lab.online` (home
+Wi-Fi or VPN), login type **OpenID Connect → Authelia**. No API token needed.
+Verified 2026-10-30.
