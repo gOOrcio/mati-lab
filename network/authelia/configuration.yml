@@ -193,6 +193,8 @@ identity_providers:
         authorization_policy: 'two_factor'
         redirect_uris:
           - 'https://paperless.mati-lab.online/accounts/oidc/authelia/login/callback/'
+          # Swift Paperless (iOS) native-app callback for its SSO login.
+          - 'x-paperless://oidc-callback'
         scopes:
           - 'openid'
           - 'profile'
