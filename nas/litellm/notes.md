@@ -160,7 +160,10 @@ substitute the captured suffix into `litellm_params.model`
 (`router_utils/pattern_match_deployments.py`), key `models` lists accept
 wildcard patterns (`auth_checks._model_matches_any_wildcard_pattern_in_list`),
 Ollama has a `get_models` hook on `/api/tags`, and background health checks
-skip deployments whose name contains `*`.
+skip deployments whose name contains `*`. (No longer true by 1.106: wildcards
+are probed via `model_info.health_check_model`, and get no `max_tokens` unless
+`health_check_max_tokens` is set — an uncapped reasoning probe every 30s kept
+the Proxmox GPU busy until 2026-10-30. Both wildcards now cap it at 16.)
 
 ### Inspect spend per key
 
