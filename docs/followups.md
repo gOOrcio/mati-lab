@@ -154,7 +154,7 @@ Plan: `docs/superpowers/plans/2026-10-30-paperless-ngx.md` (local). First PR shi
 
 | # | Item | Origin | Source |
 |---|---|---|---|
-| PL.1 | **Paperless `pg_dump` job** (`nas/backup-jobs/paperless-pgdump.sh` from the gitea template) + Kuma push monitor `backup-paperless-dump`. Postgres is an ixVolume, so until this ships the DB is unprotected (documents themselves are snapshotted, tasks 25/26). | Plan Task 8 | `nas/paperless/notes.md` |
+| PL.1 | ~~**Paperless `pg_dump` job**~~ → shipped (cron 79, `nas/backup-jobs/paperless-pgdump.sh`). (`nas/backup-jobs/paperless-pgdump.sh` from the gitea template) + Kuma push monitor `backup-paperless-dump`. Postgres is an ixVolume, so until this ships the DB is unprotected (documents themselves are snapshotted, tasks 25/26). | Plan Task 8 | `nas/paperless/notes.md` |
 | PL.2 | **Gmail backfill since 2020-01-01**, only **after PL.1** (the backfill multiplies what an unprotected DB would lose): one-month pilot, then bulk-label `category:primary has:attachment filename:pdf after:2020/01/01`; watch NAS load and task failures (duplicates expected). | Plan Task 7 | `nas/paperless/notes.md` → Gmail |
 | PL.3 | **Privacy check**: a throwaway ordinary user must see 0 of `gooral`'s documents (`/api/documents/` count). | Plan Task 6 | — |
 | PL.4 | **Kuma HTTP monitor `paperless`** + confirm the Homepage tile and Loki lines. | Plan Task 8 | `network/uptime-kuma/monitors.md` |

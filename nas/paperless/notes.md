@@ -21,10 +21,10 @@ Web port **30125**. Dataset `bulk/paperless` (568:568, mode 755), host paths:
 **Postgres data is an ixVolume.** The catalogue's postgres upgrade init container
 fails on an empty host-path pgdata (`postgres_upgrade init container exit 1`; see
 `nas/gitea/notes.md` gotcha 2). It is **not** covered by the dataset snapshots
-(tasks 25/26). The nightly `pg_dump` job is **not shipped yet** (`docs/followups.md`
-PL.1). Until then, losing the ixVolume loses users, owners, tags, workflows, mail
-rules and Gmail refresh tokens. The media tree survives but can't be re-imported
-with its ownership. Don't start the 2020 Gmail backfill (PL.2) before PL.1.
+(tasks 25/26). It is backed up by `nas/backup-jobs/paperless-pgdump.sh` (cron 79,
+nightly 04:00, gpg-encrypted, 14 days, Kuma push `backup-paperless-dump`). Restore:
+decrypt with the dump passphrase → `psql -U paperless -d paperless` in
+`ix-paperless-ngx-postgres-1`.
 
 The in-container consume path stays `/usr/src/paperless/consume`. Workflow triggers
 match `filter_path` against it, e.g. `/usr/src/paperless/consume/gooral/*`.
