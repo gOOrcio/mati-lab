@@ -141,11 +141,17 @@ user add/change/delete permissions for this reason (it's still not a superuser).
 ## Classification: document types → folders
 
 Document types (matching **Auto**): Bank, Contract, Government, Insurance, Invoice,
-Medical, Personal, Terms and Conditions. Each has a storage path of the same name
+Manual, Medical, Personal, Terms and Conditions; plus **Other** (matching **None**,
+assigned only by the fallback so the classifier doesn't learn to over-predict it). Each has a storage path of the same name
 (`{{ owner_username }}/<Folder>/{{ correspondent }}/{{ created_year }}/{{ title }}`,
 matching None) and a workflow `folder-<type>` (triggers **Document Added** and
 **Document Updated**, filter *has document type*, action *assign storage path*), so
-fixing a document's type moves its file. Workflows are global, so the partner's
+fixing a document's type moves its file. **`fallback-Other`** (order 99, trigger
+Document Added, `filter_has_not_document_types` = *all* types) sets type Other +
+path Others on anything the classifier left untyped. **When adding a new document
+type, append its id to that workflow's not-list**, or new-type documents also get
+"Other". Verified 2026-11-02: an untyped drop into `consume/gooral/` →
+`gooral/Others/2026/…`, owner gooral. Workflows are global, so the partner's
 documents land in `<partner>/<Folder>/…` too. Tags `gmail` and `edited-in-stirling`
 use matching **None**: they're set by the mail rule / workflow, and Auto would
 learn "everything is gmail". The classifier retrains hourly; classify ~5–10
