@@ -111,14 +111,33 @@ Per user:
    Paperless can't see Gmail categories over IMAP, which is why the label is needed.
 2. Paperless (as that user): Mail → **Connect Gmail Account** → click through
    "unverified app" → rename the account `gmail-<user>`.
-3. Mail rule `gmail-pdfs`: folder `paperless`, max age 2200 days, consumption
+3. Mail rule `gmail-pdfs`: folder `paperless`, max age **2600** days
+   (must reach 2020-01-01: 2497 days on 2026-11-02; 2200 silently cut Jan–Oct 2020), consumption
    scope + attachment type *Only process attachments*, include `*.pdf`, action
    **Move to specified folder** `paperless/done` (over Gmail IMAP this swaps
-   the label), tag `gmail`, title from attachment filename, correspondent *do not
-   assign*, **Assign owner from rule** ticked.
+   the label), tag `gmail`, title from attachment filename, correspondent
+   **Use name (or mail address)** (auto-creates correspondents; not retroactive, so
+   pilot documents have none), **Assign owner from rule** ticked.
 
 Verified 2026-10-30 for `gooral`: test mail → filter label → document tagged
 `gmail`, owned by `gooral`, mail moved to `paperless/done`.
+
+### Backfill (PL.2) and the two re-fetch traps
+
+Paperless remembers processed mail by **(folder, UID)** and only records it after the
+mail's consume tasks finish. Two ways that duplicated pilot documents:
+- **Re-labelling a done mail.** Putting `paperless` back on a mail that is already in
+  `paperless/done` gives it a new UID in that folder, so it's fetched again. Always add
+  `-label:paperless-done` to the bulk-label search.
+- **Overlapping fetches.** With the default 10-minute fetch, a big batch is still
+  consuming when the next fetch runs; mails not yet recorded are queued a second time
+  (3 pilot mails, same UID twice a minute apart). During the backfill the fetch runs
+  every 3 h (`PAPERLESS_EMAIL_TASK_CRON=7 */3 * * *`); revert after (followups PL.7).
+
+Procedure: one year per batch. Gmail search
+`category:primary has:attachment filename:pdf after:2020/01/01 before:2021/01/01 -label:paperless-done`
+→ select all conversations → label `paperless`. Wait for the next fetch (hh:07 every
+3 h, or Mail → Process mail) and until the task list is idle, then the next year.
 
 ## Adding a user (partner)
 
@@ -157,6 +176,41 @@ use matching **None**: they're set by the mail rule / workflow, and Auto would
 learn "everything is gmail". The classifier retrains hourly; classify ~5–10
 documents per type by hand before trusting Auto.
 
+### Bank PDFs, unlock, inbox, views (2026-11-02)
+
+- **Taxonomy:** document type = what kind of paper, correspondent = who sent it (from
+  the mail rule), tags = area of life (`home`, `car`, `travel`; Auto, but tag by hand
+  until each has ~10 examples). Don't add a type when a tag will do.
+- **`bank-by-filename`** (order 4, consumption started, sources all): filename
+  triggers `*konto* nr *`, `VISA *`, `TwojeDokumenty*`, `*_NE_*`, `*deponent*` →
+  type Bank. Needed because password-protected statements arrive with no text, so the
+  classifier guesses from nothing, and unlocking never reclassifies the original.
+- **`unlock-bank-pdfs`** (order 3): triggers Document Added (all) + Document Updated
+  with tag `unlock` (matching **None**); actions Password Removal (passwords entered in
+  the UI, never in the repo), then **Removal of tag `unlock`**, so the tag is one-shot
+  and edits don't re-run the unlock. In 3.x the unlocked file is a hidden **version**
+  (`<title>_v1.pdf`, `root_document` = original): search and the UI use its text. The
+  version gets its own classifier guess; keep its type equal to the original's or it
+  trains the classifier on wrong labels. Unprotected PDFs are left alone.
+- **Inbox:** tag `inbox` (`is_inbox_tag`), added to every new document. Review it,
+  remove the tag. Dashboard view **Inbox**.
+- **Saved views** (owner gooral): dashboard: Inbox, Recently added (14 days),
+  Invoices – last 3 months, Bank statements, Contracts & insurance. Sidebar also:
+  Home, Car, Travel, Duplicates, Edited in Stirling. Relative dates are fulltext
+  queries (`added:[-14 day to now]`), so they depend on the search index.
+
+### OCR of signed PDFs, search index
+
+- `PAPERLESS_OCR_USER_ARGS={"invalidate_digital_signatures": true}`. OCRmyPDF refuses
+  digitally signed PDFs (Polish e-government, e-invoices) and Paperless then stores
+  them with **no text**. The flag only affects the archive copy; the original keeps a
+  valid signature (download "original" for proof). Fix older ones with
+  bulk edit → Reprocess.
+- Search index (tantivy, `data/index`): if search misses documents that exist, rebuild
+  with `docker exec -u paperless ix-paperless-ngx-paperless-1 python3 manage.py document_index reindex`.
+  **Always `-u paperless`**: a root run left root-owned 0600 index files, Paperless
+  logged "Search index is corrupted or incomplete" and kept ~10 of 100 documents.
+
 ## Calling the API as a user without a token
 
 For bulk config (created 2026-11-02 this way), run Django's test client inside the
@@ -164,7 +218,7 @@ container via the root channel. Requests go through normal API validation and
 objects are owned by that user, and no password or token is needed:
 
 ```python
-# docker exec -i ix-paperless-ngx-paperless-1 python3 manage.py shell <<'PY'
+# docker exec -u paperless -i ix-paperless-ngx-paperless-1 python3 manage.py shell <<'PY'
 from django.test import Client; from django.contrib.auth.models import User
 c = Client(HTTP_HOST="paperless.mati-lab.online", secure=True)
 c.force_login(User.objects.get(username="gooral"))
@@ -174,6 +228,8 @@ c.get("/api/workflows/", HTTP_ACCEPT="application/json; version=9").json()
 Workflow JSON (v9): trigger `{"type": 2|3, "filter_has_document_type": <id>,
 "matching_algorithm": 0, "sources": []}` (1 = consumption started, 2 = added,
 3 = updated); assignment action `{"type": 1, "assign_storage_path": <id>}`.
+The root channel's `/tmp` is **noexec**: the cron command must be `bash /tmp/x.sh`
+(a bare path dies with exit 137 and no output).
 
 ## Duplicates (3.x default: allow + flag)
 
@@ -183,7 +239,8 @@ a **Duplicates** tab (including twins in the trash). Find them all via the docum
 list's text-filter dropdown → **Duplicates**, or `has_duplicates=true` in the API.
 Kept deliberately (decision 2026-11-02): nothing is ever silently dropped.
 - Same PDF attached to two emails → two documents; delete the extra after review.
-- Same email isn't fetched twice (processed mails are tracked by UID).
+- The same email *can* be fetched twice (re-labelling, overlapping fetches); see
+  Gmail → Backfill. The **Duplicates** saved view lists every flagged document.
 - **Joint documents** (in both partners' mailboxes): each person gets their own
   copy, flagged as duplicates. This replaces the design's "first wins, then
   share", which assumed 2.x rejection.

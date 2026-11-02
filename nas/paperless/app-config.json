@@ -90,6 +90,16 @@
           "container": "paperless",
           "name": "PAPERLESS_IGNORE_DATES",
           "value": "__FROM_PM__homelab/paperless/ignore-dates"
+        },
+        {
+          "container": "paperless",
+          "name": "PAPERLESS_OCR_USER_ARGS",
+          "value": "{\"invalidate_digital_signatures\": true}"
+        },
+        {
+          "container": "paperless",
+          "name": "PAPERLESS_EMAIL_TASK_CRON",
+          "value": "7 */3 * * *"
         }
       ]
     },

@@ -155,11 +155,12 @@ Plan: `docs/superpowers/plans/2026-10-30-paperless-ngx.md` (local). First PR shi
 | # | Item | Origin | Source |
 |---|---|---|---|
 | PL.1 | ~~**Paperless `pg_dump` job**~~ → shipped (cron 79, `nas/backup-jobs/paperless-pgdump.sh`). (`nas/backup-jobs/paperless-pgdump.sh` from the gitea template) + Kuma push monitor `backup-paperless-dump`. Postgres is an ixVolume, so until this ships the DB is unprotected (documents themselves are snapshotted, tasks 25/26). | Plan Task 8 | `nas/paperless/notes.md` |
-| PL.2 | **Gmail backfill since 2020-01-01**, only **after PL.1** (the backfill multiplies what an unprotected DB would lose): one-month pilot, then bulk-label `category:primary has:attachment filename:pdf after:2020/01/01`; watch NAS load and failed tasks. Duplicates are consumed and flagged, not failed (3.x default); afterwards review **Documents → Duplicates** and delete extras. | Plan Task 7 | `nas/paperless/notes.md` → Gmail |
+| PL.2 | **Gmail backfill since 2020-01-01** (PL.1 done): label **one year per batch** with `category:primary has:attachment filename:pdf after:YYYY/01/01 before:YYYY+1/01/01 -label:paperless-done`, wait until Paperless's task list is idle before the next year. Fetch runs every 3 h during the backfill (`PAPERLESS_EMAIL_TASK_CRON`) so a fetch can't re-queue mails still being consumed. Watch NAS load and failed tasks; afterwards review the **Duplicates** view. | Plan Task 7 | `nas/paperless/notes.md` → Backfill |
 | PL.3 | **Privacy check**: a throwaway ordinary user must see 0 of `gooral`'s documents (`/api/documents/` count). | Plan Task 6 | — |
 | PL.4 | ~~**Kuma HTTP monitor `paperless`** + Homepage tile + Loki~~ → shipped 2026-11-02 (monitors `paperless` 73, `backup-paperless-dump` 74). | Plan Task 8 | `network/uptime-kuma/monitors.md` |
 | PL.5 | **Re-check Gmail fetch on/after 2026-11-08**: proves the "In production" consent status avoided the 7-day refresh-token expiry. | Plan Task 9 | — |
 | PL.6 | **Partner onboarding**: Authelia user → SSO self-signup → `grant-perms.py <user> --profile full` (see notes "Adding a user") → Gmail → workflows → Stirling mount/pipeline. | Design | `nas/paperless/notes.md`, `nas/stirling-pdf/notes.md` |
+| PL.7 | **Revert `PAPERLESS_EMAIL_TASK_CRON`** to the default (remove the env, every 10 min) once the PL.2 backfill is finished, then `nas/paperless/deploy.sh update`. | 2026-11-02 audit | `nas/paperless/app-config.json` |
 
 ## Kernel CVE-2026-99154 (libiscsi) followups (2026-11-02)
 
