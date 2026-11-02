@@ -74,10 +74,11 @@ vzdump: backup-268aee6e-c688
         prune-backups keep-last=2
         repeat-missed 0
         storage nas-backups
-        vmid 9000,102,101,100
+        fleecing 0
+        vmid 9000,102,101,110,111
 ```
 
-(VM 100 is the cloud-init template; backing up a template is cheap and gives a known-good pristine snapshot. VM 9000 is small/idle.)
+(VM 9000 is small/idle. VM 100 — the `ollama-gpu-template` — is *not* in the job; its base disks are immutable and VM 101 is a full clone with its own dump. The LXCs 110 smart-resume / 111 restorate were added 2026-11-02 — before that they had no vzdump coverage at all.)
 
 **`local` storage was stripped of `backup` content type:** `pvesm set local --content iso,vztmpl,import`. This makes it impossible for a misconfigured one-shot vzdump to fall back to the root volume. The previous default behaviour (vzdump + `local` + no retention) filled `pve-root` to 100% over 6 weeks, which broke pveproxy and OIDC.
 
@@ -175,7 +176,25 @@ But if the Pi (Caddy + Pi-hole) is also offline, `proxmox.mati-lab.online`
 won't resolve over WG until you hit the host by IP first. Have the
 `192.168.1.184:8006` URL bookmarked separately.
 
+## Upgrades & reboots
+
+Last done **2026-11-02**: PVE 9.1.1 → 9.2.24, kernel 6.17.2-1 → **7.0.14-26-pve** (255 packages; ~1 min guest downtime). Guests were `apt full-upgrade`d in the same window.
+
+Runbook:
+
+1. **Pre-flight:** no running CI job (`docker ps` on the runner shows only `gitea-runner-runner-1`); not near Sun 01:00 vzdump. `vzdump 110 111 --storage nas-backups --mode snapshot` if the last weekly dump is stale. `pveversion -v > /root/pre-upgrade-pveversion.txt`. Pause the Kuma monitors for the host's guests.
+2. **Upgrade detached** so an SSH drop can't kill dpkg mid-run:
+   `systemd-run --unit=pve-upgrade --setenv=DEBIAN_FRONTEND=noninteractive sh -c "apt-get update && apt-get -y -o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold full-upgrade > /root/pve-upgrade.log 2>&1; echo EXIT=\$? >> /root/pve-upgrade.log"`
+   `--force-confold` keeps `/etc/vzdump.conf` (NAS storage + pruning).
+3. **Check which kernel GRUB will boot** (`ls /boot/vmlinuz*`; `GRUB_DEFAULT=0` = newest). A minor PVE bump can switch the default kernel *line* (9.2 pulled in 7.0 via `proxmox-default-kernel`), not just the patch level.
+4. `reboot` — `pve-guests` stops/starts 101 → 102 → 110 → 111; full cycle ~1 min.
+5. **Verify:** `uname -r`; `qm list`/`pct list`; `pvesm status` (nas-backups active); `make verify-gpu`; `ssh ollama-gpu@192.168.1.48 nvidia-smi` + an `/api/embed` call; runner logs show `declare successfully`; restorate/smart-resume return 200.
+
+**Rollback:** previous kernels stay installed. Booted but broken → `proxmox-boot-tool kernel pin <old>-pve --next-boot && reboot`. Won't boot → console, GRUB → Advanced → older kernel (no remote console — do kernel upgrades only when someone is home). Userspace can't be rolled back cleanly; restore guests from vzdump if needed.
+
 ## Lessons
+
+- **`vfio_virqfd` no longer exists as a module** (merged into `vfio` since 6.2). It was in `/etc/modules-load.d/vfio.conf` and produced a harmless `Failed to find module` boot error; removed 2026-11-02.
 
 - **`local` (i.e. `/var/lib/vz`) is on the small root volume, not the big thin pool.** Default Proxmox installs put dumps there; this is a footgun. Phase 7 moved them to NAS NFS; do the same on any future Proxmox host.
 

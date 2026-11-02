@@ -160,3 +160,11 @@ Plan: `docs/superpowers/plans/2026-10-30-paperless-ngx.md` (local). First PR shi
 | PL.4 | **Kuma HTTP monitor `paperless`** + confirm the Homepage tile and Loki lines. | Plan Task 8 | `network/uptime-kuma/monitors.md` |
 | PL.5 | **Re-check Gmail fetch on/after 2026-11-08**: proves the "In production" consent status avoided the 7-day refresh-token expiry. | Plan Task 9 | — |
 | PL.6 | **Partner onboarding**: Authelia user → SSO self-signup → `grant-perms.py <user> --profile full` (see notes "Adding a user") → Gmail → workflows → Stirling mount/pipeline. | Design | `nas/paperless/notes.md`, `nas/stirling-pdf/notes.md` |
+
+## Kernel CVE-2026-99154 (libiscsi) followups (2026-11-02)
+
+Initiator-side OOB read in `drivers/scsi/libiscsi.c`. No box loads `libiscsi`/`iscsi_tcp` or has an iSCSI session, so exposure is nil; no distro shipped a fix yet as of 2026-11-02. Proxmox host was upgraded to PVE 9.2 / kernel 7.0.14-26 the same day (no fix in it).
+
+| # | Item | Origin | Source |
+|---|---|---|---|
+| CVE.1 | **Re-check fixed kernels** (~mid-Nov): Ubuntu `linux`/`linux-raspi` noble (Pi, Ollama VM, dev PC), Debian bookworm (gitea-runner), TrueNAS release with ≥ 6.12.115, Proxmox `apt changelog proxmox-kernel-7.0 \| grep 99154`. Upgrade + reboot each when available. | CVE triage | `compute/proxmox_host/notes.md` → Upgrades & reboots |
