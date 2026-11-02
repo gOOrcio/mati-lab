@@ -28,6 +28,8 @@ is a human inventory — keep roughly in sync after UI/API changes.
 | 22 | `bulk/stirling-pdf` **(recursive)** | daily 02:30 | 90 days | `auto-daily-%Y-%m-%d_%H-%M` | Stirling PDF (2026-10-30) |
 | 23 | `fast/databases/vaultwarden` **(recursive)** | hourly (min 0) | 2 weeks | `auto-%Y-%m-%d_%H-%M` | Vaultwarden (2026-10-30) |
 | 24 | `fast/databases/vaultwarden` **(recursive)** | daily 02:30 | 90 days | `auto-daily-%Y-%m-%d_%H-%M` | Vaultwarden (2026-10-30) |
+| 25 | `bulk/paperless` **(recursive)** | hourly (min 0) | 2 weeks | `auto-%Y-%m-%d_%H-%M` | Paperless (2026-11-02) |
+| 26 | `bulk/paperless` **(recursive)** | daily 02:30 | 90 days | `auto-daily-%Y-%m-%d_%H-%M` | Paperless (2026-11-02) |
 
 **Pattern:** every protected dataset gets the same hourly+daily pair
 (2w / 90d). Different services occupy different id-blocks because of
