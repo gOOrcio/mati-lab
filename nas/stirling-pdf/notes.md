@@ -121,3 +121,21 @@ personal data, so remove after).
    account directly. Username = their Authelia username, sign-in method
    **OAuth2 / SSO**, role User. Free tier = 5 seats; the suspended `admin` may count.
 3. They sign in and see an empty *My Files*. Share one file each way to test.
+
+## Paperless handoff (Processor → Folder)
+
+- Mount: `/mnt/bulk/paperless/consume/gooral/stirling` → `/paperless-consume/gooral`
+  (additional storage; only the per-user return dir, not the whole consume root).
+- Allow-list: `policies.allowedFolderRoots: [/paperless-consume/gooral]` in
+  `settings.yml`, set via the UI, takes effect after a restart. The in-app restart
+  button can't restart the container; use `midclt call -j app.redeploy stirling-pdf`.
+  Allowed roots are usable by **every** Stirling user, so anyone could export into
+  another person's return dir and the file is then owned by that person in Paperless.
+  Acceptable in the household.
+- Source `paperless-gooral` (type Folder, `/paperless-consume/gooral`, top level,
+  after processing = keep, never "delete": Paperless consumes from there).
+- Pipeline `to-paperless`: input Editor, runs on **every export**, output Folder
+  `paperless-gooral`. Paperless workflows `inbox-gooral` (owner) and
+  `from-stirling-gooral` (tag `edited-in-stirling`) handle the rest.
+- Partner: add `consume/<partner>/stirling` mount → `/paperless-consume/<partner>`,
+  append it to `allowedFolderRoots`, redeploy, own source + pipeline.

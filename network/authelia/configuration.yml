@@ -183,3 +183,28 @@ identity_providers:
           - 'code'
         userinfo_signed_response_alg: 'none'
         token_endpoint_auth_method: 'client_secret_basic'
+
+      # Paperless-ngx (NAS catalogue app). Public client + PKCE, no secret:
+      # Swift Paperless (iOS) does the code exchange itself with the client_id
+      # Paperless advertises, and can't hold a secret. Web login (django-allauth
+      # openid_connect, provider_id = authelia) uses PKCE too and sends no secret.
+      - client_id: 'paperless'
+        client_name: 'Paperless-ngx'
+        public: true
+        require_pkce: true
+        pkce_challenge_method: 'S256'
+        authorization_policy: 'two_factor'
+        redirect_uris:
+          - 'https://paperless.mati-lab.online/accounts/oidc/authelia/login/callback/'
+          # Swift Paperless (iOS) native-app callback for its SSO login.
+          - 'x-paperless://oidc-callback'
+        scopes:
+          - 'openid'
+          - 'profile'
+          - 'email'
+        grant_types:
+          - 'authorization_code'
+        response_types:
+          - 'code'
+        userinfo_signed_response_alg: 'none'
+        token_endpoint_auth_method: 'none'
