@@ -30,9 +30,9 @@ for r in con.execute(\"SELECT name,type,active,keyword,interval FROM monitor ORD
 mark a monitor green). They live in the password manager under
 `homelab/uptime-kuma/push-<name>`.
 
-## Live inventory (54 monitors in 7 groups)
+## Live inventory (56 monitors in 7 groups)
 
-### apps (20)
+### apps (21)
 
 | Name | Type | Target | Match / notes |
 |---|---|---|---|
@@ -51,6 +51,7 @@ mark a monitor green). They live in the password manager under
 | prometheus-external | HTTP | `https://prometheus.mati-lab.online/-/healthy` | via Caddy |
 | prometheus-internal | Keyword | `http://prometheus:9090/-/healthy` | `Healthy` — direct |
 | proxmox | HTTP | `https://proxmox.mati-lab.online/api2/json/version` | accepts `200-299,400-499` (401s unauthenticated) |
+| paperless | HTTP | `http://192.168.1.65:30125/accounts/login/` | 200, unauthenticated login page. Added 2026-11-02 |
 | qdrant | Keyword | `http://192.168.1.65:30017/healthz` | `passed` |
 | stirling | Keyword | `http://192.168.1.65:30124/api/v1/info/status` | `"status":"UP"` — body is `{"version":"3.2.2","status":"UP"}`, unauthenticated. Added 2026-10-30 |
 | syncthing | Keyword | `http://192.168.1.65:30016/rest/noauth/health` | `OK` |
@@ -92,7 +93,7 @@ mark a monitor green). They live in the password manager under
 All *arr monitors use the **direct LAN NodePort** — Caddy fronts return 302 to
 Authelia, useless for probing.
 
-### push-monitors (9)
+### push-monitors (10)
 
 Push URLs are secrets; they live in PM under `homelab/uptime-kuma/push-<name>`
 and in `/root/.backup-env` on the NAS as `KUMA_URL_*`.
@@ -107,6 +108,7 @@ and in `/root/.backup-env` on the NAS as `KUMA_URL_*`.
 | backup-gitea-pgdump | 90000 | |
 | backup-homebridge-dump | 604800 | `KUMA_URL_HOMEBRIDGE` |
 | backup-litellm-pgdump | 90000 | |
+| backup-paperless-dump | 90000 | `KUMA_URL_PAPERLESS_DUMP`, from `paperless-pgdump.sh` (NAS cron 79, 04:00 UTC). Added 2026-11-02 |
 | backup-recyclarr-sync | 604800 | `KUMA_URL_RECYCLARR_SYNC` |
 
 ### servers (4)

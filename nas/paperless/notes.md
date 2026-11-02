@@ -21,10 +21,10 @@ Web port **30125**. Dataset `bulk/paperless` (568:568, mode 755), host paths:
 **Postgres data is an ixVolume.** The catalogue's postgres upgrade init container
 fails on an empty host-path pgdata (`postgres_upgrade init container exit 1`; see
 `nas/gitea/notes.md` gotcha 2). It is **not** covered by the dataset snapshots
-(tasks 25/26). The nightly `pg_dump` job is **not shipped yet** (`docs/followups.md`
-PL.1). Until then, losing the ixVolume loses users, owners, tags, workflows, mail
-rules and Gmail refresh tokens. The media tree survives but can't be re-imported
-with its ownership. Don't start the 2020 Gmail backfill (PL.2) before PL.1.
+(tasks 25/26). It is backed up by `nas/backup-jobs/paperless-pgdump.sh` (cron 79,
+nightly 04:00, gpg-encrypted, 14 days, Kuma push `backup-paperless-dump`). Restore:
+decrypt with the dump passphrase → `psql -U paperless -d paperless` in
+`ix-paperless-ngx-postgres-1`.
 
 The in-container consume path stays `/usr/src/paperless/consume`. Workflow triggers
 match `filter_path` against it, e.g. `/usr/src/paperless/consume/gooral/*`.
@@ -137,3 +137,40 @@ user add/change/delete permissions for this reason (it's still not a superuser).
    `/api/documents/` count must not include `gooral`'s.
 5. Then Gmail (their own labels/filter/mail rule), `consume/<user>/` + workflows,
    and the Stirling mount/pipeline (`nas/stirling-pdf/notes.md`).
+
+## Classification: document types → folders
+
+Document types (matching **Auto**): Bank, Contract, Government, Insurance, Invoice,
+Manual, Medical, Personal, Terms and Conditions; plus **Other** (matching **None**,
+assigned only by the fallback so the classifier doesn't learn to over-predict it). Each has a storage path of the same name
+(`{{ owner_username }}/<Folder>/{{ correspondent }}/{{ created_year }}/{{ title }}`,
+matching None) and a workflow `folder-<type>` (triggers **Document Added** and
+**Document Updated**, filter *has document type*, action *assign storage path*), so
+fixing a document's type moves its file. **`fallback-Other`** (order 99, trigger
+Document Added, `filter_has_not_document_types` = *all* types) sets type Other +
+path Others on anything the classifier left untyped. **When adding a new document
+type, append its id to that workflow's not-list**, or new-type documents also get
+"Other". Verified 2026-11-02: an untyped drop into `consume/gooral/` →
+`gooral/Others/2026/…`, owner gooral. Workflows are global, so the partner's
+documents land in `<partner>/<Folder>/…` too. Tags `gmail` and `edited-in-stirling`
+use matching **None**: they're set by the mail rule / workflow, and Auto would
+learn "everything is gmail". The classifier retrains hourly; classify ~5–10
+documents per type by hand before trusting Auto.
+
+## Calling the API as a user without a token
+
+For bulk config (created 2026-11-02 this way), run Django's test client inside the
+container via the root channel. Requests go through normal API validation and
+objects are owned by that user, and no password or token is needed:
+
+```python
+# docker exec -i ix-paperless-ngx-paperless-1 python3 manage.py shell <<'PY'
+from django.test import Client; from django.contrib.auth.models import User
+c = Client(HTTP_HOST="paperless.mati-lab.online", secure=True)
+c.force_login(User.objects.get(username="gooral"))
+c.get("/api/workflows/", HTTP_ACCEPT="application/json; version=9").json()
+# PY
+```
+Workflow JSON (v9): trigger `{"type": 2|3, "filter_has_document_type": <id>,
+"matching_algorithm": 0, "sources": []}` (1 = consumption started, 2 = added,
+3 = updated); assignment action `{"type": 1, "assign_storage_path": <id>}`.
