@@ -137,3 +137,34 @@ user add/change/delete permissions for this reason (it's still not a superuser).
    `/api/documents/` count must not include `gooral`'s.
 5. Then Gmail (their own labels/filter/mail rule), `consume/<user>/` + workflows,
    and the Stirling mount/pipeline (`nas/stirling-pdf/notes.md`).
+
+## Classification: document types → folders
+
+Document types (matching **Auto**): Bank, Contract, Government, Insurance, Invoice,
+Medical, Personal, Terms and Conditions. Each has a storage path of the same name
+(`{{ owner_username }}/<Folder>/{{ correspondent }}/{{ created_year }}/{{ title }}`,
+matching None) and a workflow `folder-<type>` (triggers **Document Added** and
+**Document Updated**, filter *has document type*, action *assign storage path*), so
+fixing a document's type moves its file. Workflows are global, so the partner's
+documents land in `<partner>/<Folder>/…` too. Tags `gmail` and `edited-in-stirling`
+use matching **None**: they're set by the mail rule / workflow, and Auto would
+learn "everything is gmail". The classifier retrains hourly; classify ~5–10
+documents per type by hand before trusting Auto.
+
+## Calling the API as a user without a token
+
+For bulk config (created 2026-11-02 this way), run Django's test client inside the
+container via the root channel. Requests go through normal API validation and
+objects are owned by that user, and no password or token is needed:
+
+```python
+# docker exec -i ix-paperless-ngx-paperless-1 python3 manage.py shell <<'PY'
+from django.test import Client; from django.contrib.auth.models import User
+c = Client(HTTP_HOST="paperless.mati-lab.online", secure=True)
+c.force_login(User.objects.get(username="gooral"))
+c.get("/api/workflows/", HTTP_ACCEPT="application/json; version=9").json()
+# PY
+```
+Workflow JSON (v9): trigger `{"type": 2|3, "filter_has_document_type": <id>,
+"matching_algorithm": 0, "sources": []}` (1 = consumption started, 2 = added,
+3 = updated); assignment action `{"type": 1, "assign_storage_path": <id>}`.
