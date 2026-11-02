@@ -174,3 +174,20 @@ c.get("/api/workflows/", HTTP_ACCEPT="application/json; version=9").json()
 Workflow JSON (v9): trigger `{"type": 2|3, "filter_has_document_type": <id>,
 "matching_algorithm": 0, "sources": []}` (1 = consumption started, 2 = added,
 3 = updated); assignment action `{"type": 1, "assign_storage_path": <id>}`.
+
+## Duplicates (3.x default: allow + flag)
+
+Paperless-ngx 3.x does **not** reject duplicates (2.x did). A file whose checksum
+matches an existing document is still consumed, a warning is logged, and both get
+a **Duplicates** tab (including twins in the trash). Find them all via the document
+list's text-filter dropdown → **Duplicates**, or `has_duplicates=true` in the API.
+Kept deliberately (decision 2026-11-02): nothing is ever silently dropped.
+- Same PDF attached to two emails → two documents; delete the extra after review.
+- Same email isn't fetched twice (processed mails are tracked by UID).
+- **Joint documents** (in both partners' mailboxes): each person gets their own
+  copy, flagged as duplicates. This replaces the design's "first wins, then
+  share", which assumed 2.x rejection.
+- Edited returns from Stirling are different files, so they're separate documents
+  (tag `edited-in-stirling`).
+- Opt-in rejection: `PAPERLESS_CONSUMER_DELETE_DUPLICATES=true` (duplicate file
+  deleted, task fails "Document already exists"). Not used.
