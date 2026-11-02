@@ -1,13 +1,20 @@
 #!/usr/bin/env python3
-"""Grant an ordinary Paperless user the permissions the workflow editor needs.
+"""Grant an ordinary Paperless user a permission profile (never superuser).
 
 Break-glass/admin tool: the web UI is SSO-only, so the `admin` superuser can't
 click through Settings → Users. This logs in to the REST API with admin basic
 auth (password prompted, never echoed or stored) and adds the missing
 permissions to USER, keeping the ones it already has.
 
-Usage: nas/paperless/grant-perms.py [USER]          (default: gooral)
-       nas/paperless/grant-perms.py USER --dry-run  (show what would be added)
+Profiles:
+  workflow  what the workflow editor needs (custom fields, workflow parts, view users/groups)
+  full      everything an ordinary archive user needs: documents, tags, correspondents,
+            document types, storage paths, saved views, notes, share links, mail
+            accounts/rules, custom fields, workflows, UI settings, task view. No user
+            management and no audit log (those only on gooral, for creating the partner).
+
+Usage: nas/paperless/grant-perms.py [USER] [--profile workflow|full] [--dry-run]
+       (defaults: USER=gooral, --profile workflow)
 """
 import argparse
 import base64
@@ -15,13 +22,15 @@ import getpass
 import json
 import sys
 import urllib.error
+import urllib.parse
 import urllib.request
 
 BASE = "https://paperless.mati-lab.online/api"
 
 # Workflow editor loads custom fields and users/groups, and saving a workflow
 # creates trigger/action sub-objects, each with its own model permission.
-MODELS = (
+CRUD = ("view", "add", "change", "delete")
+WORKFLOW_MODELS = (
     "customfield",
     "workflow",
     "workflowtrigger",
@@ -29,8 +38,25 @@ MODELS = (
     "workflowactionemail",
     "workflowactionwebhook",
 )
-WANT = {f"{a}_{m}" for a in ("view", "add", "change", "delete") for m in MODELS}
-WANT |= {"view_user", "view_group"}
+FULL_MODELS = WORKFLOW_MODELS + (
+    "document",
+    "tag",
+    "correspondent",
+    "documenttype",
+    "storagepath",
+    "savedview",
+    "note",
+    "sharelink",
+    "sharelinkbundle",
+    "mailaccount",
+    "mailrule",
+    "uisettings",
+)
+PROFILES = {
+    "workflow": {f"{a}_{m}" for a in CRUD for m in WORKFLOW_MODELS} | {"view_user", "view_group"},
+    "full": {f"{a}_{m}" for a in CRUD for m in FULL_MODELS}
+    | {"view_user", "view_group", "view_paperlesstask"},
+}
 
 
 def call(auth, path, data=None, method="GET"):
@@ -54,28 +80,29 @@ def call(auth, path, data=None, method="GET"):
 def main():
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     p.add_argument("user", nargs="?", default="gooral")
+    p.add_argument("--profile", choices=sorted(PROFILES), default="workflow")
     p.add_argument("--dry-run", action="store_true")
     args = p.parse_args()
 
     pw = getpass.getpass("Paperless admin password: ")
     auth = "Basic " + base64.b64encode(f"admin:{pw}".encode()).decode()
-    del pw
 
-    users = call(auth, f"/users/?username__iexact={args.user}")["results"]
+    want = PROFILES[args.profile]
+    users = call(auth, f"/users/?username__iexact={urllib.parse.quote(args.user)}")["results"]
     if not users:
         sys.exit(f"user {args.user!r} not found")
     user = users[0]
     if user.get("is_superuser"):
         sys.exit(f"{args.user} is a superuser; refusing (design: ordinary users only)")
     have = set(user.get("user_permissions", []))
-    missing = sorted(WANT - have)
+    missing = sorted(want - have)
     if not missing:
         print(f"{args.user}: nothing to add")
         return
     print(f"{args.user}: adding {missing}")
     if args.dry_run:
         return
-    call(auth, f"/users/{user['id']}/", {"user_permissions": sorted(have | WANT)}, "PATCH")
+    call(auth, f"/users/{user['id']}/", {"user_permissions": sorted(have | want)}, "PATCH")
     print("done")
 
 

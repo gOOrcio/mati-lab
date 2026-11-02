@@ -20,8 +20,11 @@ Web port **30125**. Dataset `bulk/paperless` (568:568, mode 755), host paths:
 
 **Postgres data is an ixVolume.** The catalogue's postgres upgrade init container
 fails on an empty host-path pgdata (`postgres_upgrade init container exit 1`; see
-`nas/gitea/notes.md` gotcha 2). The database is backed up by the nightly `pg_dump`
-job, not by dataset snapshots.
+`nas/gitea/notes.md` gotcha 2). It is **not** covered by the dataset snapshots
+(tasks 25/26). The nightly `pg_dump` job is **not shipped yet** (`docs/followups.md`
+PL.1). Until then, losing the ixVolume loses users, owners, tags, workflows, mail
+rules and Gmail refresh tokens. The media tree survives but can't be re-imported
+with its ownership. Don't start the 2020 Gmail backfill (PL.2) before PL.1.
 
 The in-container consume path stays `/usr/src/paperless/consume`. Workflow triggers
 match `filter_path` against it, e.g. `/usr/src/paperless/consume/gooral/*`.
@@ -50,8 +53,7 @@ via a one-shot disabled cron job. `apply.sh`:
 
 Values file keys (PM label = key; username in Vaultwarden in brackets):
 `homelab/paperless/db-password` [paperless], `homelab/paperless/redis-password`
-[—], `homelab/paperless/secret-key` [—], `homelab/paperless/admin-password` [admin],
-`homelab/authelia/oidc-paperless-clientsecret` [paperless], and from Task 5
+[—], `homelab/paperless/secret-key` [—], `homelab/paperless/admin-password` [admin], and since the Gmail step
 `homelab/paperless/gmail-oauth-client-secret`.
 
 Gotchas:
@@ -117,3 +119,21 @@ Per user:
 
 Verified 2026-10-30 for `gooral`: test mail → filter label → document tagged
 `gmail`, owned by `gooral`, mail moved to `paperless/done`.
+
+## Adding a user (partner)
+
+The web UI is SSO-only, so `admin` can't create users in the browser. `gooral` holds
+user add/change/delete permissions for this reason (it's still not a superuser).
+
+1. Authelia: `cd network && make add-authelia-user`; they enrol 2FA.
+2. They sign in at `https://paperless.mati-lab.online` → Authelia → allauth's
+   signup form creates their account (`PAPERLESS_SOCIALACCOUNT_ALLOW_SIGNUPS` is
+   left at its default `true`; `SOCIAL_AUTO_SIGNUP=false` only means they confirm
+   the form). **The gate is the Authelia user list:** any Authelia user can create
+   an account, but a new account has **no permissions** and sees nothing.
+3. Grant the ordinary-user profile: `nas/paperless/grant-perms.py <user> --profile full`
+   (admin password prompt; refuses superusers). Run with `--dry-run` first.
+4. Before giving them real documents: the privacy check (followups PL.3), i.e. their
+   `/api/documents/` count must not include `gooral`'s.
+5. Then Gmail (their own labels/filter/mail rule), `consume/<user>/` + workflows,
+   and the Stirling mount/pipeline (`nas/stirling-pdf/notes.md`).

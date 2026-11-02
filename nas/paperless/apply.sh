@@ -54,11 +54,12 @@ try:
             sys.exit("mode must be create or update")
         log = "state: " + str((res or {}).get("state"))
 except Exception as e:
-    rc, log = 1, f"{type(e).__name__}: {e}"[-3000:]
+    rc, log = 1, f"{type(e).__name__}: {e}"
+# Redact before truncating, so a cut can never leave an unredacted fragment.
 for v in vals.values():
     if v:
         log = log.replace(v, "<redacted>")
-print(log)
+print(log[-3000:])
 print(f"apply.sh {mode}: exit {rc}")
 sys.exit(rc)
 PY
