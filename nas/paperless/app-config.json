@@ -85,6 +85,11 @@
           "container": "paperless",
           "name": "PAPERLESS_CONSUMER_IGNORE_DIRS",
           "value": "[\".stirling\"]"
+        },
+        {
+          "container": "paperless",
+          "name": "PAPERLESS_IGNORE_DATES",
+          "value": "__FROM_PM__homelab/paperless/ignore-dates"
         }
       ]
     },

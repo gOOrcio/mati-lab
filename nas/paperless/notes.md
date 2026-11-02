@@ -191,3 +191,30 @@ Kept deliberately (decision 2026-11-02): nothing is ever silently dropped.
   (tag `edited-in-stirling`).
 - Opt-in rejection: `PAPERLESS_CONSUMER_DELETE_DUPLICATES=true` (duplicate file
   deleted, task fails "Document already exists"). Not used.
+
+## Allegro and other mail noise (2026-11-02)
+
+- **Mail rule excludes** (`filter_attachment_filename_exclude`, case-insensitive
+  wildcards): `*z Allegro Pay*, *Projekt umowy Allegro Pay*, Regulamin*Allegro*,
+  *Polityka prywatno*ci*`. These are the generic Allegro Pay info sheets, blank
+  contract templates, Allegro service regulations and privacy policies. Real
+  `Umowa Allegro Pay <nr>` contracts and invoices in the same mail still come in.
+  Exclusion is done here, not in the Gmail filter, because Gmail can only drop
+  whole mails.
+- **Seller terms are kept** ("information from the seller as shown at purchase"; useful
+  in a return/warranty dispute): workflow `seller-terms` (order 5, consumption
+  started, sources all, filename triggers `*Warunki reklamacji*`,
+  `*Warunki odst*pienia*`, `*Informacje o gwarancjach*`, `*wzor_odstapienia*`,
+  `*Regulamin_sklepu*`) → type Terms and Conditions + tag `seller-terms`
+  (→ folder TaCs).
+- Pilot cleanup: 53 existing seller-terms docs reclassified; 32 boilerplate
+  docs (+ the fallback test) moved to trash (30-day recovery).
+
+## Ignored dates
+
+`PAPERLESS_IGNORE_DATES` comes from values.conf (`homelab/paperless/ignore-dates`,
+comma list; kept out of the repo because it includes a personal date). Contains
+`1964-04-23`, a fixed date in every Allegro Pay template that Paperless otherwise
+picked as "created" (contracts filed under `1964/`), plus the owner's birth date.
+Only affects new consumption; fix existing documents' `created` by hand.
+`apply.sh` allows commas in values for this.

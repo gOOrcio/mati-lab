@@ -35,8 +35,9 @@ for line in open(values_path):
 text = open(cfg_path).read()
 for k, v in vals.items():
     # values are inserted inside JSON strings, sometimes doubly nested (SOCIALACCOUNT_PROVIDERS)
-    if not re.fullmatch(r"[A-Za-z0-9_.~-]+", v):
-        sys.exit(f"value for {k} has characters other than [A-Za-z0-9_.~-]; regenerate with openssl rand -hex")
+    # Commas allowed for list values (e.g. ignore-dates); still JSON- and shell-safe.
+    if not re.fullmatch(r"[A-Za-z0-9_.~,-]+", v):
+        sys.exit(f"value for {k} has characters other than [A-Za-z0-9_.~,-]; regenerate with openssl rand -hex")
     text = text.replace("__FROM_PM__" + k, v)
 left = sorted(set(re.findall(r"__FROM_PM__[A-Za-z0-9/_.-]+", text)))
 if left:
