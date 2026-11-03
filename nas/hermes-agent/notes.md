@@ -1,7 +1,8 @@
 # Hermes Agent (NAS) — catalogue app
 
 TrueNAS Scale **catalogue app** `hermes-agent` (train `community`, chart
-version `1.0.19`, image `nousresearch/hermes-agent:v2026.9.7`). Replaces the
+version `1.0.34`, image `nousresearch/hermes-agent:v0.22.5`, Python 3.14;
+chart 1.0.36 available as of 2026-11-03). Replaces the
 bespoke Custom App formerly at `nas/hermes/`, which was **deleted via the UI
 on 2026-07-31** (no longer a rollback target — see `nas/hermes/notes.md`).
 Single `gateway run` container; no separate dashboard
@@ -10,8 +11,9 @@ container on its own published port.
 
 The `hermes-investor` plugin is **not baked into the image**. It's built as a
 standalone bundle (`uv pip install --target`, matching the image's Python ABI)
-and injected at runtime via `PYTHONPATH` + a read-only bind mount — see
-"Plugin bundle" below. Deploy artifacts and rationale: see "Plan + spec"
+on a read-only bind mount, and discovered through a 2-file **directory-plugin
+shim** in `/opt/data/plugins/hermes-investor/` (not `PYTHONPATH` — Hermes
+v0.22.5+ discards it) — see "Plugin bundle" below. Deploy artifacts and rationale: see "Plan + spec"
 at the bottom.
 
 ## Endpoints
@@ -159,6 +161,29 @@ built against the pre-v0.22.4 Python, and it failed with `No module named
 image (`/opt/hermes/tools/uv-<ver>/uv`); the build script handles that as of
 hermes-investor `fix/bundle-uv-path`.
 
+## ⚠️ Upgrade trap: v0.22.5 discards `PYTHONPATH` — plugin silently dead 10-22 → 11-03
+
+The 10-29 bundle rebuild above fixed the ABI error but the plugin **still**
+did not load: v0.22.5's launcher rebuilds the interpreter path itself
+(`/opt/hermes/.venv/bin/hermes` → `unset PYTHONPATH PYTHONHOME; export
+PYTHONPATH="$REPO:$SITE"`; `hermes_cli/_launchers.py` pops it and runs
+`python -I`). The gateway process ran with
+`PYTHONPATH=/opt/hermes/.:/opt/hermes/.venv/lib/python3.14/site-packages`
+(read from `/proc/<pid>/environ` as UID 568), so `/opt/investor-sp` and its
+`hermes_agent.plugins` entry point were invisible (`entrypoints: 0
+manifest(s)` under `HERMES_PLUGINS_DEBUG=1`). Every investor cron from
+2026-10-22 to 2026-11-03 logged `cron.scheduler: … skill not found, skipping
+— Skill 'hermes-investor:…' not found` and the LLM improvised a reply
+without tools. The 10-29 verification (`PYTHONPATH=/opt/investor-sp python
+-c "import …"`) passed because it bypassed the launcher.
+
+Fix (live 2026-11-03 23:34 UTC): the directory-plugin shim + `plugins.load_timeout_seconds: 60`
+described under "Plugin bundle", then `app.redeploy`. **Verify only with
+`docker exec -u 568 ix-hermes-agent-hermes-agent-1 hermes plugins list`**
+(root channel) — it must print `hermes-investor │ enabled │ … │ user`. A
+Grafana alert (`hermes-investor-plugin-missing`) now pages ntfy on the
+`skill not found, skipping` line or a plugin load error.
+
 ## Storage
 
 | Role | Type | Path (host → container) | Owner | Read-only? |
@@ -186,10 +211,29 @@ Built by `hermes-investor/scripts/build_investor_bundle.sh` **inside the
 target stock image** (for Python-ABI match — never copy an existing bundle
 across image versions) and installed at
 `/mnt/fast/databases/hermes-investor-bundle/investor-sp` on the NAS, owned
-`10000:10000`. The app mounts it read-only at `/opt/investor-sp` and sets
-`PYTHONPATH=/opt/investor-sp` (both in `additional_envs` /
-`additional_storage` in `app-config.json`) so `importlib.metadata` discovers
-the `hermes_agent.plugins` entry point at startup.
+`10000:10000`. The app mounts it read-only at `/opt/investor-sp`
+(`additional_storage` in `app-config.json`). It is a **dependency store
+only**: Hermes discovers the plugin through the directory-plugin shim at
+`/mnt/fast/databases/hermes/data/plugins/hermes-investor/` → `/opt/data/plugins/hermes-investor/`
+(owned `568:568`, i.e. inside the app-data dataset):
+
+| File | Content |
+|---|---|
+| `__init__.py` | copy of `hermes-investor/deploy/hermes-plugin-shim/hermes-investor/__init__.py` — `sys.path.append("/opt/investor-sp")` then `from hermes_investor_plugin import register` |
+| `plugin.yaml` | symlink → `/opt/investor-sp/hermes_investor_plugin/plugin.yaml` (manifest never drifts from the bundle) |
+
+`append`, not `insert`: Hermes's own pydantic/httpx/requests/aiosqlite win;
+the bundle only supplies what the image lacks (pandas, yfinance, …). The
+`PYTHONPATH=/opt/investor-sp` env that used to drive entry-point discovery is
+**dead since v0.22.5** (see the upgrade trap above); it was dropped from
+`app-config.json` on 2026-11-03 and the copy still in the live app values is
+inert (drops at the next `app.update`). `config.yaml` carries
+`plugins.load_timeout_seconds: 60` because the plugin takes ~6 s to import
+and register on this NAS (default deadline 10 s, and the box logs memory
+pressure).
+
+The build script installs/refreshes the shim as root (temp-cronjob channel)
+on every deploy and fails unless `hermes plugins list` lists the plugin.
 
 **The build runs LOCALLY on the dev PC**, not on the NAS: `truenas_admin` has
 no docker and no passwordless sudo, so the script pulls + builds inside the
@@ -223,7 +267,6 @@ cutover). The full set:
 | Var | Value / source | Purpose |
 |---|---|---|
 | `HERMES_HOME` | `/opt/data` | Hermes data root |
-| `PYTHONPATH` | `/opt/investor-sp` | plugin discovery (see above) |
 | `HERMES_DASHBOARD_CHAT_TRUST_ALL_HOSTS` | `1` | dashboard `/chat` tab behind Caddy |
 | `HERMES_INVESTOR_DATA_DIR` | `/opt/data/hermes-investor` | plugin data dir |
 | `HERMES_INVESTOR_DB_PATH` | `/opt/data/hermes-investor/db.sqlite` | plugin SQLite (~60 MB) |
@@ -269,10 +312,13 @@ Catalogue apps upgrade by chart `version` bump, not image rebuild:
    bundle: `hermes-investor/scripts/build_investor_bundle.sh` (targets the
    new image so the compiled wheels — pydantic-core, pandas/numpy —
    ABI-match). No image build for us either way; the bundle is a plain
-   `PYTHONPATH` install.
-4. Verify: container `Up` with 0 restarts, `hermes tools list` shows
-   `✓ enabled hermes-investor`, dashboard returns 200 on `:30262`, a
-   one-shot `hermes -z "PONG"` authenticates against Telegram.
+   `uv pip install --target` tree loaded through the directory-plugin shim.
+4. Verify: container `Up` with 0 restarts, `docker exec -u 568
+   ix-hermes-agent-hermes-agent-1 hermes plugins list` shows
+   `hermes-investor │ enabled │ … │ user` (root channel; the build script
+   does this for you), dashboard returns 200 on `:30262`, a one-shot
+   `hermes -z "PONG"` authenticates against Telegram, and the next investor
+   cron run has no `skill not found` line in Loki.
 
 ## Deploy / update / remove
 

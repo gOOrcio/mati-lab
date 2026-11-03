@@ -2,7 +2,7 @@
   "app_name": "hermes",
   "catalog_app": "hermes-agent",
   "train": "community",
-  "version": "1.0.19",
+  "version": "1.0.34",
   "values": {
     "hermes_agent": {
       "gateway_key": "__FROM_PM__homelab/hermes/gateway-key",
@@ -11,7 +11,6 @@
       "shm_size_mb": 1024,
       "additional_envs": [
         {"name": "TZ", "value": "Europe/Warsaw"},
-        {"name": "PYTHONPATH", "value": "/opt/investor-sp"},
         {"name": "HERMES_INVESTOR_DISCOVERY_SNAPSHOT_PATH", "value": "/opt/data/hermes-investor/candidates.snapshot.json"},
         {"name": "HERMES_INVESTOR_SEC_USER_AGENT", "value": "hermes-investor mateusz.goral92@gmail.com"},
         {"name": "OPENAI_API_KEY", "value": "__FROM_PM__homelab/litellm/hermes"},
