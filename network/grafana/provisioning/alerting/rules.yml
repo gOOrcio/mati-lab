@@ -263,7 +263,10 @@ groups:
         for: 0s
         annotations:
           summary: Hermes investor plugin not loaded or cron skill missing
-          description: "Hermes gateway logged 'skill not found' / plugin load failure {{ if $values.A }}{{ printf \"%.0f\" $values.A.Value }}x{{ else }}N/A{{ end }} in the last hour — check `hermes plugins list` (nas/hermes-agent/notes.md, v0.22.5 PYTHONPATH trap)"
+          description: >-
+            Hermes gateway logged 'skill not found' / plugin load failure
+            {{ if $values.A }}{{ printf "%.0f" $values.A.Value }}x{{ else }}N/A{{ end }} in the last hour.
+            Check `hermes plugins list` (nas/hermes-agent/notes.md, v0.22.5 PYTHONPATH trap).
         labels:
           severity: warning
 
