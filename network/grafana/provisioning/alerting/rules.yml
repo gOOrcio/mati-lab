@@ -208,6 +208,66 @@ groups:
           severity: warning
 
   - orgId: 1
+    name: hermes
+    folder: Alerts
+    interval: 1m
+    rules:
+      # The hermes-investor plugin failed silently for 12 days (2026-10-22 → 11-03):
+      # the gateway kept running, crons "succeeded", only this log line told the
+      # story. Fire on the scheduler's skill-not-found line or a plugin load error.
+      - uid: hermes-investor-plugin-missing
+        title: Hermes investor plugin missing
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: loki
+            relativeTimeRange:
+              from: 3600
+              to: 0
+            model:
+              expr: |
+                sum(count_over_time(
+                  {container="ix-hermes-agent-hermes-agent-1"}
+                    |~ "(?i)(skill not found, skipping|failed to load .*plugin|plugin 'hermes-investor'.*(fail|error|timed out|exceed))"
+                  [1h]
+                ))
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+          - refId: C
+            datasourceUid: __expr__
+            relativeTimeRange:
+              from: 0
+              to: 0
+            model:
+              conditions:
+                - evaluator:
+                    params: [0]
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params: [A]
+                  reducer:
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              refId: C
+              type: threshold
+        noDataState: OK
+        execErrState: Error
+        for: 0s
+        annotations:
+          summary: Hermes investor plugin not loaded or cron skill missing
+          description: "Hermes gateway logged 'skill not found' / plugin load failure {{ if $values.A }}{{ printf \"%.0f\" $values.A.Value }}x{{ else }}N/A{{ end }} in the last hour — check `hermes plugins list` (nas/hermes-agent/notes.md, v0.22.5 PYTHONPATH trap)"
+        labels:
+          severity: warning
+
+  - orgId: 1
     name: restorate
     folder: Restorate
     interval: 1m
