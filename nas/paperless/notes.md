@@ -138,6 +138,35 @@ Procedure: one year per batch. Gmail search
 `category:primary has:attachment filename:pdf after:2020/01/01 before:2021/01/01 -label:paperless-done`
 → select all conversations → label `paperless`. Wait for the next fetch (hh:07 every
 3 h, or Mail → Process mail) and until the task list is idle, then the next year.
+Gmail only offers "select all conversations that match this search" when the results
+are sorted by **most recent** ("Najnowsze"); under the default "most relevant" sort
+("1–50 of many") the link never appears.
+
+**A slow batch strands mails in `paperless` (2020 batch, 2026-11-05).** The Gmail
+OAuth access token is refreshed only when a fetch starts and lives one hour, while
+the "move to `paperless/done`" action (`apply_mail_action`) runs after the consume
+queue and does not refresh it. That batch (235 mails, 255 documents, one worker)
+took 68 minutes: 37 moves succeeded, 149 failed with `AUTHENTICATIONFAILED` and
+were recorded as `ProcessedMail.status = FAILED`. Those mails are consumed and are
+never fetched again (the (folder, UID) record exists), but they keep the `paperless`
+label. Prevention: `PAPERLESS_TASK_WORKERS=3` (default 1; 16 cores, so 5 OCR threads
+per worker) keeps a year under the hour.
+
+**Mails without a matching PDF also stay in `paperless`.** A labelled mail whose
+attachments don't pass the rule (thread replies, inline images, excluded names) is
+recorded as `PROCESSED_WO_CONSUMPTION` and the move action is never run for it (50
+after the 2020 batch). So the label is not empty after a clean batch either.
+
+**Clear the label after every batch, before labelling the next year.** Everything in
+`paperless` that has a `ProcessedMail` record (same UIDVALIDITY, same subject or date)
+is finished: move it to `paperless/done`. Leave anything without a record, that is
+mail still waiting for a fetch. Don't use Gmail's "select all → move" while new mail
+may be arriving in the label: it would sweep pending mail into `done` and it would
+never be imported. Done on 2026-11-06 for 199 mails from the Paperless side: Django
+shell as `paperless`, refresh the token as the fetch does
+(`PaperlessMailOAuth2Manager().refresh_account_oauth_token`), `get_mailbox` +
+`mailbox_login`, then `get_rule_action(rule).post_consume(M, uid, "paperless/done")`
+per matched UID.
 
 ## Adding a user (partner)
 
@@ -275,3 +304,17 @@ comma list; kept out of the repo because it includes a personal date). Contains
 picked as "created" (contracts filed under `1964/`), plus the owner's birth date.
 Only affects new consumption; fix existing documents' `created` by hand.
 `apply.sh` allows commas in values for this.
+
+## ISO dates are read as year-day-month
+
+With the default `PAPERLESS_DATE_ORDER=DMY`, dateparser reads `2026-11-05` as
+11 May 2026, and drops ISO dates whose day is above 12 (the next date in the text
+wins, or the consumption date). `YMD` is not a fix: it reads `5.11.2026` as 11 May
+and `05.11.26` as 2005. Documents with no parseable date get the consumption date.
+
+2026-11-06: 96 documents corrected through the API (`PATCH created`), found by
+"the stored date is absent from the text but its day/month swap is present in ISO
+form". 83 of them were housing-administration printouts (`Obciążenie YYYY-MM`,
+`Rozliczenie_korekta YYYY-MM`, `Kartoteka YYYY[-n]`), which all carried the print
+date; they now use the period in the title (ledgers: year end, or the print date for
+the current year). Re-run the check after each backfill batch (followups PL.8).

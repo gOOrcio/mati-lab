@@ -161,6 +161,7 @@ Plan: `docs/superpowers/plans/2026-10-30-paperless-ngx.md` (local). First PR shi
 | PL.5 | **Re-check Gmail fetch on/after 2026-11-08**: proves the "In production" consent status avoided the 7-day refresh-token expiry. | Plan Task 9 | — |
 | PL.6 | **Partner onboarding**: Authelia user → SSO self-signup → `grant-perms.py <user> --profile full` (see notes "Adding a user") → Gmail → workflows → Stirling mount/pipeline. | Design | `nas/paperless/notes.md`, `nas/stirling-pdf/notes.md` |
 | PL.7 | **Revert `PAPERLESS_EMAIL_TASK_CRON`** to the default (remove the env, every 10 min) once the PL.2 backfill is finished, then `nas/paperless/deploy.sh update`. | 2026-11-02 audit | `nas/paperless/app-config.json` |
+| PL.8 | **ISO dates parsed year-day-month** (`2026-11-05` → 11 May). No config fix (`DATE_ORDER=YMD` breaks Polish dates). Re-run the swap check after each backfill batch; if it keeps biting, add a nightly fixer or a post-consume script. Also worth reporting upstream: `apply_mail_action` doesn't refresh the Gmail OAuth token, so mail actions fail once a batch outlives the 1 h token. | 2020 batch check, 2026-11-06 | `nas/paperless/notes.md` → "ISO dates…", Backfill |
 
 ## Kernel CVE-2026-99154 (libiscsi) followups (2026-11-02)
 
