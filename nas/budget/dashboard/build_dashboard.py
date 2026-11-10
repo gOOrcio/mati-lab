@@ -112,7 +112,7 @@ avg_m AS (
            COALESCE(SUM(amount) FILTER (WHERE is_income), 0) inc,
            COALESCE(-SUM(amount) FILTER (WHERE NOT is_income), 0) exp
     FROM v_flows
-    WHERE date >= {MONTH_START} - ($avg_months || ' months')::interval AND date < {MONTH_START}
+    WHERE date >= {MONTH_START} - make_interval(months => ${{avg_months:sqlstring}}::int) AND date < {MONTH_START}
     GROUP BY 1) x)"""
 CASH = "cash AS (SELECT COALESCE(SUM(balance), 0) AS v FROM accounts WHERE NOT offbudget AND NOT closed)"
 
@@ -122,7 +122,7 @@ panels = [
     stat("Spent this month", f"SELECT -COALESCE(SUM(amount), 0) AS value FROM v_flows WHERE NOT is_income AND date >= {MONTH_START}", 4, 0,
          desc="Net spending (refunds subtract). Excludes transfers between own accounts."),
     stat("Income this month", f"SELECT COALESCE(SUM(amount), 0) AS value FROM v_flows WHERE is_income AND date >= {MONTH_START}", 8, 0),
-    stat("Runway without income", f"WITH {CASH},{AVG} SELECT (cash.v / NULLIF(avg_m.exp + $extra_fixed, 0))::numeric(6,1) AS value FROM cash, avg_m", 12, 0,
+    stat("Runway without income", f"WITH {CASH},{AVG} SELECT (cash.v / NULLIF(avg_m.exp + ${{extra_fixed:sqlstring}}::numeric, 0))::numeric(6,1) AS value FROM cash, avg_m", 12, 0,
          unit="none", decimals=1,
          desc="Months the current cash lasts at the average spending of the last $avg_months full months plus $extra_fixed/month, with no income."),
     stat("To review", "SELECT count(*) AS value FROM v_review_queue", 16, 0, unit="none",
@@ -162,8 +162,8 @@ ORDER BY 1""", 12, 14, 12, 12, desc="End-of-month sum of every account, includin
 WITH {CASH},{AVG},
 sim AS (
   SELECT g AS n,
-         CASE WHEN g <= $months_no_income THEN 0 ELSE avg_m.inc * (1 - $income_cut_pct / 100.0) END
-         - (avg_m.exp + $extra_fixed) AS net
+         CASE WHEN g <= ${{months_no_income:sqlstring}}::int THEN 0 ELSE avg_m.inc * (1 - ${{income_cut_pct:sqlstring}}::numeric / 100.0) END
+         - (avg_m.exp + ${{extra_fixed:sqlstring}}::numeric) AS net
   FROM avg_m, generate_series(1, 24) g)
 SELECT date_trunc('month', now()) + (n || ' months')::interval AS time,
        (SELECT v FROM cash) + SUM(net) OVER (ORDER BY n) AS "Projected cash"
