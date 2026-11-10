@@ -3,7 +3,7 @@
 Household budget. **Actual Budget** (envelope budgeting, local-first) serves
 `https://budget.mati-lab.online`, which sits behind Authelia 2FA and is
 LAN/VPN only. mBank transactions arrive by **Enable Banking** bank sync, or by
-**CSV** for history and the JDG account. Categorisation runs **local** LLMs
+**CSV** for history. Categorisation runs **local** LLMs
 via LiteLLM. A Postgres mirror feeds the Grafana dashboard **Budget**
 (`https://grafana.mati-lab.online/d/budget`).
 
@@ -89,9 +89,9 @@ Actual's Enable Banking integration is **experimental** (26.11.0). Do the setup 
 5. In Actual go to **More → Bank Sync → Set up Enable Banking**, paste the App ID
    and upload the .pem.
 6. For each account: **Add account → Link bank account → Enable Banking → PL → mBank**
-   (MBank or MBankV2). Start with the personal account and the credit card. Add
-   the joint account once you've confirmed it shows up. The **JDG account stays
-   on CSV**, because the free tier covers personal use only.
+   (MBank or MBankV2). Linked 2026-11-10: `mBank osobiste` (mKonto Intensive),
+   `mBank karta`, `mBank oszczędności`, `mBiznes JDG`. **Not linked:** the joint
+   eKonto (unused, to be closed) and the eKonto walutowe FX accounts.
 7. Write down the consent expiry Enable Banking shows (`valid_until`) in the
    "Consent log" below. Actual's docs say "90 days at most".
 
@@ -112,9 +112,9 @@ to the consent log.
 
 | Date linked | Accounts | valid_until |
 |---|---|---|
-| — | (pending first link) | |
+| 2026-11-10 | osobiste, karta, oszczędności, mBiznes JDG | ≤ 2027-02-08 (90 d; confirm in mBank → Usługi zewnętrzne) |
 
-## CSV import (history, JDG, fallback)
+## CSV import (history, fallback)
 
 From mBank: **Historia → Lista operacji → Eksportuj → CSV**, one account per file.
 Both the new 5-column UTF-8 layout and the legacy 8-column CP1250 layout parse.
