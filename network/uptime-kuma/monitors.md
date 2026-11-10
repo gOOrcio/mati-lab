@@ -30,12 +30,13 @@ for r in con.execute(\"SELECT name,type,active,keyword,interval FROM monitor ORD
 mark a monitor green). They live in the password manager under
 `homelab/uptime-kuma/push-<name>`.
 
-## Live inventory (56 monitors in 7 groups)
+## Live inventory (59 monitors in 7 groups)
 
-### apps (21)
+### apps (22)
 
 | Name | Type | Target | Match / notes |
 |---|---|---|---|
+| budget | Keyword | `https://budget.mati-lab.online/health` | `UP` — `/health` bypasses Authelia in Caddy. Added 2026-11-10 |
 | authelia | HTTP | `https://authelia.mati-lab.online` | |
 | caddy | HTTP | `http://caddy:2019/config/` | Admin API, returns 200. **Do not probe `http://caddy:80`** — see the Caddy note below. ⚠ carries a stray `keyword=Ollama is running` copy-pasted from `ollama-gpu` (inert on HTTP type) |
 | gitea | Keyword | `https://gitea.mati-lab.online/api/v1/version` | `version` — LAN `:30009` is SSH, HTTP only via Caddy |
@@ -93,7 +94,7 @@ mark a monitor green). They live in the password manager under
 All *arr monitors use the **direct LAN NodePort** — Caddy fronts return 302 to
 Authelia, useless for probing.
 
-### push-monitors (10)
+### push-monitors (12)
 
 Push URLs are secrets; they live in PM under `homelab/uptime-kuma/push-<name>`
 and in `/root/.backup-env` on the NAS as `KUMA_URL_*`.
@@ -105,6 +106,8 @@ and in `/root/.backup-env` on the NAS as `KUMA_URL_*`.
 | ` backup-nas-zfs-health` | 90000 | ⚠ leading space |
 | backup-arr-config-backup | 604800 | `KUMA_URL_ARR_CONFIG` |
 | vaultwarden-dump | 86400 | `KUMA_URL_VAULTWARDEN_DUMP`, from `vaultwarden-backup.sh` (NAS cron 60, 03:45 UTC). Added 2026-10-30 |
+| backup-budget | 90000 | `KUMA_URL_BUDGET_BACKUP`, from `budget-backup.sh` (NAS cron 181, 04:30). Added 2026-11-10 |
+| budget-export | 3600 | `KUMA_PUSH_URL` in `/mnt/fast/databases/budget/secrets/kuma.env`; pushed by budget-worker after every export (every 30 min). Added 2026-11-10 |
 | backup-gitea-pgdump | 90000 | |
 | backup-homebridge-dump | 604800 | `KUMA_URL_HOMEBRIDGE` |
 | backup-litellm-pgdump | 90000 | |
