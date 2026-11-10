@@ -182,7 +182,7 @@ scp lista.csv "truenas_admin@192.168.1.65:/mnt/fast/databases/budget/inbox/<Actu
 
 ## actual-ai dry run → live
 
-Now `FEATURES=["dryRun"]`. **`classifyOnStartup` is off on purpose**: every
+**Live since 2026-11-10 15:30, `FEATURES=[]`**. Each row it categorises gets `#actual-ai` in its notes, so wrong guesses can be found. **`classifyOnStartup` stays off on purpose**: every
 TrueNAS `app.update` restarts all containers, and in dry-run mode each pass
 re-classifies *every* uncategorised row (about 10 s each on the 3070, so hours).
 The three cron runs are enough. Once live, a pass only sees new rows.
@@ -193,8 +193,8 @@ and put random card spend abroad into Koszty firmowe. So **payee rules carry the
 load**: about 23 seeded rules (`rules list`) categorised 626 historical rows
 deterministically. actual-ai only gets the long tail.
 
-To go live: remove `dryRun` in `budget.conf` and run `deploy.sh update`. The first
-live cron run then works through the remaining tail once.
+Rows still unsure after the live run carry `#actual-ai-miss` and show up in the
+dashboard's Review queue. To pause it again, set `FEATURES='["dryRun"]'`.
 
 ## Backups and restore
 

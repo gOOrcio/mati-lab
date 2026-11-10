@@ -170,7 +170,7 @@ Plan: `docs/superpowers/plans/2026-11-10-budget-stack.md` (local). Runbook: `nas
 | # | Item | Origin | Source |
 |---|---|---|---|
 | BUD.1 | ✅ 2026-11-10 — **Enable Banking setup + first mBank link** (needs you: bank SCA). Personal + credit card first, joint once confirmed, JDG stays CSV. Record `valid_until` in the consent log. | Build | `nas/budget/notes.md` "Bank sync" |
-| BUD.2 | **actual-ai dry run → live**: review the dry-run log after the first real sync, then drop `dryRun` in `budget.conf`. | Build | `nas/budget/notes.md` |
+| BUD.2 | ✅ 2026-11-10 — **actual-ai dry run → live**: review the dry-run log after the first real sync, then drop `dryRun` in `budget.conf`. | Build | `nas/budget/notes.md` |
 | BUD.3 | **Cloud fallback for `budget-classifier`** (Claude via LiteLLM's OpenAI route) is only allowed with PII masking in front: either a worker-side classification stage that masks NRB/IBAN `PL\d{26}`, PANs, phones, e-mails and the household's names, or LiteLLM Presidio with Polish ad-hoc recognisers. Watch for LiteLLM #22821 / #50668. **Trigger:** the local miss rate stays high after rules have absorbed the recurring payees. | Brief §5.8 | `nas/litellm/config.yml` |
 | BUD.4 | **basal stage 1.5** (basal-2.0-mini GGUF Q8_0 via llama.cpp on the 3070, confidence ≥ 5 % threshold, before the LLM). Needs a worker classification stage, so it pairs with BUD.3. | Brief §4 | brief |
 | BUD.5 | ✅ 2026-11-10 — **Kuma monitors** `budget` (HTTP `/health`), `budget-export` (push → `secrets/kuma.env`), `backup-budget` (push → `/root/.backup-env`). Push URLs are secrets, so they're created in the Kuma UI. | Build | `nas/budget/notes.md` "Monitoring" |
