@@ -1,0 +1,21 @@
+apiVersion: 1
+
+# Household budget mirror (nas/budget): Postgres on the NAS, written by
+# budget-worker, read here with the SELECT-only role grafana_ro.
+# BUDGET_PG_RO_PASSWORD comes from network/grafana/.env (synced from the NAS by
+# nas/budget/sync-grafana-secret.sh; never committed).
+datasources:
+  - name: budget-postgres
+    uid: budget-postgres
+    type: grafana-postgresql-datasource
+    url: 192.168.1.65:30128
+    user: grafana_ro
+    jsonData:
+      database: budget
+      sslmode: disable
+      postgresVersion: 1800
+      timescaledb: false
+      maxOpenConns: 5
+    secureJsonData:
+      password: $BUDGET_PG_RO_PASSWORD
+    editable: false

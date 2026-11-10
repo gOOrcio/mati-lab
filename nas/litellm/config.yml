@@ -121,6 +121,35 @@ model_list:
       input_cost_per_token: 0
       output_cost_per_token: 0
 
+  # ── budget-classifier (actual-ai transaction categorisation, nas/budget) ──
+  # LOCAL ONLY, on purpose: transactions carry payee names, account numbers and
+  # card fragments, and actual-ai can't mask them before the call. Do not add a
+  # cloud tier without a PII-masking step in front (followups BUD.3).
+  # think: false — classification needs no reasoning trace; with thinking on,
+  # qwen3.5 spends seconds per transaction for the same answer.
+  - model_name: budget-classifier
+    litellm_params:
+      model: ollama_chat/qwen3.5:9b      # 3070 on the Proxmox VM, always on
+      api_base: http://192.168.1.48:11434
+      think: false
+      input_cost_per_token: 0
+      output_cost_per_token: 0
+    model_info:
+      order: 1
+      input_cost_per_token: 0
+      output_cost_per_token: 0
+
+  - model_name: budget-classifier       # fallback: dev PC, when it's on
+    litellm_params:
+      model: ollama_chat/gpt-oss:20b
+      api_base: http://192.168.20.173:11434
+      input_cost_per_token: 0
+      output_cost_per_token: 0
+    model_info:
+      order: 2
+      input_cost_per_token: 0
+      output_cost_per_token: 0
+
   # ── embeddings (Phase 6 RAG consumer) ──
   # Locked at nomic-embed-text after the 2026-04-30 bake-off:
   # all three candidates (nomic 768d, mxbai 1024d, bge-m3 1024d) hit

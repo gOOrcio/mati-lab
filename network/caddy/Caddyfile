@@ -54,6 +54,32 @@
 		reverse_proxy 192.168.1.203:80
 	}
 
+	@budget host budget.mati-lab.online
+	handle @budget {
+		# Actual Budget, `budget` TrueNAS Custom App at 192.168.1.65:30127
+		# (see nas/budget/). Household finances → Authelia 2FA in front of
+		# Actual's own password. The Enable Banking callback
+		# (/enablebanking/auth_callback) is a browser redirect back from the
+		# bank, so it carries the Authelia session cookie and needs no bypass.
+		# Kuma probes /health, which is unauthenticated and returns JSON only.
+		# LAN/VPN-only: no Cloudflared route.
+		@budget_health path /health
+		handle @budget_health {
+			reverse_proxy http://192.168.1.65:30127
+		}
+
+		handle {
+			forward_auth http://authelia:9091 {
+				uri /api/authz/forward-auth
+				copy_headers Remote-User Remote-Groups Remote-Name Remote-Email
+			}
+			reverse_proxy http://192.168.1.65:30127 {
+				header_up Host {host}
+				header_up X-Forwarded-Proto https
+			}
+		}
+	}
+
 	@mortgage host mortgage.mati-lab.online
 	handle @mortgage {
 		# Personal mortgage snowball tool — TrueNAS Custom App at

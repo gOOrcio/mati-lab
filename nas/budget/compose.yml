@@ -1,0 +1,119 @@
+# TrueNAS Custom App `budget`: household budget (Actual Budget + mBank).
+# Deployed with nas/budget/deploy.sh (custom_compose_config_string). No secret
+# values in this file: they come from env_files under
+# /mnt/fast/databases/budget/secrets/ (generated on the NAS by init-secrets.sh,
+# truenas_admin 0700). See nas/budget/notes.md.
+services:
+  actual:
+    image: docker.io/actualbudget/actual-server:26.11.0
+    restart: unless-stopped
+    user: "568:568"
+    environment:
+      TZ: Europe/Warsaw
+      # Caddy on the Pi forwards for browsers; the default list already
+      # includes 192.168.0.0/16. Needed so Actual sees the client IP it passes
+      # to the bank on interactive (UI) syncs.
+      ACTUAL_TRUSTED_PROXIES: "192.168.1.252/32,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
+    volumes:
+      - type: bind
+        source: /mnt/fast/databases/budget/actual-data
+        target: /data
+    ports:
+      - { mode: host, protocol: tcp, published: 30127, target: 5006 }
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:5006/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+    labels:
+      - homepage.group=NAS
+      - homepage.name=Budget
+      - homepage.icon=actual-budget.png
+      - homepage.href=https://budget.mati-lab.online
+      - homepage.description=Actual Budget (household)
+
+  budget-db:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    user: "568:568"
+    environment:
+      TZ: Europe/Warsaw
+      POSTGRES_USER: budget
+      POSTGRES_DB: budget
+    env_file:
+      - /mnt/fast/databases/budget/secrets/db.env   # POSTGRES_PASSWORD
+    command: ["postgres", "-c", "hba_file=/etc/postgresql/pg_hba.conf"]
+    configs:
+      - source: pg_hba
+        target: /etc/postgresql/pg_hba.conf
+        mode: 0444
+    volumes:
+      - type: bind
+        source: /mnt/fast/databases/budget/pgdata
+        target: /var/lib/postgresql
+    # LAN-published for the Grafana datasource on the Pi. pg_hba (below) admits
+    # only grafana_ro (SELECT-only) from the Pi, and `budget` only from this
+    # app's own Docker network. The data is a derived mirror of Actual.
+    ports:
+      - { mode: host, protocol: tcp, published: 30128, target: 5432 }
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U budget -d budget"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+
+  worker:
+    image: gitea.mati-lab.online/gooral/budget-worker:__WORKER_TAG__
+    restart: unless-stopped
+    user: "568:568"
+    depends_on:
+      actual: { condition: service_healthy }
+      budget-db: { condition: service_healthy }
+    environment:
+      TZ: Europe/Warsaw
+      ACTUAL_SERVER_URL: http://actual:5006
+      ACTUAL_SYNC_ID: "__SYNC_ID__"
+      BUDGET_NAME: Household
+      INBOX_DIR: /inbox
+    env_file:
+      - /mnt/fast/databases/budget/secrets/actual.env   # ACTUAL_PASSWORD
+      - /mnt/fast/databases/budget/secrets/db.env       # DATABASE_URL, GRAFANA_RO_PASSWORD
+      - path: /mnt/fast/databases/budget/secrets/kuma.env  # KUMA_PUSH_URL (optional)
+        required: false
+    volumes:
+      - type: bind
+        source: /mnt/fast/databases/budget/inbox
+        target: /inbox
+
+  actual-ai:
+    image: docker.io/sakowicz/actual-ai:3.0.4
+    restart: unless-stopped
+    depends_on:
+      actual: { condition: service_healthy }
+    environment:
+      TZ: Europe/Warsaw
+      ACTUAL_SERVER_URL: http://actual:5006
+      ACTUAL_BUDGET_ID: "__SYNC_ID__"
+      # An hour after each worker bank sync (06:20, 14:20, 21:20).
+      CLASSIFICATION_SCHEDULE_CRON: "20 7,15,22 * * *"
+      LLM_PROVIDER: openai
+      OPENAI_BASE_URL: http://192.168.1.65:4000/v1
+      OPENAI_MODEL: budget-classifier   # LiteLLM alias, local models only
+      LLM_TEMPERATURE: "0.1"
+      LLM_TIMEOUT_MS: "120000"
+      # Never syncAccountsBeforeClassify: every bank fetch counts against
+      # PSD2's four unattended fetches a day; the worker owns bank sync.
+      # Never suggestNewCategories: a small local model would sprawl them.
+      # __FEATURES__ is dryRun until the dry-run log has been reviewed.
+      FEATURES: '__FEATURES__'
+    env_file:
+      - /mnt/fast/databases/budget/secrets/actual.env   # ACTUAL_PASSWORD
+      - /mnt/fast/databases/budget/secrets/llm.env      # OPENAI_API_KEY (LiteLLM key `budget`)
+
+configs:
+  pg_hba:
+    content: |
+      # TYPE  DATABASE  USER        ADDRESS            METHOD
+      local   all       all                          trust
+      host    all       budget      samenet            scram-sha-256
+      host    budget    grafana_ro  192.168.1.252/32   scram-sha-256

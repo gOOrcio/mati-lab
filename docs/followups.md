@@ -163,6 +163,22 @@ Plan: `docs/superpowers/plans/2026-10-30-paperless-ngx.md` (local). First PR shi
 | PL.7 | **Revert `PAPERLESS_EMAIL_TASK_CRON`** to the default (remove the env, every 10 min) once the PL.2 backfill is finished, then `nas/paperless/deploy.sh update`. | 2026-11-02 audit | `nas/paperless/app-config.json` |
 | PL.8 | **ISO dates parsed year-day-month** (`2026-11-05` → 11 May). No config fix (`DATE_ORDER=YMD` breaks Polish dates). Re-run the swap check after each backfill batch; if it keeps biting, add a nightly fixer or a post-consume script. Also worth reporting upstream: `apply_mail_action` doesn't refresh the Gmail OAuth token, so mail actions fail once a batch outlives the 1 h token. | 2020 batch check, 2026-11-06 | `nas/paperless/notes.md` → "ISO dates…", Backfill |
 
+## Budget (Actual Budget + mBank) followups (2026-11-10)
+
+Plan: `docs/superpowers/plans/2026-11-10-budget-stack.md` (local). Runbook: `nas/budget/notes.md`.
+
+| # | Item | Origin | Source |
+|---|---|---|---|
+| BUD.1 | **Enable Banking setup + first mBank link** (needs you: bank SCA). Personal + credit card first, joint once confirmed, JDG stays CSV. Record `valid_until` in the consent log. | Build | `nas/budget/notes.md` "Bank sync" |
+| BUD.2 | **actual-ai dry run → live**: review the dry-run log after the first real sync, then drop `dryRun` in `budget.conf`. | Build | `nas/budget/notes.md` |
+| BUD.3 | **Cloud fallback for `budget-classifier`** (Claude via LiteLLM's OpenAI route) is only allowed with PII masking in front: either a worker-side classification stage that masks NRB/IBAN `PL\d{26}`, PANs, phones, e-mails and the household's names, or LiteLLM Presidio with Polish ad-hoc recognisers. Watch for LiteLLM #22821 / #50668. **Trigger:** the local miss rate stays high after rules have absorbed the recurring payees. | Brief §5.8 | `nas/litellm/config.yml` |
+| BUD.4 | **basal stage 1.5** (basal-2.0-mini GGUF Q8_0 via llama.cpp on the 3070, confidence ≥ 5 % threshold, before the LLM). Needs a worker classification stage, so it pairs with BUD.3. | Brief §4 | brief |
+| BUD.5 | **Kuma monitors** `budget` (HTTP `/health`), `budget-export` (push → `secrets/kuma.env`), `backup-budget` (push → `/root/.backup-env`). Push URLs are secrets, so they're created in the Kuma UI. | Build | `nas/budget/notes.md` "Monitoring" |
+| BUD.6 | **Consent-expiry pre-warning**: alert 7 days before `valid_until`. Actual doesn't expose the expiry through the API; read `bank`/`banks` metadata in the budget file or record it by hand. Today only the post-expiry "sync failing" alert exists. | Brief §6 | worker |
+| BUD.7 | **Schedules in the forecast**: project Actual schedules (`getScheduleDates`) into the what-if panel instead of flat averages. | Brief §5.3 | worker + dashboard |
+| BUD.8 | **actual-mcp (read-only)** for "chat with the budget" from Claude Code/Hermes. Needs the Actual password on the consumer side. | Brief §2 | — |
+| BUD.9 | **Fallback bridge if Actual drops Enable Banking** (experimental feature): `2manyvcos/enable-actual` or `bihius/actual-budget-enable-banking-sync`. | Brief §6 | — |
+
 ## Kernel CVE-2026-99154 (libiscsi) followups (2026-11-02)
 
 Initiator-side OOB read in `drivers/scsi/libiscsi.c`. No box loads `libiscsi`/`iscsi_tcp` or has an iSCSI session, so exposure is nil; no distro shipped a fix yet as of 2026-11-02. Proxmox host was upgraded to PVE 9.2 / kernel 7.0.14-26 the same day (no fix in it).

@@ -228,6 +228,19 @@ future rebuild.
 
 ---
 
+## Budget (Actual Budget, nas/budget)
+
+All of these are generated on the NAS by `nas/budget/init-secrets.sh` (hex values, never printed) into `/mnt/fast/databases/budget/secrets/` (owner truenas_admin, dir 0700, files 0600). Compose `env_file` entries wire them into the containers. Copy each one into Vaultwarden once: in **your own** terminal (not through Claude), run `ssh truenas_admin@192.168.1.65 'cat /mnt/fast/databases/budget/secrets/actual.env'`, and the same for `db.env` and `llm.env`. The dir is included in the `fast/databases/budget` snapshots (tasks 27/28).
+
+| Role | File on disk | PM label | Dependents | Procedure | Last rotated |
+|---|---|---|---|---|---|
+| **Actual server password** | `secrets/actual.env` (`ACTUAL_PASSWORD=`) | `homelab/budget/actual-password` | Your login at `budget.mati-lab.online` (behind Authelia), budget-worker, actual-ai. | Change it in the Actual UI (Settings → Server → Change password). Since 26.11 this requires the current password and signs **every** session out. Then put the same value in `actual.env` and run `nas/budget/deploy.sh update` so the worker and actual-ai log in again. | 2026-11-10 |
+| **Budget Postgres password** | `secrets/db.env` (`POSTGRES_PASSWORD=`, also inside `DATABASE_URL=`) | `homelab/budget/postgres` | budget-worker ↔ budget-db. | Postgres only reads it when it initialises an empty pgdata. To rotate: `ALTER USER budget PASSWORD '…'` in `ix-budget-budget-db-1` (root channel), edit both lines, `deploy.sh update`. Or stop the app, empty `pgdata/`, set the new value and start it again; the mirror rebuilds itself within 30 min. | 2026-11-10 |
+| **Grafana read-only role `grafana_ro`** | `secrets/db.env` (`GRAFANA_RO_PASSWORD=`); dev-PC copy in `network/grafana/.env` (`BUDGET_PG_RO_PASSWORD=`), copied to the Pi by `make deploy-grafana` | `homelab/budget/grafana-ro` | Grafana datasource `budget-postgres` (dashboard + 3 alert rules). | Edit `db.env` → `deploy.sh update` (the worker's `migrate` re-applies the password at start) → `bash nas/budget/sync-grafana-secret.sh` → `cd network && make deploy-grafana`. | 2026-11-10 |
+| **LiteLLM virtual key `budget`** | `secrets/llm.env` (`OPENAI_API_KEY=`) | `homelab/litellm/budget` | actual-ai → LiteLLM alias `budget-classifier`. The key is scoped to that alias only, with a $1/30d budget (the local models cost 0). | LiteLLM `/key/regenerate/key_alias/budget` (master key), write the new value into `llm.env`, `deploy.sh update`. | 2026-11-10 |
+| **Enable Banking application private key (.pem)** | Uploaded into Actual (stored in `actual-data/server-files/account.sqlite`), plus the downloaded .pem file itself | `homelab/budget/enable-banking-app` (attach the .pem; username = Application ID) | Bank sync for every linked mBank account. | Enable Banking Control Panel → app → new key → re-upload in Actual (More → Bank Sync → Enable Banking). **One app per Actual server**: registering a second app replaces the first and breaks existing links. | — (pending setup) |
+| **Kuma push URL `budget-export`** | `secrets/kuma.env` (`KUMA_PUSH_URL=`, optional file) | `homelab/uptime-kuma/push-budget-export` | Worker heartbeat after each successful export. | Kuma UI → regenerate → update the file → `deploy.sh update`. | — (pending) |
+
 ## Backups
 
 | Role | File on disk | PM label | Dependents | Procedure | Last rotated |

@@ -1,0 +1,1106 @@
+{
+  "uid": "budget",
+  "title": "Budget",
+  "tags": [
+    "budget",
+    "finance"
+  ],
+  "timezone": "Europe/Warsaw",
+  "time": {
+    "from": "now-12M/M",
+    "to": "now"
+  },
+  "refresh": "30m",
+  "schemaVersion": 41,
+  "editable": true,
+  "graphTooltip": 1,
+  "description": "Household budget (Actual Budget mirror). Source: nas/budget/notes.md",
+  "templating": {
+    "list": [
+      {
+        "type": "custom",
+        "name": "avg_months",
+        "label": "Average over (months)",
+        "query": "3,6,12",
+        "current": {
+          "text": "6",
+          "value": "6"
+        },
+        "options": [
+          {
+            "text": "3",
+            "value": "3",
+            "selected": false
+          },
+          {
+            "text": "6",
+            "value": "6",
+            "selected": true
+          },
+          {
+            "text": "12",
+            "value": "12",
+            "selected": false
+          }
+        ],
+        "hide": 0,
+        "multi": false,
+        "includeAll": false
+      },
+      {
+        "type": "custom",
+        "name": "months_no_income",
+        "label": "Months without income",
+        "query": "0,1,2,3,4,5,6,12,24",
+        "current": {
+          "text": "0",
+          "value": "0"
+        },
+        "options": [
+          {
+            "text": "0",
+            "value": "0",
+            "selected": true
+          },
+          {
+            "text": "1",
+            "value": "1",
+            "selected": false
+          },
+          {
+            "text": "2",
+            "value": "2",
+            "selected": false
+          },
+          {
+            "text": "3",
+            "value": "3",
+            "selected": false
+          },
+          {
+            "text": "4",
+            "value": "4",
+            "selected": false
+          },
+          {
+            "text": "5",
+            "value": "5",
+            "selected": false
+          },
+          {
+            "text": "6",
+            "value": "6",
+            "selected": false
+          },
+          {
+            "text": "12",
+            "value": "12",
+            "selected": false
+          },
+          {
+            "text": "24",
+            "value": "24",
+            "selected": false
+          }
+        ],
+        "hide": 0,
+        "multi": false,
+        "includeAll": false
+      },
+      {
+        "type": "custom",
+        "name": "income_cut_pct",
+        "label": "Income cut %",
+        "query": "0,10,20,30,50,75,100",
+        "current": {
+          "text": "0",
+          "value": "0"
+        },
+        "options": [
+          {
+            "text": "0",
+            "value": "0",
+            "selected": true
+          },
+          {
+            "text": "10",
+            "value": "10",
+            "selected": false
+          },
+          {
+            "text": "20",
+            "value": "20",
+            "selected": false
+          },
+          {
+            "text": "30",
+            "value": "30",
+            "selected": false
+          },
+          {
+            "text": "50",
+            "value": "50",
+            "selected": false
+          },
+          {
+            "text": "75",
+            "value": "75",
+            "selected": false
+          },
+          {
+            "text": "100",
+            "value": "100",
+            "selected": false
+          }
+        ],
+        "hide": 0,
+        "multi": false,
+        "includeAll": false
+      },
+      {
+        "type": "textbox",
+        "name": "extra_fixed",
+        "label": "Extra fixed cost PLN/month (e.g. ZUS)",
+        "query": "0",
+        "current": {
+          "text": "0",
+          "value": "0"
+        },
+        "hide": 0
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Cash (on-budget accounts)",
+      "description": "Current balance of open on-budget accounts.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "budget-postgres"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "budget-postgres"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT SUM(balance) AS value FROM accounts WHERE NOT offbudget AND NOT closed"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyPLN",
+          "decimals": 0,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "auto"
+      }
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Spent this month",
+      "description": "Net spending (refunds subtract). Excludes transfers between own accounts.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "budget-postgres"
+      },
+      "gridPos": {
+        "x": 4,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "budget-postgres"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT -COALESCE(SUM(amount), 0) AS value FROM v_flows WHERE NOT is_income AND date >= date_trunc('month', now())::date"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyPLN",
+          "decimals": 0,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "auto"
+      }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Income this month",
+      "description": "",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "budget-postgres"
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "budget-postgres"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT COALESCE(SUM(amount), 0) AS value FROM v_flows WHERE is_income AND date >= date_trunc('month', now())::date"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyPLN",
+          "decimals": 0,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "auto"
+      }
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Runway without income",
+      "description": "Months the current cash lasts at the average spending of the last $avg_months full months plus $extra_fixed/month, with no income.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "budget-postgres"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "budget-postgres"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH cash AS (SELECT COALESCE(SUM(balance), 0) AS v FROM accounts WHERE NOT offbudget AND NOT closed),\navg_m AS (\n  SELECT COALESCE(AVG(inc), 0) AS inc, COALESCE(AVG(exp), 0) AS exp FROM (\n    SELECT date_trunc('month', date) m,\n           COALESCE(SUM(amount) FILTER (WHERE is_income), 0) inc,\n           COALESCE(-SUM(amount) FILTER (WHERE NOT is_income), 0) exp\n    FROM v_flows\n    WHERE date >= date_trunc('month', now())::date - ($avg_months || ' months')::interval AND date < date_trunc('month', now())::date\n    GROUP BY 1) x) SELECT (cash.v / NULLIF(avg_m.exp + $extra_fixed, 0))::numeric(6,1) AS value FROM cash, avg_m"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 1,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "auto"
+      }
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "To review",
+      "description": "Uncategorised transactions plus those actual-ai tagged #actual-ai-miss. Categorise them in Actual.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "budget-postgres"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "budget-postgres"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT count(*) AS value FROM v_review_queue"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 20
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "auto"
+      }
+    },
+    {
+      "id": 6,
+      "type": "stat",
+      "title": "Last bank sync",
+      "description": "Hours since the last successful sync of any linked account (runs 06:20, 14:20, 21:20).",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "budget-postgres"
+      },
+      "gridPos": {
+        "x": 20,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "budget-postgres"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT EXTRACT(EPOCH FROM now() - max(at)) / 3600 AS value FROM sync_runs WHERE status = 'ok'"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "h",
+          "decimals": 1,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 26
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "auto"
+      }
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "Monthly spending by category group",
+      "description": "Categorised spending only; uncategorised rows are in the review queue. Small groups fold into Inne.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "budget-postgres"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 4,
+        "w": 14,
+        "h": 10
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "budget-postgres"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT date_trunc('month', date) AS time, CASE WHEN group_name IN ('Inne', 'Firma (JDG)') THEN 'Inne' ELSE group_name END AS metric, -SUM(amount) AS value\nFROM v_flows\nWHERE NOT is_income AND category_id IS NOT NULL AND $__timeFilter(date)\nGROUP BY 1, 2 ORDER BY 1, 2"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyPLN",
+          "decimals": 0,
+          "custom": {
+            "drawStyle": "bars",
+            "barAlignment": 0,
+            "fillOpacity": 85,
+            "lineWidth": 0,
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            },
+            "axisSoftMin": 0,
+            "showPoints": "never"
+          },
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "interval": "1M"
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "Income vs spending",
+      "description": "",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "budget-postgres"
+      },
+      "gridPos": {
+        "x": 14,
+        "y": 4,
+        "w": 10,
+        "h": 10
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "budget-postgres"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT date_trunc('month', date) AS time,\n       COALESCE(SUM(amount) FILTER (WHERE is_income), 0) AS \"Income\",\n       COALESCE(-SUM(amount) FILTER (WHERE NOT is_income), 0) AS \"Spending\"\nFROM v_flows WHERE $__timeFilter(date) GROUP BY 1 ORDER BY 1"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyPLN",
+          "decimals": 0,
+          "custom": {
+            "drawStyle": "bars",
+            "barAlignment": 0,
+            "fillOpacity": 85,
+            "lineWidth": 0,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "axisSoftMin": 0,
+            "showPoints": "never"
+          },
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "interval": "1M"
+    },
+    {
+      "id": 9,
+      "type": "table",
+      "title": "Budget this month",
+      "description": "Envelope state from Actual. Left < 0 = overspent.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "budget-postgres"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 14,
+        "w": 12,
+        "h": 12
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "budget-postgres"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT c.group_name AS \"Group\", c.name AS \"Category\", bm.budgeted AS \"Budgeted\",\n       -bm.spent AS \"Spent\", bm.balance AS \"Left\"\nFROM budget_months bm JOIN categories c ON c.id = bm.category_id\nWHERE bm.month = date_trunc('month', now())::date AND NOT c.is_income AND NOT c.hidden\nORDER BY c.group_name, c.name"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Budgeted"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "currencyPLN"
+              },
+              {
+                "id": "decimals",
+                "value": 2
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Spent"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "currencyPLN"
+              },
+              {
+                "id": "decimals",
+                "value": 2
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Left"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "currencyPLN"
+              },
+              {
+                "id": "decimals",
+                "value": 2
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "red",
+                      "value": null
+                    },
+                    {
+                      "color": "text",
+                      "value": 0
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      }
+    },
+    {
+      "id": 10,
+      "type": "timeseries",
+      "title": "Net worth (all accounts)",
+      "description": "End-of-month sum of every account, including off-budget ones.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "budget-postgres"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 14,
+        "w": 12,
+        "h": 12
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "budget-postgres"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT m AS time, (SELECT COALESCE(SUM(amount), 0) FROM transactions t\n                   WHERE NOT t.is_parent AND t.date < m + interval '1 month') AS \"Net worth\"\nFROM generate_series(date_trunc('month', $__timeFrom()::timestamptz), date_trunc('month', now()), '1 month') m\nORDER BY 1"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyPLN",
+          "decimals": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 0,
+            "showPoints": "auto",
+            "pointSize": 8,
+            "spanNulls": true
+          },
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      }
+    },
+    {
+      "id": 11,
+      "type": "timeseries",
+      "title": "Cash projection (what-if)",
+      "description": "24 months from today's cash. Averages of the last $avg_months full months; no income for $months_no_income months, then income cut by $income_cut_pct %; plus $extra_fixed PLN/month extra fixed cost (e.g. ZUS). Set these in the variables bar.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "budget-postgres"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 26,
+        "w": 16,
+        "h": 10
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "budget-postgres"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "WITH cash AS (SELECT COALESCE(SUM(balance), 0) AS v FROM accounts WHERE NOT offbudget AND NOT closed),\navg_m AS (\n  SELECT COALESCE(AVG(inc), 0) AS inc, COALESCE(AVG(exp), 0) AS exp FROM (\n    SELECT date_trunc('month', date) m,\n           COALESCE(SUM(amount) FILTER (WHERE is_income), 0) inc,\n           COALESCE(-SUM(amount) FILTER (WHERE NOT is_income), 0) exp\n    FROM v_flows\n    WHERE date >= date_trunc('month', now())::date - ($avg_months || ' months')::interval AND date < date_trunc('month', now())::date\n    GROUP BY 1) x),\nsim AS (\n  SELECT g AS n,\n         CASE WHEN g <= $months_no_income THEN 0 ELSE avg_m.inc * (1 - $income_cut_pct / 100.0) END\n         - (avg_m.exp + $extra_fixed) AS net\n  FROM avg_m, generate_series(1, 24) g)\nSELECT date_trunc('month', now()) + (n || ' months')::interval AS time,\n       (SELECT v FROM cash) + SUM(net) OVER (ORDER BY n) AS \"Projected cash\"\nFROM sim ORDER BY n"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyPLN",
+          "decimals": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 0,
+            "showPoints": "auto",
+            "pointSize": 8,
+            "spanNulls": true
+          },
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      }
+    },
+    {
+      "id": 12,
+      "type": "table",
+      "title": "Top payees this month",
+      "description": "",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "budget-postgres"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 26,
+        "w": 8,
+        "h": 10
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "budget-postgres"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT COALESCE(payee_name, imported_payee, '?') AS \"Payee\", count(*) AS \"Count\", -SUM(amount) AS \"Spent\"\nFROM v_flows WHERE NOT is_income AND date >= date_trunc('month', now())::date\nGROUP BY 1 ORDER BY 3 DESC LIMIT 15"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Spent"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "currencyPLN"
+              },
+              {
+                "id": "decimals",
+                "value": 2
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      }
+    },
+    {
+      "id": 13,
+      "type": "table",
+      "title": "Review queue",
+      "description": "Fix these in Actual; actual-ai learns nothing by itself, so for recurring payees add a rule.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "budget-postgres"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 36,
+        "w": 14,
+        "h": 10
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "budget-postgres"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT date AS \"Date\", account_name AS \"Account\", COALESCE(payee_name, imported_payee) AS \"Payee\",\n       amount AS \"Amount\", notes AS \"Notes\"\nFROM v_review_queue ORDER BY date DESC LIMIT 100"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Amount"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "currencyPLN"
+              },
+              {
+                "id": "decimals",
+                "value": 2
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      }
+    },
+    {
+      "id": 14,
+      "type": "table",
+      "title": "Bank sync per account",
+      "description": "Enable Banking-linked accounts. Error mentioning consent/auth → reauthorize in Actual.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "budget-postgres"
+      },
+      "gridPos": {
+        "x": 14,
+        "y": 36,
+        "w": 10,
+        "h": 5
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "budget-postgres"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT a.name AS \"Account\", last.at AS \"Last run\", last.status AS \"Status\",\n       last.new_count AS \"New\", ok.ok_at AS \"Last OK\", last.error AS \"Error\"\nFROM accounts a\nLEFT JOIN LATERAL (SELECT * FROM sync_runs s WHERE s.account_id = a.id ORDER BY at DESC LIMIT 1) last ON true\nLEFT JOIN LATERAL (SELECT max(at) AS ok_at FROM sync_runs s WHERE s.account_id = a.id AND status = 'ok') ok ON true\nWHERE a.sync_source IS NOT NULL AND NOT a.closed ORDER BY 1"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      }
+    },
+    {
+      "id": 15,
+      "type": "table",
+      "title": "Worker jobs (last 24 h)",
+      "description": "Successful exports are hidden (they run every 30 min).",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "budget-postgres"
+      },
+      "gridPos": {
+        "x": 14,
+        "y": 41,
+        "w": 10,
+        "h": 5
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "budget-postgres"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT job AS \"Job\", started_at AS \"Started\", status AS \"Status\", detail AS \"Detail\"\nFROM job_runs WHERE started_at > now() - interval '24 hours' AND (job <> 'export' OR status <> 'ok')\nORDER BY started_at DESC LIMIT 30"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      }
+    }
+  ]
+}
