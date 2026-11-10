@@ -182,12 +182,19 @@ scp lista.csv "truenas_admin@192.168.1.65:/mnt/fast/databases/budget/inbox/<Actu
 
 ## actual-ai dry run → live
 
-Deployed with `FEATURES=["classifyOnStartup","dryRun"]`. Once real transactions
-have arrived, read the log (`root-run.sh logs actual-ai 300`) and check that the
-suggested categories look right. Then remove `dryRun` in `budget.conf` and run
-`deploy.sh update`. Pre-deploy test on 2026-11-10 against a throwaway stack: 5/6
-correct (fuel, groceries, Netflix → subscriptions, food delivery, salary). The 6th
-was an empty reply, from a test path that had thinking on; the alias turns it off.
+Now `FEATURES=["dryRun"]`. **`classifyOnStartup` is off on purpose**: every
+TrueNAS `app.update` restarts all containers, and in dry-run mode each pass
+re-classifies *every* uncategorised row (about 10 s each on the 3070, so hours).
+The three cron runs are enough. Once live, a pass only sees new rows.
+
+First dry run (2026-11-10, qwen3.5:9b, 449 rows sampled): usable, but weak on
+merchants that aren't self-describing. It dumped Allegro/Amazon into Subskrypcje
+and put random card spend abroad into Koszty firmowe. So **payee rules carry the
+load**: about 23 seeded rules (`rules list`) categorised 626 historical rows
+deterministically. actual-ai only gets the long tail.
+
+To go live: remove `dryRun` in `budget.conf` and run `deploy.sh update`. The first
+live cron run then works through the remaining tail once.
 
 ## Backups and restore
 
