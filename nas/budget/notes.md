@@ -60,6 +60,25 @@ account, so *Podatki* nets to the VAT and PIT actually paid. The rule is scoped
 to the JDG account because the same payee name appears on the incoming
 JDG → osobiste transfers.
 
+## Investments (net worth)
+
+The worker's `investments` job (nightly **22:45**) reads the investor-dashboard
+LAN API (`INVEST_API_URL=http://192.168.1.65:30032`, read-only GETs). It sums
+`valuation.value_pln` per eMakler account and posts the difference to that
+account's current balance as one **"Wycena portfela"** transaction, in three
+**off-budget** accounts:
+`eMakler (rachunek maklerski)`, `eMakler IKE`, `eMakler IKZE`.
+
+- Off-budget, so it never touches the envelopes or `v_flows`. It *does* count in
+  Actual's Net Worth report and the Grafana "Net worth (all accounts)" panel.
+- The value is gross market value. Belka tax on the standard account isn't deducted.
+- If any position is stale, or the dashboard is unreachable, the job fails before
+  writing anything, so a dashboard outage never zeroes an account. Grafana alert
+  **Budget investment valuation stale** fires after 36 h without a good run.
+- History starts 2026-11-10, so the net-worth line steps up on that day. There
+  are no earlier valuations to backfill.
+- Manual run: `nas/budget/root-run.sh cli investments [--dry-run]`.
+
 ## Deploy / update
 
 ```bash

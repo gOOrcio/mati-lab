@@ -75,6 +75,8 @@ services:
       ACTUAL_SYNC_ID: "__SYNC_ID__"
       BUDGET_NAME: Household
       INBOX_DIR: /inbox
+      # investor-dashboard LAN API (read-only GETs) for the nightly valuation job.
+      INVEST_API_URL: http://192.168.1.65:30032
     env_file:
       - /mnt/fast/databases/budget/secrets/actual.env   # ACTUAL_PASSWORD
       - /mnt/fast/databases/budget/secrets/db.env       # DATABASE_URL, GRAFANA_RO_PASSWORD
