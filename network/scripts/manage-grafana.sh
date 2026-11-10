@@ -44,6 +44,10 @@ import_dashboard() {
   local remote_payload
   remote_payload="/tmp/grafana-import-$(basename "$json_file")"
   scp "${SSH_OPTS[@]}" "$payload_file" "$REMOTE:$remote_payload"
+  # mktemp makes the payload 0600; the curlimages/curl container runs as uid 100
+  # and must read it. Dashboard JSON is not sensitive.
+  # shellcheck disable=SC2029
+  ssh "${SSH_OPTS[@]}" "$REMOTE" "chmod 644 '$remote_payload'"
   rm -f "$payload_file"
 
   local response
