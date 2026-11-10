@@ -7,6 +7,7 @@
 #   status                      container states + last 30 worker log lines
 #   logs <service> [lines]      e.g. logs actual-ai 200
 #   cli <args...>               docker exec the worker CLI, e.g. cli bootstrap
+#   sql "<query>"               read-only psql against the Postgres mirror
 #   backup                      run the nightly backup script now
 #   verify-backup               decrypt the newest backup and list its contents
 #   install-backup              install nas/backup-jobs/budget-backup.sh on the NAS
@@ -34,6 +35,11 @@ logs)
 cli)
   shift
   body="docker exec ix-budget-worker-1 node dist/cli.js $(printf '%q ' "$@") 2>&1 | grep -v -e '^\[Breadcrumb\]' -e '^Syncing since' -e '^Got messages'"
+  ;;
+sql)
+  # Read-only query against the Postgres mirror (derived data, no secrets).
+  q=${2:?query}
+  body="docker exec -e PGOPTIONS='-c default_transaction_read_only=on' ix-budget-budget-db-1 psql -U budget -d budget -P pager=off -c $(printf '%q' "$q") 2>&1"
   ;;
 backup)
   body='/mnt/bulk/backups/.scripts/budget-backup.sh 2>&1'

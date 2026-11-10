@@ -24,7 +24,16 @@ TrueNAS **Custom App `budget`** (compose in `compose.yml`, values in `budget.con
 | `ix-budget-actual-ai-1` | `sakowicz/actual-ai:3.0.4` | — | LLM categorisation at 07:20, 15:20 and 22:20 |
 
 Categorisation pipeline:
-1. **Actual rules** run on every import, deterministically.
+0. **Own-account transfers** (JDG ↔ osobiste ↔ oszczędności, card repayments) are
+   linked by the worker's `link-transfers` right after each bank sync. It matches
+   the opposite amount within ±3 days on legs marked `PRZELEW WŁASNY` / `SPŁATA KARTY`,
+   and card legs only pair with card legs. Both legs already exist, so it sets
+   `transfer_id` on both. **Don't use the UI's "Make transfer" on a single
+   row**: it creates a duplicate counterpart. 91 historical pairs were linked
+   2026-11-10.
+1. **Actual rules** run on every import, deterministically. After each sync the
+   worker also runs `rules run`, which applies rule categories to anything still
+   uncategorised (so a new rule fixes history without clicking "Apply actions").
 2. **actual-ai** handles anything still uncategorised, via LiteLLM `budget-classifier`.
    That alias tries qwen3.5:9b on the 3070 first, then the dev-PC gpt-oss:20b, with
    `think: false`. It is **local only** because no PII masking happens before the call.
@@ -37,6 +46,19 @@ Deviations from the brief:
 - TrueNAS app instead of a Proxmox VM, the same pattern as Paperless and Vaultwarden.
 - actual-ai **3.0.4** (the brief assumed 2.4.1; 3.0 changed `ENABLED_TOOLS` → `FEATURES`).
 - No cloud fallback for the classifier (followups BUD.3).
+
+Rule hygiene (operator):
+```bash
+nas/budget/root-run.sh cli rules list            # human-readable
+nas/budget/root-run.sh cli rules dedupe --apply  # drop exact duplicates
+nas/budget/root-run.sh cli link-transfers        # dry run (add --apply)
+nas/budget/root-run.sh sql "select …"            # read-only Postgres mirror
+```
+Live rule worth knowing: JDG + payee `MATEUSZ GÓRAL MGT` + notes contain `VAT`
+→ **Podatki**. These are the split-payment moves to and from the unlinked VAT
+account, so *Podatki* nets to the VAT and PIT actually paid. The rule is scoped
+to the JDG account because the same payee name appears on the incoming
+JDG → osobiste transfers.
 
 ## Deploy / update
 
