@@ -79,6 +79,37 @@ account's current balance as one **"Wycena portfela"** transaction, in three
   are no earlier valuations to backfill.
 - Manual run: `nas/budget/root-run.sh cli investments [--dry-run]`.
 
+### Mortgage (liability)
+
+Off-budget account **`Kredyt hipoteczny (mBank)`**, created with
+`cli account create-offbudget`. The monthly payment stays a normal budget
+expense (`Rata kredytu hipotecznego`); this account only carries the remaining
+principal for net worth. Enable Banking can't read mBank loan accounts, so you
+update it by hand. Every few months, open the account → **Reconcile** →
+enter the remaining principal **as a negative number** from the mBank app.
+Actual books the difference.
+
+## Report dashboards (as code)
+
+`nas/budget/root-run.sh cli dashboard apply [--dry-run]` (definitions are in
+budget-worker `src/commands/dashboards.ts`). It replaces every widget on the
+pages **Budżet** (renamed from the default *Main*), **Rok** and **Majątek**.
+Other pages are left alone, so UI edits belong on your own page or in code.
+It also switches on the experimental `budgetAnalysisReport` / `sankeyReport`
+flags those widgets need.
+
+Definitions, so the numbers mean something:
+- **Wpływy z pracy**: categories B2B + Wynagrodzenie, **gross incl. VAT**. The VAT
+  goes back out under *Podatki*.
+- **Wydatki na życie**: outflows excluding Podatki, ZUS, Oszczędności i
+  inwestycje and Koszty firmowe.
+- All of these are on-budget only, with own transfers excluded.
+- Actual's default "Total Income/Expenses (YTD)" counted every non-transfer
+  inflow. That included the VAT round-trips (`PRZELEW VAT PRZYCH. WŁASNY US`),
+  matured deposits, and a one-off 164k PLN FX conversion on 2026-05-12.
+  The result was a misleading ~584k "income".
+- `cli dashboard list` dumps what is on every page.
+
 ## Deploy / update
 
 ```bash
