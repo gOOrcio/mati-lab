@@ -292,6 +292,14 @@ Prompt A/B on 150 audited tail rows (stock vs custom prompt):
 The first custom prompt scored *worse* (44%): the model read the description
 notes as rules and gave up too readily on unknown merchants. Always measure.
 To re-run: `nas/budget/ai-eval/run.mjs`, with the data kept outside the repo.
+The user's answers on the 48 unknown merchants were applied the same way
+(`inbox/ai-audit-answers-2026-11-12.json`, 41 rows) and became 7 more rules.
+In those answers:
+- THE HOUSE 14 is a barber, "Dodatek do P*" is the Prime add-on, Trimar is a
+  bakery, and Solid Garage is car costs.
+- Revolut top-ups go to Podróże (that card is only used on holidays).
+- Santander was a loan (paid off Jan 2026), so the CA category became the
+  generic **Kredyty i pożyczki** via `cli category rename`.
 The local models still don't know small Warsaw places. That tail is what
 history and rules cover, and the reason BUD.3 (cloud model behind PII masking)
 stays open.
