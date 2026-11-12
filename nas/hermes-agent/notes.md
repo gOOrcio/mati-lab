@@ -346,3 +346,11 @@ cutover — an operator runbook that briefly stops the shared
 `@HermesMatiBot` while migrating, with the bespoke `hermes` Custom App kept
 as a stop-not-delete rollback until soak passes. See the plan doc for the
 full task list and verification gates.
+
+## Budget guard delivery job
+
+Cron job `budget-guard` (script-only, every 15 min) delivers budget alerts to
+Telegram from `/opt/data/budget/pending`. Script source:
+`nas/budget/hermes/budget_outbox.py`; details in `nas/budget/notes.md`
+(Guardrails and Telegram notifications). A Hermes data restore must keep
+`scripts/budget_outbox.py` and the `budget/` folder.

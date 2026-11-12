@@ -11,6 +11,8 @@
 #   backup                      run the nightly backup script now
 #   verify-backup               decrypt the newest backup and list its contents
 #   install-backup              install nas/backup-jobs/budget-backup.sh on the NAS
+#   hermes <args...>            run the hermes CLI in the Hermes container (as UID 568)
+#   install-guard               create the outbox + install the Hermes delivery script
 set -euo pipefail
 NAS=truenas_admin@192.168.1.65
 [ $# -ge 1 ] || {
@@ -52,6 +54,17 @@ install-backup)
   # Install the committed nas/backup-jobs/budget-backup.sh (root 0700).
   b64=$(base64 -w0 "$(dirname "$0")/../backup-jobs/budget-backup.sh")
   body="echo $b64 | base64 -d > /mnt/bulk/backups/.scripts/budget-backup.sh && chmod 700 /mnt/bulk/backups/.scripts/budget-backup.sh && ls -l /mnt/bulk/backups/.scripts/budget-backup.sh"
+  ;;
+hermes)
+  shift
+  body="docker exec -u 568 ix-hermes-agent-hermes-agent-1 hermes $(printf '%q ' "$@") 2>&1"
+  ;;
+install-guard)
+  # File operations run as UID 568 inside the Hermes container, never as root
+  # on the host: the data folder is writable by that user. The outbox is
+  # /opt/data/budget there, /mnt/fast/databases/hermes/data/budget on the host.
+  b64=$(base64 -w0 "$(dirname "$0")/hermes/budget_outbox.py")
+  body="echo $b64 | base64 -d | docker exec -i -u 568 ix-hermes-agent-hermes-agent-1 sh -c 'umask 027 && mkdir -p /opt/data/budget/pending /opt/data/budget/sent /opt/data/scripts && cat > /opt/data/scripts/budget_outbox.py && chmod 644 /opt/data/scripts/budget_outbox.py && ls -ld /opt/data/budget/pending /opt/data/budget/sent /opt/data/scripts/budget_outbox.py'"
   ;;
 *)
   echo "unknown command $1" >&2
