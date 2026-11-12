@@ -129,6 +129,37 @@ template is about 18.1k/month (mortgage instalment 4,533, no overpayments
 until the cushion is rebuilt). Per month also budget Podatki = VAT + PIT of the
 invoice that arrived, ZUS and Koszty firmowe.
 
+## Guardrails and Telegram notifications
+
+Rule-based, no model involved. budget-worker (`src/guard.ts`) checks the
+Postgres mirror after every bank sync and CSV import and writes new alerts as
+one text file into the outbox; on Sundays at 18:00 the `digest` job adds the
+weekly summary. Hermes delivers: cron job **`budget-guard`** (every 15 min,
+script-only `--no-agent`, `--deliver telegram`) runs
+`/opt/data/scripts/budget_outbox.py`, which prints the waiting files and moves
+them to `sent/` (pruned after 30 days). Nothing waiting means no message.
+
+- Outbox: `/mnt/fast/databases/hermes/data/budget` (`/outbox` in the worker,
+  `/opt/data/budget` in Hermes; both run as UID 568). `status.json` there holds
+  category totals only (for a future "ask Hermes" skill): no payees, no rows.
+- Alerts, each sent once: category over budget (per month), transfer out of the
+  savings account, AllegroPay charge (planned or not), purchase of 500 PLN or
+  more in an optional category, subscription not on the kept list (per month),
+  JIT invoice arrival with VAT / PIT / ZUS to set aside.
+- Personal settings: `/mnt/fast/databases/budget/inbox/guard.json` (kept
+  subscriptions, invoice payee, planned AllegroPay instalments, ZUS, accounting,
+  upcoming bills). Format: `guard.example.json` in budget-worker. Defaults for
+  everything else are in `src/guard.ts`.
+- Operate: `root-run.sh cli guard --dry-run [--digest]` prints what would be
+  sent; `cli guard --seed` records current alerts without sending;
+  `root-run.sh hermes cron list` shows the delivery job;
+  `root-run.sh install-guard` reinstalls the script and outbox folders.
+- If a message waits over two hours, the `budget-export` Kuma heartbeat reports
+  down ("budget guard message undelivered").
+- `hermes cron run <id>` from the CLI does not resolve the Telegram target
+  ("no delivery target resolved") and still consumes the message. Test with a
+  scheduled run instead.
+
 ## Report dashboards (as code)
 
 `nas/budget/root-run.sh cli dashboard apply [--dry-run]` (definitions are in

@@ -11,6 +11,8 @@
 #   backup                      run the nightly backup script now
 #   verify-backup               decrypt the newest backup and list its contents
 #   install-backup              install nas/backup-jobs/budget-backup.sh on the NAS
+#   hermes <args...>            run the hermes CLI in the Hermes container (as UID 568)
+#   install-guard               create the outbox + install the Hermes delivery script
 set -euo pipefail
 NAS=truenas_admin@192.168.1.65
 [ $# -ge 1 ] || {
@@ -52,6 +54,16 @@ install-backup)
   # Install the committed nas/backup-jobs/budget-backup.sh (root 0700).
   b64=$(base64 -w0 "$(dirname "$0")/../backup-jobs/budget-backup.sh")
   body="echo $b64 | base64 -d > /mnt/bulk/backups/.scripts/budget-backup.sh && chmod 700 /mnt/bulk/backups/.scripts/budget-backup.sh && ls -l /mnt/bulk/backups/.scripts/budget-backup.sh"
+  ;;
+hermes)
+  shift
+  body="docker exec -u 568 ix-hermes-agent-hermes-agent-1 hermes $(printf '%q ' "$@") 2>&1"
+  ;;
+install-guard)
+  # Outbox lives inside Hermes's data dataset so both apps (UID 568) see it.
+  b64=$(base64 -w0 "$(dirname "$0")/hermes/budget_outbox.py")
+  d=/mnt/fast/databases/hermes/data
+  body="install -d -o 568 -g 568 -m 750 $d/budget $d/budget/pending $d/budget/sent $d/scripts && echo $b64 | base64 -d > $d/scripts/budget_outbox.py && chown 568:568 $d/scripts/budget_outbox.py && chmod 644 $d/scripts/budget_outbox.py && ls -ld $d/budget $d/budget/pending $d/scripts/budget_outbox.py"
   ;;
 *)
   echo "unknown command $1" >&2

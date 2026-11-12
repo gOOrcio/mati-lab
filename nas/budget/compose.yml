@@ -75,6 +75,9 @@ services:
       ACTUAL_SYNC_ID: "__SYNC_ID__"
       BUDGET_NAME: Household
       INBOX_DIR: /inbox
+      # Guard messages; a Hermes script-only cron job delivers them to Telegram.
+      # Personal thresholds and lists: /inbox/guard.json (not in the repo).
+      OUTBOX_DIR: /outbox
       # investor-dashboard LAN API (read-only GETs) for the nightly valuation job.
       INVEST_API_URL: http://192.168.1.65:30032
     env_file:
@@ -86,6 +89,10 @@ services:
       - type: bind
         source: /mnt/fast/databases/budget/inbox
         target: /inbox
+      # Inside Hermes's data dataset (seen there as /opt/data/budget); both run as 568.
+      - type: bind
+        source: /mnt/fast/databases/hermes/data/budget
+        target: /outbox
 
   actual-ai:
     image: docker.io/sakowicz/actual-ai:3.0.4
