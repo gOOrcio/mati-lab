@@ -168,8 +168,6 @@ services:
         {{/each}}
         {{/each}}
 
-
-
         Pick the single best existing category. Use your knowledge of Polish and international merchant names.
 
         IMPORTANT: Respond with ONLY a JSON object of this form, with the ID of one existing category:
