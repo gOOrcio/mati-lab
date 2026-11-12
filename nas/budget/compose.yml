@@ -108,6 +108,74 @@ services:
       # Never suggestNewCategories: a small local model would sprawl them.
       # __FEATURES__ is dryRun until the dry-run log has been reviewed.
       FEATURES: '__FEATURES__'
+      # Custom prompt (2026-11-12 audit): explains mBank description conventions
+      # ("- INTERNET" = paid online, not a telecom bill) and what each category
+      # holds; answers must be an existing category. On 150 audited rows:
+      # qwen3.5:9b 48% -> 55%, gpt-oss:20b 54% -> 63% vs the stock prompt.
+      # Eval harness and results: nas/budget/notes.md "AI audit".
+      PROMPT_TEMPLATE: |
+        Categorise one transaction from a Polish household's mBank statement (owner runs a one-person IT business, JDG).
+
+        Transaction:
+        * Amount: {{amount}} PLN
+        * Type: {{type}}
+        {{#if payee}}
+        * Payee: {{payee}}
+        {{^}}
+        * Payee: {{importedPayee}}
+        {{/if}}
+        {{#if description}}
+        * Bank description: {{description}}
+        {{/if}}
+        {{#if date}}
+        * Date: {{date}}
+        {{/if}}
+
+        Background on mBank descriptions (background facts, not rules):
+        - "ZAKUP PRZY UŻYCIU KARTY" = card payment at a merchant. A "- INTERNET" or "- MO/TO" suffix only means it was paid online. It does NOT mean an internet or phone bill.
+        - "ZA GRANICĄ" = paid abroad, usually during a trip.
+        - "BLIK P2P-WYCHODZĄCY" = phone transfer to a private person, usually splitting a bill. "P2P-PRZYCHODZĄCY" or "PRZELEW ... PRZYCHODZĄCY" from a person's name = someone paying the owner back.
+        - "PAYPAL *NAME", "PP*NAME", "SumUp *NAME", "mElements *NAME": NAME is the real merchant.
+        - Decide by WHAT the merchant sells, never by the payment channel.
+
+        Category guide:
+        - Zakupy spożywcze: supermarkets, grocery stores, bakeries, delis, food markets, diet catering. Not restaurants or cafés.
+        - Restauracje i jedzenie na wynos: restaurants, cafés, bars, pubs, breweries (browar), kebab, burger, sushi, ice cream, food courts, food delivery.
+        - Zakupy online: buying goods: electronics and appliance shops, home goods, marketplaces, general retail, parcel lockers.
+        - Rozrywka i hobby: cinema, theatre, concerts, sports tickets, bowling, video games and game keys.
+        - Subskrypcje: recurring digital services (streaming, software, cloud, news sites).
+        - Internet i telefon: ONLY telecom operators and internet-provider bills.
+        - Koszty firmowe: ONLY clear business costs, normally paid from the business account. Personal card purchases are almost never business costs.
+        - Paliwo i ładowanie: fuel stations and EV charging.
+        - Komunikacja, taxi, parkingi: taxi and ride-hailing, public transport, parking, motorway tolls ("PPO" = toll plaza).
+        - Samochód: serwis i ubezpieczenie: car wash (myjnia), mechanic, vehicle inspection (OSKP), car marketplace fees.
+        - Kosmetyki i higiena: drugstores, perfumeries, barbers, hair and beauty salons.
+        - Zdrowie, leki, lekarze: pharmacies, clinics, dentists, diagnostics.
+        - Dzieci: baby and kids shops. Zwierzęta: pets and vets. Prezenty i okazje: gifts, flowers, weddings.
+        - Podróże i wakacje: hotels, flights, trains, airports, duty free, eSIM for travel, purchases abroad that are not food.
+        - Wynagrodzenie: ONLY salary from an employer. Money from private persons goes to Zwroty i inne wpływy.
+        - Wspólne konto (wydatki domowe): ONLY transfers to the joint household account, never BLIK to friends.
+        - Oszczędności i inwestycje: brokerage (BM / "Przelew do Bm"), IKE, IKZE, deposits (lokata), and money coming back from them.
+        - Podatki: tax office (Urząd Skarbowy), municipal taxes and fees, VAT, and tax refunds.
+        - Opłaty bankowe: bank fees and commissions, 1 PLN identity-verification transfers and their refunds.
+        - Inne wydatki: BLIK to private persons, official fees, anything that fits nothing above.
+
+        Existing categories by group:
+        {{#each categoryGroups}}
+        GROUP: {{name}} (ID: "{{id}}")
+        {{#each categories}}
+        * {{name}} (ID: "{{id}}")
+        {{/each}}
+        {{/each}}
+
+
+
+        Pick the single best existing category. Use your knowledge of Polish and international merchant names.
+
+        IMPORTANT: Respond with ONLY a JSON object of this form, with the ID of one existing category:
+        {"type": "existing", "categoryId": "<category ID>"}
+
+        Never use type "rule" or "new". DO NOT output any text before or after the JSON.
     env_file:
       - /mnt/fast/databases/budget/secrets/actual.env   # ACTUAL_PASSWORD
       - /mnt/fast/databases/budget/secrets/llm.env      # OPENAI_API_KEY (LiteLLM key `budget`)
