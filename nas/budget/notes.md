@@ -107,6 +107,28 @@ the full savings balance (38,004.87) in 2026-11. That took "To Budget" from
   and every non-zero envelope.
 - Dashboards exclude it from *Wydatki na życie* (`NOT_LIVING`).
 
+### Credit card balance (mBank karta)
+
+`mBank karta` is a Visa credit card with a 6,000 PLN limit. Enable Banking
+reports its debt as a positive number, so the first sync booked the debt as
+cash (+5,877 instead of -5,877, which inflated "To Budget" by 11,755).
+Fixed 2026-11-12 with
+`cli account set-balance "mBank karta" -5877.39 --apply`, which changes only
+the starting-balance transaction. If a re-link ever recreates the account,
+check the sign again: right after the monthly repayment the balance should be
+close to zero, never above it.
+`account set-balance` also works for the mortgage account (remaining principal
+as a negative number).
+
+### Monthly budget template (set 2026-11-12)
+
+Take-home is about 21.1k PLN for a 20-day month (175 PLN/h, ryczałt PIT about
+12% minus 300, ZUS 3,422, accounting 412). JIT pays about 14 days after the
+invoice, so a month's work is budgeted in the following month. Living-cost
+template is about 18.1k/month (mortgage instalment 4,533, no overpayments
+until the cushion is rebuilt). Per month also budget Podatki = VAT + PIT of the
+invoice that arrived, ZUS and Koszty firmowe.
+
 ## Report dashboards (as code)
 
 `nas/budget/root-run.sh cli dashboard apply [--dry-run]` (definitions are in
