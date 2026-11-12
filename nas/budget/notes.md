@@ -89,6 +89,24 @@ update it by hand. Every few months, open the account → **Reconcile** →
 enter the remaining principal **as a negative number** from the mBank app.
 Actual books the difference.
 
+### Savings cushion (Poduszka finansowa)
+
+mBank oszczędności stays **on-budget**: it is spendable cash, and moving money
+to and from osobiste is frequent. Making it off-budget would turn every one of
+those moves into categorised income or expense. Instead, the cushion is
+an envelope: **Finanse → Poduszka finansowa**. On 2026-11-12 it was given
+the full savings balance (38,004.87) in 2026-11. That took "To Budget" from
+51.8k to 13.8k. The envelope rolls over every month.
+- Growing it: budget an amount into Poduszka each month (and transfer the cash
+  to oszczędności; the transfer itself needs no category).
+- Using it: cover the overspent category from Poduszka in the budget view.
+- The envelope does not follow the account balance automatically. If they
+  drift apart (interest, a direct transfer), fix it with
+  `cli budget set <YYYY-MM> "Poduszka finansowa" <PLN>` (sets, does not add).
+  `cli budget show <YYYY-MM>` prints To Budget, the on-budget account balances
+  and every non-zero envelope.
+- Dashboards exclude it from *Wydatki na życie* (`NOT_LIVING`).
+
 ## Report dashboards (as code)
 
 `nas/budget/root-run.sh cli dashboard apply [--dry-run]` (definitions are in
