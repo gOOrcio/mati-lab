@@ -114,6 +114,12 @@ Definitions, so the numbers mean something:
   (CHF/EUR)**, so it stays out of *Wpływy z pracy*. The FX conversions from
   Nov 2025 to Apr 2026 stay as B2B income: that was the user's pay, received in
   CHF/EUR and converted month by month.
+- What that money paid for (2026-05-12/14: mortgage early repayment, deposit,
+  IKE/IKZE, 2× brokerage, 116k in total) is in **Finanse → Lokowanie
+  przewalutowanych oszczędności**. The dashboards count it as *saved*, not
+  as living cost. Another 50k went to mBank oszczędności as a plain transfer.
+- Rule e83b9bad: notes `PRZELEW DO BM MBANKU` / `na brokerski` → Oszczędności
+  i inwestycje. actual-ai had put IKZE top-ups into rent and the joint account.
 - One-off fixes: `cli tx set-category <id> "<category>"`.
 
 ## Deploy / update
