@@ -149,8 +149,14 @@ queue and does not refresh it. That batch (235 mails, 255 documents, one worker)
 took 68 minutes: 37 moves succeeded, 149 failed with `AUTHENTICATIONFAILED` and
 were recorded as `ProcessedMail.status = FAILED`. Those mails are consumed and are
 never fetched again (the (folder, UID) record exists), but they keep the `paperless`
-label. Prevention: `PAPERLESS_TASK_WORKERS=3` (default 1; 16 cores, so 5 OCR threads
-per worker) keeps a year under the hour.
+label. `PAPERLESS_TASK_WORKERS=3` (default 1; 16 cores, so 5 OCR threads per worker)
+was not enough: 2021 (395 mails) and 2022+2023 labelled together (698 mails) still
+outlived the token, 811 moves failed. Since 2026-11-12 a temporary TrueNAS cron job
+(id 269, every 20 min, root) runs `/mnt/fast/databases/paperless-apply/refresh-gmail-token.sh`,
+which refreshes the token in the Django shell (as `paperless`) whenever it has less
+than 35 minutes left, log `/var/log/paperless-token-refresh.log`. `apply_mail_action`
+re-reads the account from the DB, so the moves then succeed. Remove both after the
+backfill (followups PL.9).
 
 **Mails without a matching PDF also stay in `paperless`.** A labelled mail whose
 attachments don't pass the rule (thread replies, inline images, excluded names) is
@@ -166,7 +172,25 @@ never be imported. Done on 2026-11-06 for 199 mails from the Paperless side: Dja
 shell as `paperless`, refresh the token as the fetch does
 (`PaperlessMailOAuth2Manager().refresh_account_oauth_token`), `get_mailbox` +
 `mailbox_login`, then `get_rule_action(rule).post_consume(M, uid, "paperless/done")`
-per matched UID.
+per matched UID. Repeated 2026-11-12 for 1042 mails (2021–2023), while 612 unrecorded
+2024 mails waiting for their fetch were correctly left in place.
+
+### What the classifier actually learns from
+
+Auto matching trains only on documents **not carrying an inbox tag** (`train_classifier`
+hashes those; "No updates since last training" while 3,000 documents sit in the inbox).
+On 2026-11-12 the model knew 95 reviewed documents: 51 Terms and Conditions, 16 Invoice,
+15 Bank, and for tags `home` 3, `car` 2, `travel` 2. Consequences seen on the backfill:
+- **Empty-text documents get a constant guess.** Password-protected bank PDFs arrive
+  with no text; the tag model's answer for an empty vector was `travel` + `car`, so 333
+  of 341 empty documents carry both (229 Bank + 104 Other). 306 of them have an unlocked
+  version, but the root document keeps the tags.
+- Types are extrapolated from the 95: Terms and Conditions on 1,209 documents (577
+  Allegro, but also 84 mBank and 70 own scans), Invoice 706, Other 740.
+So: taking documents out of the inbox **is** the training; do it in bulk by
+correspondent (select all mBank statements → type Bank, remove `inbox`). Until each
+tag has a few dozen reviewed examples, use keyword matching (algorithm Any/All) or
+correspondent-based workflows for `home`/`car`/`travel` instead of Auto.
 
 ## Adding a user (partner)
 
