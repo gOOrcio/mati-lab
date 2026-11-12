@@ -192,6 +192,28 @@ correspondent (select all mBank statements → type Bank, remove `inbox`). Until
 tag has a few dozen reviewed examples, use keyword matching (algorithm Any/All) or
 correspondent-based workflows for `home`/`car`/`travel` instead of Auto.
 
+Done 2026-11-12: `travel`/`car` stripped from 362 inbox documents and the three tags
+switched to **Regex** matching (case-insensitive), applied retroactively through
+`documents.matching.matches()` + `bulk_edit modify_tags`:
+
+| Tag | Regex (edit in Tags → Matching) | Docs |
+|---|---|---|
+| `travel` | `lot\.com\|karta pokładowa\|electronic ticket\|e-ticket\|pkp intercity\|airalo\|getyourguide\|numer lotu\|numer rezerwacji\|\bwylot\|passenger\|itinerary\|flixbus\|flight number\|check-in\|zameldowani\|ubezpieczeni[ea] podróżn` | 82 |
+| `car` | `autocasco\|nr rejestracyjn\|numer rejestracyjn\|dowód rejestracyjn\|przegląd techniczn\|orlen pay\|autostrad\|ubezpieczeni[ea] komunikacyjn\|polis[aąy] komunikacyjn\|posiadaczy pojazdów\|pojazdu mechanicznego` | 35 |
+| `home` | `wspólnot[ay] mieszkaniow\|fundusz remontow\|get entra\|\bnetia\b\|ubezpieczeni[ea] (mieszkania\|nieruchomości)\|akt notarialn\|\bczynsz\|umow[aąy] najmu\|lokal mieszkaln\|energi[ai] elektryczn\|\blicznik` | 203 |
+
+Words that looked obvious but were dropped after measuring: merchant names
+(`booking.com`, `ryanair`, `airbnb`, `miles & more`, `hotel`) hit card statements;
+`pasażer`, `pojazd`, `opony`, `samochód`, `uniqa` hit insurance and mortgage terms
+(`system@uniqa.pl` is travel insurance here, not car). Mortgage paperwork lands in
+`home` on purpose (`lokal mieszkalny`, `ubezpieczenie nieruchomości`).
+
+Same day: 1,025 duplicate copies (742 checksum groups) moved to trash, keeping the
+reviewed copy, else the one with an unlocked version, else the oldest; 519 `created`
+dates fixed (483 undated documents got the first ISO/dotted/Polish date in their text,
+36 year-day-month swaps); index rebuilt. Password-locked PDFs without a version stay
+as they are (owner's decision, 2026-11-12).
+
 ## Adding a user (partner)
 
 The web UI is SSO-only, so `admin` can't create users in the browser. `gooral` holds
