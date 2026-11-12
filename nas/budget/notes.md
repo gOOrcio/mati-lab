@@ -258,6 +258,44 @@ deterministically. actual-ai only gets the long tail.
 Rows still unsure after the live run carry `#actual-ai-miss` and show up in the
 dashboard's Review queue. To pause it again, set `FEATURES='["dryRun"]'`.
 
+### AI audit (2026-11-12) and the categorisation pipeline now
+
+A hand audit of all 482 `#actual-ai` rows found **231 right (48%)**, 203 wrong,
+and 48 unknown merchants. The 203 were fixed with `cli tx fix-file`. The file
+lives on the NAS at `inbox/ai-audit-2026-11-12.json`; swap `from`/`to` to roll
+back. Typical errors:
+- mBank's "ZAKUP PRZY UŻYCIU KARTY **- INTERNET**" made electronics shops
+  "Internet i telefon".
+- Cafés, bars and breweries went to groceries.
+- Friends paying back were filed as "Wynagrodzenie".
+- Restaurants, a car wash and Smyk went to "Koszty firmowe".
+- The JDG VAT rule used `is` and missed split-payment rows with a longer payee.
+
+The pipeline after every bank sync is now:
+1. `link-transfers`.
+2. **Rules.** 19 more were added from the audit, among them keyword rules for
+   restaurants, groceries, electronics, games, fuel, tolls (PPO), car,
+   cosmetics, health, kids, BLIK refunds, brokerage, fees, taxes/VAT, ATM,
+   travel and dev tools.
+3. **Payee history** (worker 9b8f70e). If every earlier categorised row from
+   the same normalised merchant has one category, the row gets that category
+   plus the tag `#historia`. Replayed over the audit, this answered 154 of 482
+   AI rows at 91% accuracy.
+4. **actual-ai** handles what is left, using the custom `PROMPT_TEMPLATE` in
+   compose.yml. That template explains mBank wording and the category
+   meanings, drops the rules list, and allows existing categories only.
+
+Prompt A/B on 150 audited tail rows (stock vs custom prompt):
+- qwen3.5:9b: 48% → 55%.
+- gpt-oss:20b: 54% → 63%.
+
+The first custom prompt scored *worse* (44%): the model read the description
+notes as rules and gave up too readily on unknown merchants. Always measure.
+To re-run: `nas/budget/ai-eval/run.mjs`, with the data kept outside the repo.
+The local models still don't know small Warsaw places. That tail is what
+history and rules cover, and the reason BUD.3 (cloud model behind PII masking)
+stays open.
+
 ## Backups and restore
 
 - `/mnt/fast/databases/budget` (recursive): snapshot tasks **27** (hourly, 2 weeks)
