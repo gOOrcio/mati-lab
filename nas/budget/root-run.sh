@@ -60,10 +60,11 @@ hermes)
   body="docker exec -u 568 ix-hermes-agent-hermes-agent-1 hermes $(printf '%q ' "$@") 2>&1"
   ;;
 install-guard)
-  # Outbox lives inside Hermes's data dataset so both apps (UID 568) see it.
+  # File operations run as UID 568 inside the Hermes container, never as root
+  # on the host: the data folder is writable by that user. The outbox is
+  # /opt/data/budget there, /mnt/fast/databases/hermes/data/budget on the host.
   b64=$(base64 -w0 "$(dirname "$0")/hermes/budget_outbox.py")
-  d=/mnt/fast/databases/hermes/data
-  body="install -d -o 568 -g 568 -m 750 $d/budget $d/budget/pending $d/budget/sent $d/scripts && echo $b64 | base64 -d > $d/scripts/budget_outbox.py && chown 568:568 $d/scripts/budget_outbox.py && chmod 644 $d/scripts/budget_outbox.py && ls -ld $d/budget $d/budget/pending $d/scripts/budget_outbox.py"
+  body="echo $b64 | base64 -d | docker exec -i -u 568 ix-hermes-agent-hermes-agent-1 sh -c 'umask 027 && mkdir -p /opt/data/budget/pending /opt/data/budget/sent /opt/data/scripts && cat > /opt/data/scripts/budget_outbox.py && chmod 644 /opt/data/scripts/budget_outbox.py && ls -ld /opt/data/budget/pending /opt/data/budget/sent /opt/data/scripts/budget_outbox.py'"
   ;;
 *)
   echo "unknown command $1" >&2

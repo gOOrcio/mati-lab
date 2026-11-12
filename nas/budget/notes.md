@@ -142,6 +142,11 @@ them to `sent/` (pruned after 30 days). Nothing waiting means no message.
 - Outbox: `/mnt/fast/databases/hermes/data/budget` (`/outbox` in the worker,
   `/opt/data/budget` in Hermes; both run as UID 568). `status.json` there holds
   category totals only (for a future "ask Hermes" skill): no payees, no rows.
+- The worker can write only that one subfolder of Hermes's data, not the rest.
+  Putting the outbox outside Hermes would need an `app.update` of the Hermes
+  catalogue app to add a mount, which was avoided on purpose. The delivery
+  script therefore never follows symlinks and reads only regular files under
+  16 KB. `install-guard` writes as UID 568 inside the container, not as root.
 - Alerts, each sent once: category over budget (per month), transfer out of the
   savings account, AllegroPay charge (planned or not), purchase of 500 PLN or
   more in an optional category, subscription not on the kept list (per month),
