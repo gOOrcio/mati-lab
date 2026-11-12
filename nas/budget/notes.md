@@ -109,6 +109,12 @@ Definitions, so the numbers mean something:
   matured deposits, and a one-off 164k PLN FX conversion on 2026-05-12.
   The result was a misleading ~584k "income".
 - `cli dashboard list` dumps what is on every page.
+- The 2026-05-12 conversion (the FX account emptied into savings and a mortgage
+  overpayment) is in the income category **Przewalutowanie oszczędności
+  (CHF/EUR)**, so it stays out of *Wpływy z pracy*. The FX conversions from
+  Nov 2025 to Apr 2026 stay as B2B income: that was the user's pay, received in
+  CHF/EUR and converted month by month.
+- One-off fixes: `cli tx set-category <id> "<category>"`.
 
 ## Deploy / update
 
