@@ -179,6 +179,21 @@ Definitions, so the numbers mean something:
   goes back out under *Podatki*.
 - **Wydatki na życie**: outflows excluding Podatki, ZUS, Oszczędności i
   inwestycje and Koszty firmowe.
+- **Na rękę** (take-home): B2B + Wynagrodzenie minus Podatki, ZUS and Koszty
+  firmowe paid in the same period.
+- **Wynik** (result): every non-transfer row except saving (Oszczędności i
+  inwestycje, the FX placement, Poduszka finansowa, the FX conversion income).
+  Negative means the month cost more than it brought in.
+- **Wyjęte z poduszki**: transfers out of `mBank oszczędności`.
+- **Wydatki opcjonalne**: the guard's `discretionary` category list.
+- "Na co poszło życie" is the sankey with living costs only, from category
+  group to category. It has no account layer, so tax round-trips don't distort it.
+- Averages on **Rok** cover the six finished months. Those windows are fixed
+  when the pages are applied, so the worker's `dashboards` job re-applies them on
+  the 1st of each month (00:10).
+- **Plan card**: if `/mnt/fast/databases/budget/inbox/dashboard-notes.md` exists,
+  its markdown is shown on **Budżet**. It holds personal figures, so it stays on
+  the NAS. Edit the file, then run `cli dashboard apply`.
 - All of these are on-budget only, with own transfers excluded.
 - Actual's default "Total Income/Expenses (YTD)" counted every non-transfer
   inflow. That included the VAT round-trips (`PRZELEW VAT PRZYCH. WŁASNY US`),
