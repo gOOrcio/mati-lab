@@ -98,11 +98,6 @@
         },
         {
           "container": "paperless",
-          "name": "PAPERLESS_EMAIL_TASK_CRON",
-          "value": "7 */3 * * *"
-        },
-        {
-          "container": "paperless",
           "name": "PAPERLESS_TASK_WORKERS",
           "value": "3"
         }
