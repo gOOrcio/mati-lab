@@ -131,8 +131,9 @@ mail's consume tasks finish. Two ways that duplicated pilot documents:
   `-label:paperless-done` to the bulk-label search.
 - **Overlapping fetches.** With the default 10-minute fetch, a big batch is still
   consuming when the next fetch runs; mails not yet recorded are queued a second time
-  (3 pilot mails, same UID twice a minute apart). During the backfill the fetch runs
-  every 3 h (`PAPERLESS_EMAIL_TASK_CRON=7 */3 * * *`); revert after (followups PL.7).
+  (3 pilot mails, same UID twice a minute apart). During the backfill the fetch ran
+  every 3 h (`PAPERLESS_EMAIL_TASK_CRON=7 */3 * * *`, 2026-11-02 → 2026-11-13); back to
+  the 10-minute default since (followups PL.7).
 
 Procedure: one year per batch. Gmail search
 `category:primary has:attachment filename:pdf after:2020/01/01 before:2021/01/01 -label:paperless-done`
@@ -151,12 +152,14 @@ were recorded as `ProcessedMail.status = FAILED`. Those mails are consumed and a
 never fetched again (the (folder, UID) record exists), but they keep the `paperless`
 label. `PAPERLESS_TASK_WORKERS=3` (default 1; 16 cores, so 5 OCR threads per worker)
 was not enough: 2021 (395 mails) and 2022+2023 labelled together (698 mails) still
-outlived the token, 811 moves failed. Since 2026-11-12 a temporary TrueNAS cron job
-(id 269, every 20 min, root) runs `/mnt/fast/databases/paperless-apply/refresh-gmail-token.sh`,
-which refreshes the token in the Django shell (as `paperless`) whenever it has less
-than 35 minutes left, log `/var/log/paperless-token-refresh.log`. `apply_mail_action`
-re-reads the account from the DB, so the moves then succeed. Remove both after the
-backfill (followups PL.9).
+outlived the token, 811 moves failed. For the 2024–2026 batches (2026-11-12/13) a
+temporary TrueNAS cron job (every 20 min, root) ran a script that refreshed the token
+in the Django shell (as `paperless`) whenever it had less than 35 minutes left;
+`apply_mail_action` re-reads the account from the DB, so every move of those batches
+succeeded. Removed with the backfill cleanup on 2026-11-13 (followups PL.9); the
+recipe, should a big batch ever be needed again: `MailAccount.objects.filter(is_token=True)`
+→ `PaperlessMailOAuth2Manager().refresh_account_oauth_token(account)` when
+`account.expiration < now + 35 min`.
 
 **Mails without a matching PDF also stay in `paperless`.** A labelled mail whose
 attachments don't pass the rule (thread replies, inline images, excluded names) is
@@ -173,7 +176,25 @@ shell as `paperless`, refresh the token as the fetch does
 (`PaperlessMailOAuth2Manager().refresh_account_oauth_token`), `get_mailbox` +
 `mailbox_login`, then `get_rule_action(rule).post_consume(M, uid, "paperless/done")`
 per matched UID. Repeated 2026-11-12 for 1042 mails (2021–2023), while 612 unrecorded
-2024 mails waiting for their fetch were correctly left in place.
+2024 mails waiting for their fetch were correctly left in place, and 2026-11-13 for the
+last 80 (2024–2026). Compare `ProcessedMail.uid` and `uid_validity` as **strings**
+(`M.folder.status()["UIDVALIDITY"]` and `M.uids()` are ints): an int/str mismatch
+makes every mail look unrecorded.
+
+**Re-consuming a mail whose attachment failed.** A consume failure (`ProcessedMail.status
+= FAILED`) is final: the mail is never fetched again. To retry, delete its `ProcessedMail`
+row and move the mail from `paperless/done` back to `paperless` (`M.move(uid, "paperless")`
+in the Django shell); the next fetch takes it as new. Done 2026-11-13 for two mails:
+a T-Mobile invoice that had hit a search-index lock (`LockBusy`) during the busy 2024
+run consumed fine; of a three-PDF trip mail the two tickets consumed and the hotel
+voucher failed again (`SubprocessOutputError` in the converter — the file itself), so
+that one is for a manual upload after a re-print to PDF.
+
+**Batch totals.** 2020: 235 mails; 2021: 395; 2022+2023: 698; 2024: 612 (two fetches,
+Gmail applies a bulk label gradually — a later fetch picks up the rest); 2025+2026: 394.
+Throughput with three workers ≈ 150 mails/h. The 2024 run also produced two `LockBusy`
+consume failures (Whoosh index writer contention under 3 workers) and one worker
+`SIGKILL`; a one-off, not worth tuning for.
 
 ### What the classifier actually learns from
 
@@ -212,7 +233,9 @@ Same day: 1,025 duplicate copies (742 checksum groups) moved to trash, keeping t
 reviewed copy, else the one with an unlocked version, else the oldest; 519 `created`
 dates fixed (483 undated documents got the first ISO/dotted/Polish date in their text,
 36 year-day-month swaps); index rebuilt. Password-locked PDFs without a version stay
-as they are (owner's decision, 2026-11-12).
+as they are (owner's decision, 2026-11-12). After the 2024–2026 batches (2026-11-13):
+626 more duplicates (475 groups) trashed, 509 dates fixed (487 undated, 22 swaps),
+3,780 documents in the archive.
 
 ## Adding a user (partner)
 
