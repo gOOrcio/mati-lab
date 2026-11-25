@@ -1489,3 +1489,17 @@ so a second walk-by within the cooldown produces **no event at all**. Owner
 confirmed reliable triggering with ~60s between walk-bys, and that this
 matches the sensor's normal behaviour. Do not mistake this for a firewall
 problem. Sensitivity is adjustable in the Hue app; the cooldown is not.
+
+## Home Assistant migration devices (2026-11-25)
+
+Devices joined to `konewka_iot` for the Home Assistant migration
+(`docs/home-assistant/migration-plan.html`). HA will run on the Pi 4 at
+`192.168.1.155` (VLAN 1), and Infra → IoT is allowed, so no firewall change.
+
+| Device | IP (reserved on **IoT**) | Port HA uses | Checked |
+|---|---|---|---|
+| Dyson HP04 (`_dyson_mqtt`, product type 527) | `192.168.30.104` | TCP 1883 (local MQTT) | open from VLAN 1, filtered from VLAN 20 (expected) |
+
+The reservation was made in the UI: the local API key returned 401 on
+2026-11-25 (revoked after the VLAN work, as intended). A new key, if ever
+needed, goes in `~/.config/unifi/local-api.key` (mode 600), never in chat.

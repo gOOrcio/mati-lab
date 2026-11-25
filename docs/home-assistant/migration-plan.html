@@ -92,7 +92,7 @@ footer{margin-top:60px;color:var(--muted);font-size:13px;border-top:1px solid va
 <header class="top">
   <div class="eyebrow">mati-lab · smart home · preliminary design</div>
   <h1>Apple Home + Homebridge → Home Assistant</h1>
-  <p class="meta">Draft <strong>v0.5</strong> · 2026-11-25 · Status: <span class="pill warn">proposal, nothing executed</span> · v0.2 adds your answers: HA <strong>on the Pi 4</strong>, Homebridge <strong>fully replaced</strong>, Govee on the cloud path, WoL dropped, Dyson <strong>HP04</strong>, Klarta <strong>Humea</strong>, 2 Aqara hubs. v0.3 adds: dongle <strong>SONOFF Dongle Plus E</strong> (EFR32MG21), Pi 4 <strong>4 GB</strong>, Aqara <strong>Roller Shade Driver E1</strong> and <strong>Thermostat W600</strong> (Z2M: WT-A03E), Klarta already in <strong>Smart Life</strong>. v0.4: Pi boots from <strong>SD</strong>; Aqara sensors are the <strong>T1</strong> series. Facts marked <span class="pill ok">verified</span> were checked live on 2026-11-25. Facts marked <span class="pill warn">to confirm</span> are confirmed in Phase 2.</p>
+  <p class="meta">Draft <strong>v0.6</strong> · 2026-11-25 · Status: <span class="pill warn">proposal, nothing executed</span> · v0.2 adds your answers: HA <strong>on the Pi 4</strong>, Homebridge <strong>fully replaced</strong>, Govee on the cloud path, WoL dropped, Dyson <strong>HP04</strong>, Klarta <strong>Humea</strong>, 2 Aqara hubs. v0.3 adds: dongle <strong>SONOFF Dongle Plus E</strong> (EFR32MG21), Pi 4 <strong>4 GB</strong>, Aqara <strong>Roller Shade Driver E1</strong> and <strong>Thermostat W600</strong> (Z2M: WT-A03E), Klarta already in <strong>Smart Life</strong>. v0.4: Pi boots from <strong>SD</strong>; Aqara sensors are the <strong>T1</strong> series. v0.6: Dyson on the IoT network at <code>.30.104</code>. Facts marked <span class="pill ok">verified</span> were checked live on 2026-11-25. Facts marked <span class="pill warn">to confirm</span> are confirmed in Phase 2.</p>
 </header>
 
 <nav class="toc">
@@ -121,6 +121,7 @@ footer{margin-top:60px;color:var(--muted);font-size:13px;border-top:1px solid va
 <tr><td>2026-11-25</td><td>1a: fresh Homebridge backup, copy outside retention, decrypt check</td><td><span class="pill ok">done</span> <code>homebridge-20261125T102655Z.tar.gz.gpg</code> → also in <code>pre-ha-migration/</code> (sha256 identical); decrypts and lists 33 entries; Daikin token set included</td></tr>
 <tr><td>2026-11-25</td><td>2a: Homebridge inventory (names only)</td><td><span class="pill ok">done</span> see table below</td></tr>
 <tr><td>2026-11-25</td><td>D7 revisited</td><td><span class="pill ok">changed</span> Homebridge holds only 6 accessories that matter, so the <strong>bridge-lift is dropped</strong>. The default path is now a direct swap with the SD card as rollback (Phase 3 is optional).</td></tr>
+<tr><td>2026-11-25</td><td>5c prep: Dyson HP04 onboarded to <code>konewka_iot</code></td><td><span class="pill ok">done</span> advertises <code>_dyson_mqtt</code> as product type 527 (HP04) at <code>192.168.30.104:1883</code>; fixed IP reserved on the IoT network; port 1883 reachable from VLAN 1 (tested from the network Pi), so HA on <code>.155</code> can reach it</td></tr>
 <tr><td>next</td><td>Phase 0 / 1b / 1c manual actions (hardware, dongle flash, Vaultwarden, API keys, Apple and Aqara inventories)</td><td><span class="pill warn">waiting on you</span></td></tr>
 </tbody></table></div>
 <h4>Homebridge inventory (2026-11-25, from the backup)</h4>
@@ -180,7 +181,7 @@ footer{margin-top:60px;color:var(--muted);font-size:13px;border-top:1px solid va
 <tr><td><strong>Zigbee dongle</strong></td><td>on hand</td><td>SONOFF Dongle Plus E (EFR32MG21) → Z2M <code>adapter: ember</code></td><td>you</td></tr>
 <tr><td><strong>Pi 4</strong></td><td>192.168.1.155</td><td>4 GB RAM; boots from <strong>SD card</strong> (this card becomes rollback R1)</td><td>you</td></tr>
 <tr><td>Other IoT VLAN 30</td><td>192.168.30.0/24</td><td>LG TV, LG fridge (.247), JBL Bar 1000 (.128), Dreame, <strong>Klarta Humea</strong>, NETIA box</td><td><span class="pill ok">verified</span> followups net.1/net.10</td></tr>
-<tr><td><strong>Dyson HP04</strong></td><td>not seen on the network</td><td>To onboard</td><td>you</td></tr>
+<tr><td><strong>Dyson HP04</strong></td><td><code>192.168.30.104</code> (IoT, reserved), MQTT 1883 reachable from VLAN 1</td><td><span class="pill ok">verified</span> on the network</td><td>—</td></tr>
 <tr><td>Homebridge backup</td><td>NAS cron 21, Sun 04:45 UTC</td><td>UI-issued tar.gz → gpg → <code>/mnt/bulk/backups/homebridge/</code>, 56 days, Kuma push</td><td><span class="pill ok">verified</span> repo</td></tr>
 <tr><td>Proxmox</td><td>192.168.1.184</td><td>About 10 GB RAM free; CT/VM ID 112 free; <code>vmbr0</code> on VLAN 1</td><td><span class="pill ok">verified</span></td></tr>
 </tbody></table></div>
@@ -491,7 +492,7 @@ Restart.</li>
 </ol>
 <h4>5c. Dyson HP04 (ha-dyson)</h4>
 <ol class="steps">
-<li>Onboard the HP04 with the MyDyson app onto <strong><code>konewka_iot</code></strong> (2.4 GHz; PMF is off there, which older Dysons need). Reserve its IP in the IoT network.</li>
+<li>Onboard the HP04 with the MyDyson app onto <strong><code>konewka_iot</code></strong> (2.4 GHz; PMF is off there, which older Dysons need). Reserve its IP in the IoT network. <span class="pill ok">done 2026-11-25: 192.168.30.104</span></li>
 <li>HACS → custom repository <code>libdyson-wg/ha-dyson</code> → install → restart.</li>
 <li>Add <em>Dyson</em> → cloud account → email plus OTP. This fetches the HP04's serial and local credentials once.</li>
 <li>When discovery doesn't find it, enter the IP manually. HA → HP04 on TCP 1883 is Infra → IoT, which is allowed.</li>
@@ -708,7 +709,7 @@ Restart.</li>
 <li>Also referenced: <code>wez/govee2mqtt</code>, Zigbee2MQTT supported-devices pages for Aqara, Homebridge apt repository (repo.homebridge.io), Home Assistant docs (HomeKit Bridge, backups and restore, Raspberry Pi installation). Verify each at execution time.</li>
 </ul>
 
-<footer>mati-lab · <code>docs/home-assistant/migration-plan.html</code> · v0.5 · No secrets in this file. Credentials are referenced only by their Vaultwarden labels.</footer>
+<footer>mati-lab · <code>docs/home-assistant/migration-plan.html</code> · v0.6 · No secrets in this file. Credentials are referenced only by their Vaultwarden labels.</footer>
 </div>
 <script>
 (function(){
