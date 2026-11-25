@@ -1,0 +1,701 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Home Assistant Migration Plan</title>
+<style>
+:root{
+  --bg:#f7f6f3; --surface:#ffffff; --ink:#1d1f23; --muted:#5d636d; --line:#e2dfd8;
+  --accent:#1f6f8b; --accent-soft:#e3f0f4; --ok:#2f7d4a; --ok-soft:#e5f3e9;
+  --warn:#9a6a00; --warn-soft:#fbf1d9; --bad:#a23b3b; --bad-soft:#f8e4e4;
+  --code-bg:#f0eee9; --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#15171a; --surface:#1d2024; --ink:#e7e8ea; --muted:#9aa1ab; --line:#2f333a;
+    --accent:#6cb6d1; --accent-soft:#1c3440; --ok:#6cc58a; --ok-soft:#1b3324;
+    --warn:#e0b04a; --warn-soft:#3a2f14; --bad:#e88080; --bad-soft:#3d1f1f; --code-bg:#25282d;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#15171a; --surface:#1d2024; --ink:#e7e8ea; --muted:#9aa1ab; --line:#2f333a;
+  --accent:#6cb6d1; --accent-soft:#1c3440; --ok:#6cc58a; --ok-soft:#1b3324;
+  --warn:#e0b04a; --warn-soft:#3a2f14; --bad:#e88080; --bad-soft:#3d1f1f; --code-bg:#25282d;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.wrap{max-width:1080px;margin:0 auto;padding:32px 16px 80px}
+header.top{border-bottom:1px solid var(--line);padding-bottom:20px;margin-bottom:28px}
+.eyebrow{font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+h1{font-size:clamp(28px,4vw,40px);line-height:1.15;margin:6px 0 10px}
+h2{font-size:26px;margin:56px 0 12px;padding-top:8px;border-top:1px solid var(--line)}
+h3{font-size:19px;margin:30px 0 8px}
+h4{font-size:16px;margin:20px 0 6px}
+p{margin:10px 0}
+a{color:var(--accent)}
+.meta{color:var(--muted);font-size:14px}
+.pill{display:inline-block;font-size:12px;font-weight:600;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.ok{background:var(--ok-soft);color:var(--ok)} .warn{background:var(--warn-soft);color:var(--warn)}
+.bad{background:var(--bad-soft);color:var(--bad)} .info{background:var(--accent-soft);color:var(--accent)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin:16px 0}
+.verdict{border-left:5px solid var(--ok)}
+.callout{border-left:5px solid var(--warn)}
+.danger{border-left:5px solid var(--bad)}
+.grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+.stat b{display:block;font-size:24px;line-height:1.25}
+.stat span{color:var(--muted);font-size:14px}
+nav.toc{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 20px;columns:2 260px;font-size:15px}
+nav.toc a{text-decoration:none}
+nav.toc ol{margin:0;padding-left:20px}
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--surface);margin:14px 0}
+table{border-collapse:collapse;width:100%;font-size:14.5px}
+th,td{text-align:left;vertical-align:top;padding:9px 12px;border-bottom:1px solid var(--line)}
+th{font-size:12.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);background:var(--bg)}
+tr:last-child td{border-bottom:none}
+code{font-family:var(--mono);font-size:.9em;background:var(--code-bg);padding:1px 5px;border-radius:4px}
+pre{font-family:var(--mono);font-size:13.5px;background:var(--code-bg);border:1px solid var(--line);border-radius:10px;padding:12px 14px;overflow-x:auto;line-height:1.5}
+pre code{background:none;padding:0}
+ol.steps{padding-left:0;list-style:none;counter-reset:s}
+ol.steps>li{counter-increment:s;position:relative;padding:10px 0 10px 44px;border-bottom:1px dashed var(--line)}
+ol.steps>li:last-child{border-bottom:none}
+ol.steps>li::before{content:counter(s);position:absolute;left:0;top:10px;width:28px;height:28px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+.phase{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:6px 22px 18px;margin:22px 0}
+.phase h3{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.phase .when{font-size:13px;color:var(--muted);font-weight:400}
+.gate{background:var(--ok-soft);border-radius:10px;padding:10px 14px;margin-top:12px;font-size:15px}
+.rollback{background:var(--bad-soft);border-radius:10px;padding:10px 14px;margin-top:10px;font-size:15px}
+.check{display:flex;gap:10px;align-items:flex-start}
+.check input{margin-top:5px;width:16px;height:16px;flex:none}
+svg{max-width:100%;height:auto}
+.diagram{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px;margin:14px 0}
+.diagram text{fill:var(--ink);font:13px system-ui,sans-serif}
+.diagram .sub{fill:var(--muted);font-size:11.5px}
+.diagram .box{fill:var(--bg);stroke:var(--line);stroke-width:1.5}
+.diagram .hl{fill:var(--accent-soft);stroke:var(--accent);stroke-width:1.5}
+.diagram .tmp{fill:var(--warn-soft);stroke:var(--warn);stroke-width:1.5;stroke-dasharray:6 4}
+.diagram .ln{stroke:var(--muted);stroke-width:1.5;fill:none}
+.diagram .dash{stroke-dasharray:5 4}
+.timeline{display:grid;gap:8px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));margin:14px 0}
+.timeline div{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:14px}
+.timeline b{display:block;color:var(--accent);font-size:13px}
+small,.small{font-size:13px;color:var(--muted)}
+footer{margin-top:60px;color:var(--muted);font-size:13px;border-top:1px solid var(--line);padding-top:16px}
+@media (max-width:600px){ol.steps>li{padding-left:38px} h2{font-size:22px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="top">
+  <div class="eyebrow">mati-lab · smart home · preliminary design</div>
+  <h1>Apple Home + Homebridge → Home Assistant</h1>
+  <p class="meta">Draft <strong>v0.4</strong> · 2026-11-25 · Status: <span class="pill warn">proposal, nothing executed</span> · v0.2 adds your answers: HA <strong>on the Pi 4</strong>, Homebridge <strong>fully replaced</strong>, Govee on the cloud path, WoL dropped, Dyson <strong>HP04</strong>, Klarta <strong>Humea</strong>, 2 Aqara hubs. v0.3 adds: dongle <strong>SONOFF Dongle Plus E</strong> (EFR32MG21), Pi 4 <strong>4 GB</strong>, Aqara <strong>Roller Shade Driver E1</strong> and <strong>Thermostat W600</strong> (Z2M: WT-A03E), Klarta already in <strong>Smart Life</strong>. v0.4: Pi boots from <strong>SD</strong>; Aqara sensors are the <strong>T1</strong> series. Facts marked <span class="pill ok">verified</span> were checked live on 2026-11-25. Facts marked <span class="pill warn">to confirm</span> are confirmed in Phase 2.</p>
+</header>
+
+<nav class="toc">
+<ol>
+  <li><a href="#verdict">Feasibility verdict</a></li>
+  <li><a href="#current">Current state</a></li>
+  <li><a href="#target">Target architecture</a></li>
+  <li><a href="#strategy">Cutover strategy (one Pi, two systems)</a></li>
+  <li><a href="#matrix">Device-by-device feasibility</a></li>
+  <li><a href="#decisions">Decisions (resolved and open)</a></li>
+  <li><a href="#phases">Migration phases (detailed steps)</a></li>
+  <li><a href="#recovery">Recovery runbook</a></li>
+  <li><a href="#risks">Risks and mitigations</a></li>
+  <li><a href="#docs">Repo bookkeeping</a></li>
+  <li><a href="#open">Open questions</a></li>
+  <li><a href="#sources">Sources</a></li>
+</ol>
+</nav>
+
+<!-- ============================================================ -->
+<h2 id="verdict">1. Feasibility verdict</h2>
+
+<div class="card verdict">
+<p><strong>Feasible, including full Homebridge removal and running HA on the existing Pi 4.</strong> Every device has a maintained HA integration. The Zigbee dongle you already own makes Home Assistant independent of both Aqara hubs: Aqara blind motors, radiator thermostats and sensors are well supported by Zigbee2MQTT. Apple Home stays as the iPhone/Siri remote, fed by HA's HomeKit Bridge. All automations move to HA.</p>
+<ul>
+<li><strong>Dyson HP04</strong> (Pure Hot+Cool) is a supported model in <code>ha-dyson</code> (libdyson-wg). It uses local MQTT after a one-time cloud credential fetch.</li>
+<li><strong>Klarta Humea</strong> has a dedicated profile in <code>tuya-local</code> (<code>klarta_humea_humidifier.yaml</code>) and runs fully locally.</li>
+<li><strong>Govee on the cloud path</strong> needs no extra network leg. Use the <code>govee2mqtt</code> add-on with a Govee API key.</li>
+</ul>
+</div>
+
+<div class="grid">
+  <div class="stat"><b>0 Homebridge</b><span>at the end; WoL retired, not migrated</span></div>
+  <div class="stat"><b>0 Aqara hubs</b><span>blinds, thermostats and sensors re-paired to your dongle</span></div>
+  <div class="stat"><b>Pi 4</b><span>HAOS on a <em>new</em> boot drive; Homebridge SD kept as instant rollback</span></div>
+  <div class="stat"><b>6–8 evenings</b><span>over 3–5 weeks, including a 2-week burn-in</span></div>
+</div>
+
+<div class="card callout">
+<strong>What changes because HA goes on the same Pi</strong>
+<p>Homebridge and HA cannot run side by side on one Pi 4. Re-imaging it in place would be a big-bang cutover with no quick way back. The plan avoids that with two cheap measures:</p>
+<ol>
+<li><strong>Never overwrite the Homebridge boot medium.</strong> HAOS goes on a <em>new</em> USB SSD (or new SD card). The current Homebridge card is pulled, labelled and stored. Rollback becomes a 5-minute media swap.</li>
+<li><strong>"Bridge-lift": move Homebridge temporarily to a Proxmox LXC</strong>, restored from its own backup (same HomeKit identities, so Apple Home does not notice). That frees the Pi for HA while Homebridge keeps serving Apple Home. Devices then move to HA one batch at a time, each with its own rollback. The LXC is deleted at the end.</li>
+</ol>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="current">2. Current state</h2>
+
+<div class="tablewrap"><table>
+<thead><tr><th>Component</th><th>Where</th><th>Role</th><th>Evidence</th></tr></thead>
+<tbody>
+<tr><td><strong>Apple TV "Living Room"</strong></td><td>192.168.20.161 (Trusted)</td><td>Apple Home hub and Thread border router</td><td><span class="pill ok">verified</span> mDNS</td></tr>
+<tr><td><strong>Homebridge main bridge</strong> "F4DF 9F6E"</td><td>Pi 4, 192.168.1.155:51484</td><td>Contents unknown</td><td><span class="pill ok">verified</span> · contents <span class="pill warn">to confirm</span></td></tr>
+<tr><td>Child bridge <strong>Govee</strong></td><td>:31081</td><td>3 × Govee, cloud path</td><td><span class="pill ok">verified</span> + you</td></tr>
+<tr><td>Child bridge <strong>daikin-cloud</strong></td><td>:59268</td><td>3 × Daikin via Onecta cloud</td><td><span class="pill ok">verified</span></td></tr>
+<tr><td>Child bridge <strong>WoL</strong></td><td>:59802</td><td>Unreliable with the dual-boot PC → <strong>retire</strong></td><td><span class="pill ok">verified</span> + you</td></tr>
+<tr><td><strong>Hue Bridge</strong></td><td>192.168.30.221</td><td>Native Apple (Matter/HAP)</td><td><span class="pill ok">verified</span></td></tr>
+<tr><td><strong>Aqara Hub E1 #1</strong> (HE1-G01)</td><td>192.168.30.99</td><td>Native HomeKit; Zigbee parent of <strong>blind motors, thermostats, sensors</strong></td><td><span class="pill ok">verified</span> + you</td></tr>
+<tr><td><strong>Aqara hub #2</strong></td><td>not connected</td><td>Spare; no role</td><td>you</td></tr>
+<tr><td><strong>Zigbee dongle</strong></td><td>on hand</td><td>SONOFF Dongle Plus E (EFR32MG21) → Z2M <code>adapter: ember</code></td><td>you</td></tr>
+<tr><td><strong>Pi 4</strong></td><td>192.168.1.155</td><td>4 GB RAM; boots from <strong>SD card</strong> (this card becomes rollback R1)</td><td>you</td></tr>
+<tr><td>Other IoT VLAN 30</td><td>192.168.30.0/24</td><td>LG TV, LG fridge (.247), JBL Bar 1000 (.128), Dreame, <strong>Klarta Humea</strong>, NETIA box</td><td><span class="pill ok">verified</span> followups net.1/net.10</td></tr>
+<tr><td><strong>Dyson HP04</strong></td><td>not seen on the network</td><td>To onboard</td><td>you</td></tr>
+<tr><td>Homebridge backup</td><td>NAS cron 21, Sun 04:45 UTC</td><td>UI-issued tar.gz → gpg → <code>/mnt/bulk/backups/homebridge/</code>, 56 days, Kuma push</td><td><span class="pill ok">verified</span> repo</td></tr>
+<tr><td>Proxmox</td><td>192.168.1.184</td><td>About 10 GB RAM free; CT/VM ID 112 free; <code>vmbr0</code> on VLAN 1</td><td><span class="pill ok">verified</span></td></tr>
+</tbody></table></div>
+
+<p><strong>Network:</strong> Infra (VLAN 1) → IoT (VLAN 30) is allowed, and IoT → Infra is denied for NEW connections. The Pi at <code>.155</code> on VLAN 1 is exactly where HA will be, so every integration HA uses is HA-initiated: Tuya TCP 6668, Dyson MQTT 1883, miio UDP 54321, webOS, Hue HTTPS, cloud APIs. <strong>No firewall changes are needed.</strong> The mDNS reflector already lets iPhones on VLAN 20 see a HomeKit bridge on VLAN 1. Zigbee is radio and ignores VLANs.</p>
+
+<!-- ============================================================ -->
+<h2 id="target">3. Target architecture</h2>
+
+<div class="diagram">
+<svg viewBox="0 0 980 440" role="img" aria-label="Target: iPhone and Siri use Apple Home on the Apple TV; Apple Home talks to the Home Assistant HomeKit Bridge on the Pi 4; Home Assistant drives Hue, Zigbee devices via the dongle, cloud devices and local devices. A temporary Homebridge LXC exists only during the migration.">
+  <rect class="box" x="20" y="20" width="200" height="70" rx="10"/>
+  <text x="120" y="50" text-anchor="middle">iPhone · Home app · Siri</text>
+  <text class="sub" x="120" y="70" text-anchor="middle">+ HA Companion app (presence)</text>
+
+  <rect class="box" x="20" y="150" width="200" height="80" rx="10"/>
+  <text x="120" y="182" text-anchor="middle">Apple Home</text>
+  <text class="sub" x="120" y="202" text-anchor="middle">Apple TV hub · UI + Siri only</text>
+  <text class="sub" x="120" y="218" text-anchor="middle">no automations at the end</text>
+
+  <rect class="hl" x="320" y="105" width="320" height="190" rx="12"/>
+  <text x="480" y="133" text-anchor="middle" font-weight="700">Home Assistant OS · Pi 4</text>
+  <text class="sub" x="480" y="152" text-anchor="middle">192.168.1.155 · boots from new USB SSD</text>
+  <rect class="box" x="338" y="165" width="137" height="38" rx="8"/>
+  <text x="406" y="189" text-anchor="middle">HomeKit Bridge</text>
+  <rect class="box" x="485" y="165" width="137" height="38" rx="8"/>
+  <text x="553" y="189" text-anchor="middle">Automations</text>
+  <rect class="box" x="338" y="210" width="137" height="38" rx="8"/>
+  <text x="406" y="234" text-anchor="middle">Zigbee2MQTT</text>
+  <rect class="box" x="485" y="210" width="137" height="38" rx="8"/>
+  <text x="553" y="234" text-anchor="middle">Mosquitto</text>
+  <rect class="box" x="338" y="255" width="284" height="32" rx="8"/>
+  <text x="480" y="276" text-anchor="middle">Integrations (core + HACS + govee2mqtt)</text>
+
+  <rect class="box" x="740" y="15" width="220" height="56" rx="10"/>
+  <text x="850" y="39" text-anchor="middle">Hue Bridge</text>
+  <text class="sub" x="850" y="57" text-anchor="middle">local API; stays native in Apple</text>
+  <rect class="box" x="740" y="82" width="220" height="56" rx="10"/>
+  <text x="850" y="106" text-anchor="middle">Aqara blinds · TRVs · sensors</text>
+  <text class="sub" x="850" y="124" text-anchor="middle">Zigbee via USB dongle (no hub)</text>
+  <rect class="box" x="740" y="149" width="220" height="56" rx="10"/>
+  <text x="850" y="173" text-anchor="middle">Daikin ×3 · Govee ×3 · LG fridge</text>
+  <text class="sub" x="850" y="191" text-anchor="middle">cloud APIs</text>
+  <rect class="box" x="740" y="216" width="220" height="56" rx="10"/>
+  <text x="850" y="240" text-anchor="middle">Klarta Humea · Dyson HP04 · Dreame</text>
+  <text class="sub" x="850" y="258" text-anchor="middle">local (keys fetched once)</text>
+  <rect class="box" x="740" y="283" width="220" height="56" rx="10"/>
+  <text x="850" y="307" text-anchor="middle">LG TV · JBL · Apple TV</text>
+  <text class="sub" x="850" y="325" text-anchor="middle">local, media only</text>
+
+  <rect class="tmp" x="20" y="300" width="230" height="70" rx="10"/>
+  <text x="135" y="328" text-anchor="middle">Homebridge (temporary)</text>
+  <text class="sub" x="135" y="347" text-anchor="middle">Proxmox LXC 112 · Phases 3–7 only</text>
+
+  <rect class="box" x="320" y="350" width="320" height="56" rx="10"/>
+  <text x="480" y="374" text-anchor="middle">NAS backups · Kuma · Caddy</text>
+  <text class="sub" x="480" y="392" text-anchor="middle">ha.mati-lab.online (LAN/WG only)</text>
+
+  <path class="ln" d="M120 90 V150"/>
+  <path class="ln" d="M220 184 H338"/>
+  <text class="sub" x="280" y="176" text-anchor="middle">HAP</text>
+  <path class="ln dash" d="M120 230 V300"/>
+  <path class="ln" d="M640 200 H690 V43 H740"/>
+  <path class="ln" d="M690 110 H740"/><path class="ln" d="M690 177 H740"/>
+  <path class="ln" d="M690 200 V311 H740"/><path class="ln" d="M690 244 H740"/>
+  <path class="ln" d="M480 295 V350"/>
+  <text class="sub" x="20" y="430">Yellow dashed: exists only during the migration. Hue also stays natively paired in Apple Home.</text>
+</svg>
+</div>
+
+<h3>Design principles</h3>
+<ol>
+<li><strong>One device, one owner.</strong> Each device has exactly one controlling integration and appears in Apple Home exactly once.</li>
+<li><strong>Native HomeKit stays native only for Hue</strong> (multi-controller). Everything else reaches Apple Home through the HA bridge.</li>
+<li><strong>All automations live in HA</strong>, versioned in Git.</li>
+<li><strong>Never destroy a working state until its replacement has soaked.</strong> The Homebridge SD card, the Homebridge backups and the Aqara hub all survive until Phase 9.</li>
+</ol>
+
+<!-- ============================================================ -->
+<h2 id="strategy">4. Cutover strategy: one Pi, two systems</h2>
+
+<div class="timeline">
+  <div><b>Phase 1–2</b>Back up, inventory. Nothing changes.</div>
+  <div><b>Phase 3 · bridge-lift</b>Homebridge restored into Proxmox LXC 112. Pi shut down, SD pulled and stored.</div>
+  <div><b>Phase 4</b>HAOS on the Pi 4 from a new SSD, at the same IP <code>.155</code>.</div>
+  <div><b>Phase 5</b>Additive integrations + Klarta, Dyson, Govee in HA.</div>
+  <div><b>Phase 6</b>Batches: WoL retired → Govee → Daikin → leftovers. Homebridge shrinks to zero.</div>
+  <div><b>Phase 7</b>Aqara devices hub → Zigbee2MQTT, room by room.</div>
+  <div><b>Phase 8</b>Remaining automations into HA.</div>
+  <div><b>Phase 9</b>2-week burn-in, then delete LXC, retire hubs, wipe the old SD after 30 days.</div>
+</div>
+
+<p><strong>Why not re-image the Pi directly?</strong> You could: back up, flash HAOS, rebuild everything in one weekend. But from the moment the Pi reboots, every Homebridge accessory is "No Response". Daikin and Govee would be dark until HA is fully set up and re-paired, and any surprise (a Daikin OAuth re-consent, a Govee API key issue) extends the outage. Bridge-lift costs about 1 evening and turns that into small reversible steps. If you prefer the big-bang anyway, skip Phase 3. The <a href="#recovery">recovery runbook</a> covers both.</p>
+
+<!-- ============================================================ -->
+<h2 id="matrix">5. Device-by-device feasibility</h2>
+
+<div class="tablewrap"><table>
+<thead><tr><th>Device</th><th>Today</th><th>Home Assistant path</th><th>Local / cloud</th><th>Feasibility</th><th>Apple Home after</th></tr></thead>
+<tbody>
+<tr><td><strong>Philips Hue</strong></td><td>Native Apple</td><td>Core <em>Philips Hue</em> (API v2, push)</td><td>Local</td><td><span class="pill ok">easy</span></td><td>Native (exclude from HA bridge)</td></tr>
+<tr><td><strong>Daikin ×3</strong></td><td>HB child daikin-cloud</td><td>HACS <em>Daikin Onecta</em> (<code>jwillemsen/daikin_onecta</code>), official API, own Daikin Developer Portal app</td><td>Cloud · <strong>200 calls/day</strong></td><td><span class="pill ok">feasible</span> <span class="pill warn">quota</span></td><td>HA bridge (heater-cooler)</td></tr>
+<tr><td><strong>Govee ×3</strong></td><td>HB child Govee (cloud)</td><td><code>govee2mqtt</code> add-on (Govee API key, optional account login for faster IoT updates) → MQTT discovery</td><td>Cloud</td><td><span class="pill ok">feasible</span></td><td>HA bridge (lights)</td></tr>
+<tr><td><strong>WoL</strong></td><td>HB child WoL</td><td><strong>Retired</strong> (unreliable with the dual-boot PC)</td><td></td><td><span class="pill info">drop</span></td><td>Removed</td></tr>
+<tr><td><strong>HB main-bridge contents</strong></td><td>?</td><td>Mapped in Phase 2a</td><td>?</td><td><span class="pill warn">to inventory</span></td><td>Per item</td></tr>
+<tr><td><strong>Aqara Roller Shade Driver E1</strong></td><td>Aqara hub → Apple</td><td>Zigbee2MQTT → <code>cover</code> (position, open/close/stop, battery, charging state). Rechargeable battery, so an <strong>end device, not a router</strong>. Re-set limits after re-pair.</td><td>Local</td><td><span class="pill ok">feasible</span></td><td>HA bridge (window covering)</td></tr>
+<tr><td><strong>Aqara Thermostat W600</strong> (Z2M model <code>WT-A03E</code>)</td><td>Aqara hub → Apple (so already in <strong>Zigbee mode</strong>)</td><td>Zigbee2MQTT → <code>climate</code> (setpoint, local temperature, child lock, window detection, valve calibration; valve position added recently). <strong>Known gap:</strong> the external-temperature-sensor input was reported missing in Z2M in early 2026; check the WT-A03E device page at execution time. The W600 can also run Thread/Matter, but not both at once; the plan keeps it on Zigbee. ZHA support is weaker, another reason for Z2M.</td><td>Local</td><td><span class="pill ok">feasible</span> <span class="pill warn">ext. sensor?</span></td><td>HA bridge (thermostat)</td></tr>
+<tr><td><strong>Aqara T1 sensors</strong> (T1 series; exact type per device, e.g. temperature/humidity WSDCGQ12LM, door/window MCCGQ12LM, motion RTCGQ12LM, from the 1c export)</td><td>Aqara hub → Apple</td><td>Zigbee2MQTT. All T1 models are long-supported Z2M devices. Battery end devices; pair close to the dongle and keep them awake during the interview (short-press the button every few seconds if it stalls).</td><td>Local</td><td><span class="pill ok">feasible</span> <span class="pill warn">mesh</span></td><td>HA bridge (sensors)</td></tr>
+<tr><td><strong>Klarta Humea</strong></td><td>Smart Life app</td><td>HACS <code>tuya-local</code> → profile <em>Klarta Humea humidifier</em>. Fallback: core Tuya (cloud); ESP32 UART mod.</td><td>Local</td><td><span class="pill ok">likely</span></td><td>HA bridge (humidifier)</td></tr>
+<tr><td><strong>Dyson HP04</strong></td><td>Not connected</td><td>HACS <code>libdyson-wg/ha-dyson</code> (HP04 = Pure Hot+Cool, supported). Fallback: <code>cmgrayb/hass-dyson</code>.</td><td>Local after setup</td><td><span class="pill ok">feasible</span></td><td>HA bridge (fan + heater-cooler + air-quality sensors)</td></tr>
+<tr><td><strong>Dreame vacuum</strong></td><td>Dreame app</td><td>HACS <code>Tasshack/dreame-vacuum</code></td><td>Local / cloud</td><td><span class="pill ok">feasible</span></td><td>Optional (switch) or HA-only</td></tr>
+<tr><td><strong>LG TV</strong></td><td>Native AirPlay</td><td>Core <em>LG webOS TV</em></td><td>Local</td><td><span class="pill ok">easy</span></td><td>Keep native</td></tr>
+<tr><td><strong>LG fridge</strong></td><td>ThinQ app</td><td>Core <em>LG ThinQ</em> (personal access token)</td><td>Cloud</td><td><span class="pill ok">easy</span></td><td>HA-only (alerts)</td></tr>
+<tr><td><strong>JBL Bar 1000</strong></td><td>AirPlay</td><td>Core <em>Google Cast</em></td><td>Local</td><td><span class="pill ok">easy</span></td><td>Keep native</td></tr>
+<tr><td><strong>Apple TV</strong></td><td>Home hub</td><td>Core <em>Apple TV</em> (media state)</td><td>Local</td><td><span class="pill ok">easy</span></td><td>Unchanged hub</td></tr>
+<tr><td>Aqara hub #1 and #2</td><td>#1 active, #2 spare</td><td>Both retired after Phase 7</td><td></td><td><span class="pill info">retire</span></td><td>#1 removed after its devices move</td></tr>
+</tbody></table></div>
+
+<!-- ============================================================ -->
+<h2 id="decisions">6. Decisions</h2>
+<div class="tablewrap"><table>
+<thead><tr><th>#</th><th>Decision</th><th>Status</th></tr></thead>
+<tbody>
+<tr><td>D1</td><td>HA host: <strong>Pi 4</strong>, HAOS. The Homebridge medium is kept untouched; HAOS boots from a new USB SSD (preferred: the recorder database wears SD cards) or a new high-endurance SD card.</td><td><span class="pill ok">decided</span> (medium choice open)</td></tr>
+<tr><td>D2</td><td>Network: HA single-homed on VLAN 1 at <code>192.168.1.155</code> (same MAC, so same reservation). No VLAN 30 leg needed (Govee is cloud).</td><td><span class="pill ok">decided</span></td></tr>
+<tr><td>D3</td><td>Aqara: <strong>both hubs retired</strong>; devices re-paired to <strong>Zigbee2MQTT</strong> on your dongle. Z2M over ZHA because its Aqara coverage (thermostat calibration, blind settings, OTA) is the most complete.</td><td><span class="pill ok">decided</span>: SONOFF Dongle Plus E, <code>ember</code></td></tr>
+<tr><td>D4</td><td>Apple Home stays as UI and Siri via the HA HomeKit Bridge. Apple TV remains the hub.</td><td><span class="pill ok">assumed</span></td></tr>
+<tr><td>D5</td><td>Remote access: <code>ha.mati-lab.online</code> via Caddy, LAN/WireGuard only, no Authelia (the Companion app cannot follow it), HA login with TOTP.</td><td><span class="pill ok">recommended</span></td></tr>
+<tr><td>D6</td><td>HA config in a private Gitea repo <code>homeassistant-config</code>; <code>secrets.yaml</code> gitignored.</td><td><span class="pill ok">recommended</span></td></tr>
+<tr><td>D7</td><td>Bridge-lift (temporary Homebridge LXC) vs big-bang.</td><td><span class="pill ok">recommended: bridge-lift</span></td></tr>
+<tr><td>D8</td><td>WoL: retired, not migrated.</td><td><span class="pill ok">decided</span></td></tr>
+</tbody></table></div>
+
+<!-- ============================================================ -->
+<h2 id="phases">7. Migration phases</h2>
+<p>Each phase ends with a <strong>gate</strong> (what must be true to continue) and a <strong>rollback</strong>. The full recovery procedures are in <a href="#recovery">section 8</a>.</p>
+
+<!-- PHASE 0 -->
+<div class="phase">
+<h3>Phase 0 · Prerequisites and shopping <span class="pill info">½ evening</span> <span class="when">no impact</span></h3>
+<ol class="steps">
+<li><strong>Hardware:</strong>
+  <ul>
+  <li>A USB 3 SSD (any 64–256 GB SATA SSD in a UASP enclosure, or a small USB SSD) <em>or</em> a new high-endurance 32–64 GB SD card.</li>
+  <li>A <strong>USB 2 extension cable (≥ 50 cm)</strong> for the Zigbee dongle. USB 3 ports and SSDs emit 2.4 GHz noise that cripples Zigbee, so the dongle must not sit next to the SSD.</li>
+  <li>A label and a bag for the Homebridge SD card.</li>
+  </ul></li>
+<li><strong>Prepare the SONOFF Dongle Plus E</strong> (EFR32MG21). From the dev PC, flash the current <strong>EmberZNet NCP coordinator</strong> firmware (not router or Thread/multiprotocol firmware) with SONOFF's web flasher or the Silabs firmware builder releases. Note the version in <code>compute/homeassistant_pi/notes.md</code>; Z2M's <code>ember</code> driver expects EmberZNet ≥ 7.4.</li>
+<li><strong>Pi 4 bootloader:</strong> USB boot has been the default since 2020 EEPROMs. If the Pi has never been updated, the Raspberry Pi Imager → <em>Misc utility images → Bootloader → USB Boot</em> card fixes it. Flashing that utility card does not touch the Homebridge card.</li>
+<li><strong>Vaultwarden items</strong> (values only in Vaultwarden, never in the repo): <code>homelab/homeassistant/owner</code>, <code>…/backup-encryption-key</code>, <code>…/homekit-bridge-setup-code</code>, <code>…/daikin-developer-app</code>, <code>…/tuya-klarta</code>, <code>…/dyson</code>, <code>…/govee-api-key</code>, <code>…/lg-thinq-pat</code>, <code>…/dreame</code>, <code>…/mqtt-users</code>, <code>…/token-homepage</code>.</li>
+<li><strong>Govee API key:</strong> request it in the Govee Home app (Profile → Settings → Apply for API Key); it arrives by email.</li>
+<li><strong>Daikin:</strong> create a separate app in the Daikin Developer Portal for HA. The redirect URI is given in the <code>daikin_onecta</code> README.</li>
+</ol>
+<div class="gate"><strong>Gate:</strong> hardware on the desk, dongle model known and flashed, keys in Vaultwarden.</div>
+</div>
+
+<!-- PHASE 1 -->
+<div class="phase">
+<h3>Phase 1 · Back up and freeze <span class="pill info">1 evening</span> <span class="when">no impact</span></h3>
+<h4>1a. Homebridge</h4>
+<ol class="steps">
+<li>Run the backup job on demand: TrueNAS UI → <em>System → Advanced → Cron Jobs → homebridge-backup → Run Now</em> (or on the NAS: <code>midclt call cronjob.run 21</code>). Check that the Kuma push monitor <code>backup-homebridge-dump</code> turned green.</li>
+<li>Second, independent copy: Homebridge UI → <em>Settings → Backup → Download Backup</em>. gpg-encrypt it with the dump passphrase and store it in <code>/mnt/bulk/backups/homebridge/pre-ha-migration/</code> (outside the 56-day retention, kept indefinitely).</li>
+<li><strong>Restore-drill steps 1–2</strong> from <code>nas/restore-drills/homebridge-restore.md</code>: decrypt and <code>tar -tzf</code>. You need a backup that is proven readable before Phase 3 depends on it.</li>
+<li>Write down in Vaultwarden the <strong>setup PIN of the main bridge and of each child bridge</strong> (Homebridge UI → Status QR/PIN; child bridges under each plugin's bridge settings). Rollback needs them if a bridge is ever removed from Apple Home.</li>
+</ol>
+<h4>1b. Apple Home "export" (manual, there is no API)</h4>
+<ol class="steps">
+<li>Screenshot every room (names and placement).</li>
+<li>Automation tab: for every automation record <strong>trigger, conditions, actions, enabled</strong> in the mapping sheet (2b).</li>
+<li>Every scene: members and target states (brightness, colour, AC mode/temperature, blind position).</li>
+<li>Home settings → Hubs &amp; Bridges: screenshot the list.</li>
+<li>Note iPhone Shortcuts personal automations that touch Home.</li>
+</ol>
+<h4>1c. Aqara "export"</h4>
+<ol class="steps">
+<li>Aqara Home app: for every device under hub #1 record <strong>model, name, room, battery/mains</strong>, and for blinds the <strong>calibrated limits and direction</strong>, for thermostats the <strong>schedules, setpoints, offsets, window-detection setting</strong>.</li>
+<li>Export any Aqara-app automations (Aqara app → Automation) to the sheet; they run on the hub, independent of Apple, and will stop when the device leaves the hub.</li>
+<li>Store all of 1b and 1c in the Obsidian vault (<code>Home/HA migration/</code>) so it is searchable through vault-rag.</li>
+</ol>
+<h4>1d. Freeze</h4>
+<p>No new accessories in Homebridge, Apple Home or Aqara until the end. New devices go straight to HA.</p>
+<div class="gate"><strong>Gate:</strong> two Homebridge backups, one proven readable, one outside retention. Bridge PINs in Vaultwarden. Apple and Aqara inventories complete.</div>
+</div>
+
+<!-- PHASE 2 -->
+<div class="phase">
+<h3>Phase 2 · Inventory and mapping <span class="pill info">1 evening</span> <span class="when">no impact</span></h3>
+<h4>2a. What Homebridge really runs (prints names only, never secrets)</h4>
+<p>On the dev PC, in a real terminal (the <code>!</code> prefix has no stdin for the gpg passphrase prompt). Do not <code>cat</code> <code>config.json</code>: it contains plugin credentials.</p>
+<pre><code>mkdir -p ~/hb-inv &amp;&amp; cd ~/hb-inv
+gpg --decrypt --output hb.tar.gz /path/to/homebridge-&lt;ISO&gt;.tar.gz.gpg
+tar -tzf hb.tar.gz | grep -E 'config.json|package.json|cachedAccessories'   # note exact paths
+tar -xOzf hb.tar.gz &lt;path&gt;/package.json | jq -r '.dependencies | keys[]'
+tar -xOzf hb.tar.gz &lt;path&gt;/config.json \
+  | jq -r '(.platforms // [])[], (.accessories // [])[]
+           | [(.platform // .accessory), (.name // "-"), (._bridge.name // "MAIN")] | @tsv'
+tar -xOzf hb.tar.gz &lt;path&gt;/accessories/cachedAccessories | jq -r '.[].displayName' | sort
+cd ~ &amp;&amp; rm -rf ~/hb-inv</code></pre>
+
+<h4>2b. Mapping sheet (one row per accessory)</h4>
+<div class="tablewrap"><table>
+<thead><tr><th>Accessory (Apple name)</th><th>Room</th><th>Source today</th><th>HA integration</th><th>Apple exposure after</th><th>Used in scenes/automations</th><th>Batch</th></tr></thead>
+<tbody>
+<tr><td>e.g. Salon AC</td><td>Salon</td><td>HB daikin-cloud</td><td>daikin_onecta</td><td>HA bridge</td><td>"Goodnight"</td><td>B3</td></tr>
+<tr><td>e.g. Sypialnia roleta</td><td>Sypialnia</td><td>Aqara hub #1</td><td>Zigbee2MQTT</td><td>HA bridge</td><td>"Morning" (Aqara app)</td><td>Z3</td></tr>
+<tr><td>e.g. Salon Hue ceiling</td><td>Salon</td><td>Native Hue</td><td>hue</td><td>Native</td><td>"Movie"</td><td>n/a</td></tr>
+</tbody></table></div>
+
+<h4>2c. Zigbee mesh plan</h4>
+<ul>
+<li>W600 thermostats, Roller Shade Driver E1 motors and Aqara sensors are all battery-powered <strong>end devices</strong>, not routers. Hub #1 is currently the only Aqara-side parent, so after the move they all talk straight to the coordinator and the Pi's position matters. Plan to put the Pi (or its USB extension) centrally, or add 1–2 <strong>Aqara-compatible routers</strong> (Aqara smart plugs are the safe choice; Aqara end devices are notorious for dropping off some third-party routers).</li>
+<li>Pick a Zigbee channel that avoids Hue's channel (Hue app → Settings → Bridge → Zigbee channel) and the UniFi 2.4 GHz channels used by <code>konewka</code>/<code>konewka_iot</code>. Typical choice: 15, 20 or 25.</li>
+</ul>
+<div class="gate"><strong>Gate:</strong> every accessory has a row, an integration and a batch. The main-bridge contents are known.</div>
+</div>
+
+<!-- PHASE 3 -->
+<div class="phase">
+<h3>Phase 3 · Bridge-lift: Homebridge → temporary Proxmox LXC <span class="pill info">1 evening</span> <span class="when">brief blip in Apple Home</span></h3>
+<p>Goal: Homebridge keeps serving Apple Home with the <strong>same HomeKit identities</strong> from a container, so the Pi is free. The backup contains the bridge usernames, pairing keys and <code>persist/</code>, which is what makes Apple Home accept the moved bridge without re-pairing.</p>
+<ol class="steps">
+<li>On Proxmox, create a Debian 12 LXC on VLAN 1:
+<pre><code>pveam update
+pveam available --section system | grep debian-12
+pveam download local debian-12-standard_&lt;ver&gt;_amd64.tar.zst
+pct create 112 local:vztmpl/debian-12-standard_&lt;ver&gt;_amd64.tar.zst \
+  --hostname homebridge-temp --cores 2 --memory 1024 --swap 512 \
+  --rootfs local-lvm:8 --net0 name=eth0,bridge=vmbr0,ip=dhcp \
+  --unprivileged 1 --features nesting=1 --onboot 1
+pct start 112</code></pre>
+Then create a UDR DHCP reservation for its MAC on Default (VLAN 1), e.g. <code>192.168.1.&lt;HBT&gt;</code>.</li>
+<li>Inside (<code>pct enter 112</code>), install Homebridge from the official apt repository (two plain commands, no heredoc):
+<pre><code>apt update &amp;&amp; apt install -y curl gpg
+curl -sSfL https://repo.homebridge.io/KEY.gpg | gpg --dearmor -o /usr/share/keyrings/homebridge.gpg
+echo "deb [signed-by=/usr/share/keyrings/homebridge.gpg] https://repo.homebridge.io stable main" &gt; /etc/apt/sources.list.d/homebridge.list
+apt update &amp;&amp; apt install -y homebridge</code></pre>
+Open <code>http://192.168.1.&lt;HBT&gt;:8581</code>. Create a throwaway admin; the restore will replace it.</li>
+<li><strong>Stop the Pi's Homebridge cleanly:</strong> Pi UI → top-right power menu → <em>Shut Down</em>. Wait until the green LED stops, then unplug power. <strong>Two instances with the same HomeKit identity must never run at once.</strong></li>
+<li>Remove the Pi's SD card, <strong>label it "HOMEBRIDGE, DO NOT WIPE, &lt;date&gt;"</strong>, and store it. This is rollback R1.</li>
+<li>In the LXC UI: <em>Settings → Backup → Restore Backup</em> → upload the decrypted backup from Phase 1. Homebridge reinstalls plugins (needs internet) and restarts. Log in again with the original admin credentials (from Vaultwarden).</li>
+<li>Watch the logs until the main bridge and child bridges (Govee, daikin-cloud, WoL) say they are advertising. <strong>Daikin:</strong> if the plugin reports an expired or invalid token, re-run its OAuth login in the plugin settings. If its redirect URI was bound to the Pi's IP, update the redirect in the Daikin Developer Portal app used by Homebridge.</li>
+<li>iPhone, Home app: every Homebridge accessory should come back from "No Response" within about 1–5 minutes (Apple finds the bridges by mDNS, not by IP). Test one Govee light and one Daikin unit, locally and on mobile data.</li>
+<li>Repoint homelab plumbing to the LXC (temporary):
+  <ul>
+  <li>Caddy <code>@homebridge</code>: <code>reverse_proxy</code> → <code>http://192.168.1.&lt;HBT&gt;:8581</code> (both the <code>/health</code> handle and the main one). Commit, push, <code>make deploy-caddy</code>, force-recreate.</li>
+  <li>NAS <code>/root/.backup-env</code>: add <code>HOMEBRIDGE_HOST=http://192.168.1.&lt;HBT&gt;:8581</code> (the script sources this file after setting its default, so the value overrides). Run cron 21 once and check Kuma.</li>
+  <li>Kuma <code>homebridge-ping</code> → the LXC IP. Homepage widget URL → LXC IP.</li>
+  </ul></li>
+</ol>
+<div class="gate"><strong>Gate:</strong> all Homebridge accessories respond in Apple Home with no re-pair prompt, for 24 h. The backup job works against the LXC.</div>
+<div class="rollback"><strong>Rollback (R1):</strong> <code>pct stop 112</code> → put the labelled SD card back in the Pi → power on. It is byte-for-byte the pre-migration state. Revert the Caddy, backup-env and Kuma repoints.</div>
+</div>
+
+<!-- PHASE 4 -->
+<div class="phase">
+<h3>Phase 4 · Install Home Assistant OS on the Pi 4 <span class="pill info">1 evening</span> <span class="when">no Apple Home change</span></h3>
+<ol class="steps">
+<li>On the dev PC, Raspberry Pi Imager → <em>Other specific-purpose OS → Home assistants and home automation → Home Assistant → Home Assistant OS (RPi 4)</em> → write to the <strong>new</strong> SSD or SD card. Never the labelled Homebridge card.</li>
+<li>Plug in the SSD (blue USB 3 port) and the Zigbee dongle on the <strong>USB 2 extension</strong> (black USB 2 port, dongle at least 50 cm away from the SSD). Connect Ethernet, then power on. The Pi keeps its MAC, so it gets <code>192.168.1.155</code> from the existing reservation.</li>
+<li><code>http://192.168.1.155:8123</code> → wait for the first-boot download → onboarding: owner account (Vaultwarden), location, metric, Europe/Warsaw. Then <em>Profile → Security → enable TOTP MFA</em>.</li>
+<li>Settings → System → Updates: switch off automatic updates for Core, OS and add-ons. You update manually after a backup.</li>
+<li>Add-ons: <strong>File editor</strong>, <strong>Terminal &amp; SSH</strong> (key-only: your <code>~/.ssh/id_ed25519.pub</code>), <strong>Mosquitto broker</strong> (create users <code>z2m</code>, <code>govee2mqtt</code>, <code>homeassistant</code>; passwords in Vaultwarden), <strong>Get HACS</strong> (finish the GitHub device flow).</li>
+<li>Recorder hygiene, important on a Pi. In <code>configuration.yaml</code>:
+<pre><code>recorder:
+  purge_keep_days: 10
+  commit_interval: 5
+http:
+  use_x_forwarded_for: true
+  trusted_proxies:
+    - 192.168.1.252
+homeassistant:
+  external_url: https://ha.mati-lab.online
+  internal_url: http://192.168.1.155:8123</code></pre>
+Restart.</li>
+<li><strong>Caddy:</strong> new <code>@homeassistant host ha.mati-lab.online</code> → <code>reverse_proxy http://192.168.1.155:8123</code>, <strong>no <code>forward_auth</code></strong> (with a comment explaining why, as on Vaultwarden), no Cloudflared route. Deploy, then force-recreate.</li>
+<li><strong>Backups:</strong>
+  <ul>
+  <li>NAS: create a share for HA backups (e.g. dataset <code>bulk/backups/homeassistant</code>, SMB or NFS, restricted to <code>192.168.1.155</code>).</li>
+  <li>HA → Settings → System → Storage → <em>Add network storage</em> (usage: Backup) → Backups → automatic <strong>daily</strong>, keep 14, <strong>encrypted</strong> (key in Vaultwarden <code>…/backup-encryption-key</code>, also printed and stored offline). The key is the only way to restore.</li>
+  <li>Take a manual backup now and confirm it is on the NAS.</li>
+  </ul></li>
+<li><strong>Monitoring:</strong> Kuma <code>homeassistant-http</code> → <code>https://ha.mati-lab.online/manifest.json</code>. The existing <code>homebridge-ping</code> already points at the LXC; add <code>homeassistant-ping</code> for <code>192.168.1.155</code>. Homepage: Home Assistant tile with the <code>homeassistant</code> widget (token in Pi <code>network/.env</code> as <code>HOMEPAGE_VAR_HA_TOKEN</code>), then restart Homepage.</li>
+<li><code>nas/secrets-inventory.md</code>: Home Assistant section (placeholders only). New Gitea repo <code>homeassistant-config</code> (D6).</li>
+<li>Install the HA Companion app on the household iPhones (push notifications and presence).</li>
+</ol>
+<div class="gate"><strong>Gate:</strong> HA reachable at <code>https://ha.mati-lab.online</code> with MFA. An encrypted backup is on the NAS. Kuma is green. Homebridge in the LXC is unaffected.</div>
+<div class="rollback"><strong>Rollback:</strong> power off the Pi, unplug the SSD. Nothing else depends on HA yet. Full R1 if you also want the Pi back as Homebridge.</div>
+</div>
+
+<!-- PHASE 5 -->
+<div class="phase">
+<h3>Phase 5 · Additive integrations and new devices <span class="pill info">1–2 evenings</span> <span class="when">no Apple Home change</span></h3>
+<h4>5a. Parallel, no-conflict integrations</h4>
+<ol class="steps">
+<li><strong>Hue</strong> → add, IP <code>192.168.30.221</code>, press the link button.</li>
+<li><strong>Apple TV</strong> (PIN), <strong>LG webOS TV</strong> (accept on the TV), <strong>Google Cast</strong> (JBL, by IP <code>192.168.30.128</code> if not discovered), <strong>LG ThinQ</strong> (personal access token, country PL).</li>
+<li><strong>Dreame</strong>: HACS → <code>Tasshack/dreame-vacuum</code> → restart → add with the account. Prefer local mode once the token is fetched.</li>
+</ol>
+<h4>5b. Klarta Humea (tuya-local)</h4>
+<ol class="steps">
+<li>Reserve the Humea's IP in the UDR (IoT network); tuya-local connects by IP.</li>
+<li>It is already in <strong>Smart Life</strong>, so no re-pairing is needed. Do <em>not</em> remove or re-add it in the app after step 3: that changes the local key and tuya-local loses it.</li>
+<li>HACS → <code>make-all/tuya-local</code> → restart → Add <em>Tuya Local</em> → <em>cloud-assisted setup</em> → scan the QR code with Smart Life → select the Humea → device type <strong>Klarta Humea humidifier</strong>, protocol <em>auto</em>.</li>
+<li>Verify: power, target humidity, current humidity, mode, fan speed, and the <strong>water-tank-empty</strong> alert. Save the device ID and local key in Vaultwarden.</li>
+<li>Fallbacks: core <em>Tuya</em> (cloud) → open a tuya-local issue with the DP dump → ESP32 UART mod.</li>
+</ol>
+<h4>5c. Dyson HP04 (ha-dyson)</h4>
+<ol class="steps">
+<li>Onboard the HP04 with the MyDyson app onto <strong><code>konewka_iot</code></strong> (2.4 GHz; PMF is off there, which older Dysons need). Reserve its IP in the IoT network.</li>
+<li>HACS → custom repository <code>libdyson-wg/ha-dyson</code> → install → restart.</li>
+<li>Add <em>Dyson</em> → cloud account → email plus OTP. This fetches the HP04's serial and local credentials once.</li>
+<li>When discovery doesn't find it, enter the IP manually. HA → HP04 on TCP 1883 is Infra → IoT, which is allowed.</li>
+<li>Verify: fan speed, oscillation (angle), night mode, auto, <strong>heat mode and target temperature</strong>, plus PM2.5/PM10, VOC, NO2, temperature, humidity and filter life. Keep credentials in Vaultwarden.</li>
+<li>Fallback: <code>cmgrayb/hass-dyson</code>.</li>
+</ol>
+<h4>5d. Govee (govee2mqtt, cloud)</h4>
+<ol class="steps">
+<li>Add the add-on repository for <code>wez/govee2mqtt</code> → install the add-on → config: Govee API key, optionally Govee email/password (enables the faster AWS IoT push path), MQTT host <code>core-mosquitto</code> with user <code>govee2mqtt</code>.</li>
+<li>Start it. The three lights appear as MQTT devices. <strong>Do not</strong> remove the Homebridge Govee bridge yet. Running both against the cloud API for a few days is fine at this scale (the Govee API allows 10,000 requests a day).</li>
+</ol>
+<div class="gate"><strong>Gate:</strong> every new integration controls its device from HA and survives an HA restart and a device power-cycle. Apple Home is unchanged.</div>
+<div class="rollback"><strong>Rollback:</strong> delete the integration or add-on in HA. Nothing outside HA changed.</div>
+</div>
+
+<!-- PHASE 6 -->
+<div class="phase">
+<h3>Phase 6 · Cutover: Homebridge → HA HomeKit Bridge <span class="pill info">1 batch per evening</span> <span class="when">user-visible</span></h3>
+<h4>6a. One-time: create the HA HomeKit Bridge</h4>
+<ol class="steps">
+<li>Settings → Devices &amp; services → Add → <strong>HomeKit Bridge</strong>, mode <em>bridge</em>, name <code>HA Bridge</code>. In <em>Configure</em> choose <strong>include entities</strong>: start with one test entity.</li>
+<li>Apple Home → <em>Add Accessory</em> → scan the QR code from the HA notification. Save the setup code in Vaultwarden.</li>
+<li>Check it responds from VLAN 20 Wi-Fi and from mobile data.</li>
+<li>Consider a <strong>second bridge for climate</strong> (Daikin, thermostats, Dyson, Klarta) so a reset of one bridge never wipes all rooms and scenes at once.</li>
+</ol>
+<h4>6b. Batches</h4>
+<div class="tablewrap"><table>
+<thead><tr><th>Batch</th><th>Contents</th><th>Special handling</th></tr></thead>
+<tbody>
+<tr><td>B1</td><td><strong>Retire WoL</strong></td><td>Apple Home → remove the "Homebridge WoL" bridge → Homebridge LXC: disable or uninstall the WoL plugin. No HA replacement. Remove WoL from any scenes.</td></tr>
+<tr><td>B2</td><td>Govee ×3</td><td>Standard procedure</td></tr>
+<tr><td>B3</td><td>Daikin ×3</td><td><strong>First</strong> disable the Homebridge daikin-cloud child bridge, <strong>then</strong> add <code>daikin_onecta</code> to HA. Never two pollers on one 200/day quota. Keep HA polling ≤ about 150/day (default 15 min; high-frequency only while running). Never retry while rate-limited: the lockout grows.</td></tr>
+<tr><td>B4</td><td>Main-bridge leftovers</td><td>Per the 2a inventory</td></tr>
+<tr><td>B5</td><td>Klarta, Dyson, Dreame (optional)</td><td>New to Apple, so additive only</td></tr>
+</tbody></table></div>
+<h4>6c. Standard per-batch procedure</h4>
+<ol class="steps">
+<li>From the sheet, list every Apple scene and automation using this batch's accessories.</li>
+<li>Add the batch's HA entities to the HomeKit Bridge include list. Rename them <strong>exactly</strong> as in Apple Home today (Siri depends on the names).</li>
+<li>Apple Home: put the new accessories into the correct rooms and fix their icons and types.</li>
+<li>Apple Home: remove the old Homebridge child bridge (<em>Home settings → Hubs &amp; Bridges → bridge → Remove Bridge from Home</em>). Homebridge LXC: disable that child bridge.</li>
+<li>Re-add the new accessories to the scenes and automations from step 1. Apple silently removed the old ones in step 4.</li>
+<li>Move any Apple automation whose devices are now all in HA into HA in the same session (Phase 8 procedure), so nothing is half-migrated.</li>
+<li>Test: Home app, one Siri command per device, one scene, remote off Wi-Fi. <strong>Soak 48 h</strong> before the next batch.</li>
+</ol>
+<div class="gate"><strong>Gate:</strong> after B4, the Homebridge LXC serves zero accessories, and the HA bridge has run 48 h clean.</div>
+<div class="rollback"><strong>Rollback (R2, per batch):</strong> remove the entities from the HA bridge include list (for Daikin, disable the HA integration first). Re-enable the child bridge in the LXC and re-add it to Apple Home with the PIN from Vaultwarden. Re-assign rooms and scenes from the sheet.</div>
+</div>
+
+<!-- PHASE 7 -->
+<div class="phase">
+<h3>Phase 7 · Aqara devices → Zigbee2MQTT <span class="pill info">1–2 evenings</span> <span class="when">user-visible, room by room</span></h3>
+<h4>7a. Zigbee2MQTT setup</h4>
+<ol class="steps">
+<li>Add the Zigbee2MQTT add-on repository → install <strong>Zigbee2MQTT</strong>.</li>
+<li>Config: MQTT <code>mqtt://core-mosquitto:1883</code>, user <code>z2m</code>. Serial port by <strong><code>/dev/serial/by-id/usb-…Sonoff_Zigbee_3.0_USB_Dongle_Plus…</code></strong> (stable across reboots), <code>adapter: ember</code>, <code>baudrate: 115200</code>, <code>rtscts: false</code>. Channel from 2c. <code>homeassistant: enabled: true</code>. Generate a new <code>network_key</code> (Z2M does it on first start; it is in the HA backup).</li>
+<li>Start it, open the Z2M panel, and enable <em>Permit join</em> only while pairing.</li>
+<li><strong>Pilot:</strong> pair one non-critical Aqara sensor first. Leave it 24 h and check that it keeps reporting (Aqara devices are the classic "pairs fine, drops after an hour" case).</li>
+</ol>
+<h4>7b. Per-device move (repeat room by room: Z1 sensors → Z2 thermostats → Z3 blinds)</h4>
+<ol class="steps">
+<li>Aqara Home app: <strong>remove the device from hub #1</strong>. This also removes it from Apple Home and from Aqara-app and Apple automations.</li>
+<li>Reset the device (sensors: hold the button about 5 s until the LED blinks. Thermostats and blind motors: per model manual, usually a long press of the function button). Bring it within a few metres of the dongle for the interview.</li>
+<li>Z2M: <em>Permit join</em> → wait for <em>Interview successful</em> → give it a friendly name like <code>sypialnia_roleta</code>.</li>
+<li>Configure:
+  <ul>
+  <li><strong>Roller Shade Driver E1:</strong> re-set the upper and lower limits (button sequence per the Aqara manual, or the Z2M device page), check direction, test 0/50/100 %, and confirm battery and charging-state reporting.</li>
+  <li><strong>W600:</strong> keep it in Zigbee mode (it already is, since it is on the hub; a factory reset keeps the current protocol, so do not switch it to Thread). Run <em>valve calibration</em>; set child lock, window detection and temperature offset. If the Z2M external-temperature option is still missing, use the internal sensor plus an offset, and drive setpoints from an HA automation using a room sensor. Recreate schedules as HA automations or a <code>schedule</code> helper.</li>
+  <li><strong>Sensors:</strong> check battery, occupancy timeout, temperature offset.</li>
+  </ul></li>
+<li>Add to the HA HomeKit Bridge include list with the <strong>same name</strong> as before → Apple Home room, then re-add to scenes.</li>
+<li>Recreate every Aqara-app and Apple automation that used it in HA (from 1c).</li>
+<li>When hub #1 has no devices left: remove it from Apple Home, unplug it and store it with hub #2 until Phase 9.</li>
+</ol>
+<div class="gate"><strong>Gate:</strong> all Aqara devices are in Z2M, have reported for 48 h, the Z2M network map shows no orphan devices, and batteries report.</div>
+<div class="rollback"><strong>Rollback (R3, per device):</strong> Z2M → remove the device → reset it → Aqara Home app → add to hub #1 → re-add to the Apple room and scenes. Blind calibration and thermostat settings must be redone. That is why this phase goes room by room and starts with sensors.</div>
+</div>
+
+<!-- PHASE 8 -->
+<div class="phase">
+<h3>Phase 8 · Remaining automations into HA <span class="pill info">1 evening</span></h3>
+<ol class="steps">
+<li>For each remaining Apple automation, build the HA version. Presence uses Companion-app zones ("first person arrives" or "last person leaves" via <code>zone.home</code>); time and sun use the <code>time</code>/<code>sun</code> triggers; sensors use the Z2M entities.</li>
+<li>Test it, then <strong>turn off</strong> (not delete) the Apple version the same day. Delete it after 14 quiet days.</li>
+<li>Add the improvements the migration enables: Klarta water-tank notification; humidity-driven Klarta from Aqara sensors; Daikin or thermostat off when a window sensor opens; blinds by sun elevation; Dyson auto mode from PM2.5.</li>
+<li>Commit <code>automations.yaml</code>, <code>scripts.yaml</code> and <code>packages/</code> to <code>homeassistant-config</code>.</li>
+</ol>
+<div class="gate"><strong>Gate:</strong> the Apple Home Automation tab contains only disabled items.</div>
+</div>
+
+<!-- PHASE 9 -->
+<div class="phase">
+<h3>Phase 9 · Burn-in and decommission <span class="pill info">2 weeks + ½ evening</span></h3>
+<h4>Burn-in criteria (14 days)</h4>
+<ul>
+<li>No unexplained "No Response" in Apple Home. No Zigbee device dropped.</li>
+<li>Every automation fired correctly at least once.</li>
+<li>Daily HA backups are green on the NAS, and the <strong>HA restore drill (R5) has been run once</strong>.</li>
+<li>Survives a planned Pi reboot and a power cut (pull the plug once): HA, Z2M and the bridge come back unattended.</li>
+</ul>
+<h4>Decommission</h4>
+<ol class="steps">
+<li>Final Homebridge backup from the LXC → <code>pre-ha-migration/</code> (kept indefinitely).</li>
+<li>Apple Home: remove the Homebridge main bridge if still present. Then <code>pct stop 112</code>, wait a week, then <code>pct destroy 112</code>.</li>
+<li>NAS: disable cron 21 and remove <code>HOMEBRIDGE_*</code> from <code>/root/.backup-env</code>. Kuma: delete <code>homebridge-http</code>, <code>homebridge-ping</code> and <code>backup-homebridge-dump</code>. Caddy: delete the <code>@homebridge</code> block. Homepage: remove the Homebridge tile and the <code>HOMEBRIDGE_*</code> vars.</li>
+<li>Add a <strong>Kuma push monitor for the HA backup</strong> (an HA automation on backup completion → <code>rest_command</code> to the Kuma push URL), so HA backups are watched like every other dump.</li>
+<li><code>secrets-inventory.md</code>: mark the Homebridge rows retired. Rotate or delete the Govee and Daikin Homebridge credentials (separate Daikin developer app → delete it).</li>
+<li>Aqara hubs #1 and #2: factory-reset and sell or give away, or keep one as an emergency spare.</li>
+<li>Labelled Homebridge SD card: keep for <strong>30 days after decommission</strong>, then wipe it.</li>
+<li>Docs: global <code>~/.claude/CLAUDE.md</code> box table (Homebridge Pi → Home Assistant Pi, SSH via the add-on on port 22222 or 22 per configuration), <code>docs/followups.md</code>, the network notes that mention Homebridge, and a new <code>nas/restore-drills/homeassistant-restore.md</code>.</li>
+</ol>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="recovery">8. Recovery runbook</h2>
+<p>Ordered from "something just went wrong" to "everything is gone". Each scenario lists what you need and how long it takes.</p>
+
+<div class="tablewrap"><table>
+<thead><tr><th>ID</th><th>Situation</th><th>Recovery</th><th>Needs</th><th>Time</th></tr></thead>
+<tbody>
+<tr><td><strong>R1</strong></td><td>Anything goes wrong in Phases 3–5, or you want to abort the migration before any Apple Home change</td><td>
+<ol>
+<li><code>pct stop 112</code> (the Homebridge LXC must be off: one identity, one instance).</li>
+<li>Pi: shut down HA (Settings → System → Power → Shut down), unplug power, unplug the SSD.</li>
+<li>Insert the labelled <strong>Homebridge SD card</strong> and power on.</li>
+<li>Home app: accessories respond again within minutes, with no re-pair needed (same identity, untouched card).</li>
+<li>Revert the Caddy upstream, <code>HOMEBRIDGE_HOST</code> in <code>/root/.backup-env</code>, and the Kuma and Homepage targets to <code>192.168.1.155</code>.</li>
+</ol></td><td>Labelled SD card</td><td>~10 min</td></tr>
+
+<tr><td><strong>R1b</strong></td><td>SD card lost or corrupt, and you need Homebridge on the Pi</td><td>
+<ol>
+<li>Flash the latest <strong>Homebridge Raspberry Pi Image</strong> with Raspberry Pi Imager (<em>Other specific-purpose OS → Home assistants and home automation → Homebridge</em>) to any SD card.</li>
+<li>Boot it, finish the wizard with a placeholder admin, then <em>Settings → Backup → Restore Backup</em> using the newest backup (decrypt as in <code>nas/restore-drills/homebridge-restore.md</code>).</li>
+<li>Log in with the original admin. Plugins reinstall. Bridges keep their identities, so no re-pair is needed unless a bridge was removed from Apple Home (then re-add it with its PIN from Vaultwarden).</li>
+</ol></td><td>Homebridge backup + gpg passphrase</td><td>~45 min</td></tr>
+
+<tr><td><strong>R2</strong></td><td>One cutover batch misbehaves (Phase 6)</td><td>Remove those entities from the HA bridge include list. In the LXC (or the Pi via R1), re-enable the child bridge. Apple Home → Add Accessory → "More options" → the bridge → its PIN from Vaultwarden. Re-assign rooms and scenes from the sheet. <strong>Daikin:</strong> disable the HA integration before re-enabling the Homebridge bridge (quota).</td><td>Bridge PINs, mapping sheet</td><td>~20 min</td></tr>
+
+<tr><td><strong>R3</strong></td><td>A migrated Aqara device is unreliable in Z2M</td><td>First try: move it closer, add an Aqara router plug, re-interview. Otherwise: Z2M remove → reset device → Aqara app → add to hub #1 (re-power the hub first if it is stored) → Apple room and scenes again. Redo blind calibration and thermostat settings from the 1c notes.</td><td>Hub #1, 1c notes</td><td>~15 min/device</td></tr>
+
+<tr><td><strong>R4</strong></td><td>Everything Homebridge-related needed back <em>after</em> decommission (within 30 days)</td><td>R1 if the SD card still exists; otherwise R1b from <code>pre-ha-migration/</code>. Then re-add each bridge to Apple Home with its PIN (bridges were removed from Home during cutover), and use R3 for any Aqara devices you want back on the hub.</td><td>SD card or backup, PINs</td><td>1–3 h</td></tr>
+
+<tr><td><strong>R5</strong></td><td>HA itself broken (bad update, corrupt SSD) after cutover</td><td>
+<ol>
+<li>Settings → System → Backups → restore the latest backup from before the update (if HA still boots).</li>
+<li>If not: re-flash HAOS (RPi 4) onto the SSD (or a spare) → onboarding screen → <strong>"Restore from backup"</strong> → upload the newest file from the NAS share → enter the <strong>backup encryption key</strong>.</li>
+<li>The backup contains the HomeKit Bridge pairing, Z2M (<code>network_key</code>, PAN ID, device database) and Mosquitto users. Apple Home accessories and Zigbee devices come back <strong>without re-pairing</strong>, provided the same dongle is used.</li>
+<li>If the <strong>dongle</strong> died: use another EFR32-based dongle (ideally another SONOFF Dongle Plus E) with the same firmware family. After the restore, Z2M uses the stored <code>coordinator_backup.json</code> to rebuild the network on the new stick (supported by the <code>ember</code> driver). Without the backup, every Zigbee device must be re-paired. A spare dongle (~€25) in the drawer is cheap insurance.</li>
+</ol></td><td>HA backup on NAS + <strong>encryption key</strong>, spare SSD/SD</td><td>~45 min</td></tr>
+
+<tr><td><strong>R6</strong></td><td>Pi 4 hardware dead</td><td>Any Pi 4/5 (or temporarily a Proxmox VM with HAOS and the dongle passed through): R5 step 2 onto it. The DHCP reservation is MAC-bound, so either update it in the UDR to the new MAC at <code>.155</code> or change Caddy, Kuma and Homepage targets.</td><td>As R5</td><td>~1 h</td></tr>
+</tbody></table></div>
+
+<div class="card danger">
+<strong>Golden rules during recovery</strong>
+<ul>
+<li>Never run two Homebridge instances restored from the same backup at the same time: duplicate HomeKit identities confuse Apple Home and can force a full re-pair.</li>
+<li>Never run two Zigbee coordinators with the same network key and PAN ID.</li>
+<li>Never let Homebridge and HA both poll Daikin.</li>
+<li>Never factory-reset an Aqara hub while devices are still paired to it: that wipes its Zigbee mesh.</li>
+</ul>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="risks">9. Risks and mitigations</h2>
+<div class="tablewrap"><table>
+<thead><tr><th>Risk</th><th>Likelihood / impact</th><th>Mitigation</th></tr></thead>
+<tbody>
+<tr><td>Apple silently drops removed accessories from scenes and automations</td><td><span class="pill bad">certain</span> / medium</td><td>Phase 1b inventory. Re-add in 6c step 5. One batch at a time.</td></tr>
+<tr><td>Restored Homebridge in the LXC needs Daikin re-auth (token or redirect bound to the old host)</td><td><span class="pill warn">possible</span> / low</td><td>Re-run the plugin OAuth; update the redirect in its Daikin developer app. Govee and others are config-only.</td></tr>
+<tr><td>Daikin quota exhausted</td><td><span class="pill warn">likely if careless</span> / AC uncontrollable for up to 24 h</td><td>One poller at a time; ≤ about 150 calls/day; no retries while limited.</td></tr>
+<tr><td>Aqara end devices drop off the new Zigbee network</td><td><span class="pill warn">medium</span> / medium</td><td>Pilot device, central coordinator on a USB 2 extension, Aqara-compatible routers, channel away from Wi-Fi and Hue, room-by-room moves with R3.</td></tr>
+<tr><td>USB 3 SSD interference with the Zigbee dongle</td><td><span class="pill warn">likely without extension</span> / medium</td><td>Dongle on a USB 2 port with a ≥ 50 cm extension, away from the SSD.</td></tr>
+<tr><td>SD-card wear or corruption on the Pi</td><td><span class="pill warn">medium over years</span> / high</td><td>Boot from SSD; recorder purge 10 days; daily encrypted backups off-box; R5.</td></tr>
+<tr><td>Pi 4 RAM (HA + Z2M + Mosquitto + govee2mqtt)</td><td><span class="pill info">low</span> (4 GB is enough) / low</td><td>Avoid heavy add-ons (no local voice, no large databases) on the Pi; heavier things stay on Proxmox/NAS.</td></tr>
+<tr><td>HA or HACS update breaks a custom integration (Dyson, Klarta, Daikin, Dreame)</td><td><span class="pill warn">medium</span> / low</td><td>Auto-updates off; backup before every update; monthly cadence; R5.</td></tr>
+<tr><td>Double actuation (Apple and HA automations both fire)</td><td><span class="pill warn">medium</span> / confusing</td><td>Disable the Apple twin the same day.</td></tr>
+<tr><td>Losing the HA backup encryption key</td><td><span class="pill info">low</span> / backups useless</td><td>Vaultwarden + printed copy; R5 drill proves it.</td></tr>
+<tr><td>Household disruption</td><td><span class="pill warn">medium</span> / medium</td><td>Same names, batches on quiet evenings, HA dashboards ready before cutover.</td></tr>
+</tbody></table></div>
+
+<!-- ============================================================ -->
+<h2 id="docs">10. Repo bookkeeping (when executing)</h2>
+<ul>
+<li>New <code>compute/homeassistant_pi/notes.md</code>: hardware, boot medium, IP, add-ons, HACS integrations and versions, Z2M adapter, channel and PAN, update procedure, link to this plan.</li>
+<li>Temporary <code>compute/homebridge_temp_lxc/notes.md</code> (deleted in Phase 9, or folded into the HA notes as history).</li>
+<li><code>network/caddy/Caddyfile</code>, <code>network/uptime-kuma/monitors.md</code>, <code>network/homepage/config/services.yaml</code>, <code>network/unifi/notes.md</code> (reservations: LXC, Klarta, Dyson).</li>
+<li><code>nas/secrets-inventory.md</code>, <code>nas/backup-jobs/notes.md</code> (HA backup target, Homebridge job retired), <code>nas/snapshots.md</code> if a dataset is added.</li>
+<li><code>nas/restore-drills/homeassistant-restore.md</code> (R5 as a drill); mark <code>homebridge-restore.md</code> as historical after Phase 9.</li>
+<li><code>docs/followups.md</code>: deferred items (HA logs → Loki, HA metrics → Prometheus, Thread/Matter devices later).</li>
+</ul>
+
+<!-- ============================================================ -->
+<h2 id="open">11. Open questions</h2>
+<div class="card">
+<label class="check"><input type="checkbox" data-k="q1" checked disabled> <span><s>Zigbee dongle model</s> → SONOFF Dongle Plus E (<code>ember</code>).</span></label><br>
+<label class="check"><input type="checkbox" data-k="q2" checked disabled> <span><s>Pi 4 RAM and boot medium</s> → 4 GB, boots from SD. The plan applies as written: HAOS goes on a <strong>new USB SSD</strong>, and the current SD card is pulled and kept as rollback R1.</span></label><br>
+<label class="check"><input type="checkbox" data-k="q3" checked disabled> <span><s>Aqara models</s> → Roller Shade Driver E1, Thermostat W600, T1 sensors (all battery end devices). Exact T1 types per device come from the Phase 1c export.</span></label><br>
+<label class="check"><input type="checkbox" data-k="q4"> What runs in the Homebridge <strong>main bridge</strong> (Phase 2a)?</label><br>
+<label class="check"><input type="checkbox" data-k="q5" checked disabled> <span><s>Klarta app or Smart Life</s> → Smart Life.</span></label><br>
+<label class="check"><input type="checkbox" data-k="q6"> Are you OK with the <strong>bridge-lift</strong> (D7), or do you prefer a single big-bang weekend?</label><br>
+<label class="check"><input type="checkbox" data-k="q7"> Remote access WireGuard-only (D5), or Nabu Casa?</label>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="sources">12. Sources</h2>
+<ul class="small">
+<li>Live checks 2026-11-25: mDNS browse (<code>_hap</code>, <code>_matter</code>, <code>_hue</code>, <code>_meshcop</code>, <code>_airplay</code>) from the dev PC; Proxmox <code>pveversion</code>, <code>qm list</code>, <code>pct list</code>, <code>jobs.cfg</code>, <code>interfaces</code>.</li>
+<li>Repo: <code>docs/followups.md</code> (net.1, net.10), <code>network/unifi/notes.md</code>, <code>nas/backup-jobs/homebridge-backup.sh</code>, <code>nas/restore-drills/homebridge-restore.md</code>, <code>nas/secrets-inventory.md</code>, <code>network/caddy/Caddyfile</code>.</li>
+<li><a href="https://github.com/make-all/tuya-local">make-all/tuya-local</a> (device list includes Klarta Humea and Humea Grande; checked 2026-11-25); <a href="https://github.com/szjakub/klarta-humea-esp32">klarta-humea-esp32</a>.</li>
+<li><a href="https://www.zigbee2mqtt.io/devices/WT-A03E.html">Zigbee2MQTT: Aqara W600 (WT-A03E)</a>; <a href="https://privatehomelab.com/aqara-radiator-thermostat-w600-wt-a03e-zigbee2mqtt-home-assistant/">W600 + Z2M guide</a>; <a href="https://community.home-assistant.io/t/aqara-w600-radiator-thermostat/953685">HA community: W600 (external sensor gap)</a>.</li>
+<li><a href="https://github.com/libdyson-wg/ha-dyson/">libdyson-wg/ha-dyson</a>; <a href="https://github.com/cmgrayb/hass-dyson">cmgrayb/hass-dyson</a>.</li>
+<li><a href="https://www.github.com/jwillemsen/daikin_onecta">jwillemsen/daikin_onecta</a>; <a href="https://www.daikin.eu/en_us/product-group/control-systems/daikin-developer-portal.html">Daikin Developer Portal</a> (200 calls/day, 20/min); <a href="https://community.home-assistant.io/t/daikin-the-daily-rate-limit-has-been-reached/739239">HA community thread</a>.</li>
+<li>Also referenced: <code>wez/govee2mqtt</code>, Zigbee2MQTT supported-devices pages for Aqara, Homebridge apt repository (repo.homebridge.io), Home Assistant docs (HomeKit Bridge, backups and restore, Raspberry Pi installation). Verify each at execution time.</li>
+</ul>
+
+<footer>mati-lab · <code>docs/home-assistant/migration-plan.html</code> · v0.4 · No secrets in this file. Credentials are referenced only by their Vaultwarden labels.</footer>
+</div>
+<script>
+(function(){
+  var boxes=document.querySelectorAll('input[data-k]');
+  boxes.forEach(function(b){
+    try{ if(localStorage.getItem('ha-plan-v2-'+b.dataset.k)==='1') b.checked=true; }catch(e){}
+    b.addEventListener('change',function(){
+      try{ localStorage.setItem('ha-plan-v2-'+b.dataset.k, b.checked?'1':'0'); }catch(e){}
+    });
+  });
+})();
+</script>
+</body>
+</html>
